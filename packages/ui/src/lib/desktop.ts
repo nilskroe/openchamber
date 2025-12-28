@@ -43,6 +43,7 @@ export type DesktopSettings = {
   autoDeleteAfterDays?: number;
   defaultModel?: string; // format: "provider/model"
   defaultAgent?: string;
+  language?: string; // e.g., 'en-US', 'es-ES'
 };
 
 export type DesktopSettingsApi = {

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { RiGitCommitLine, RiArrowDownLine, RiLoader4Line } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
 
@@ -13,14 +14,16 @@ export const GitEmptyState: React.FC<GitEmptyStateProps> = ({
   onPull,
   isPulling,
 }) => {
+  const { t } = useTranslation('git');
+
   return (
     <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
       <RiGitCommitLine className="size-10 text-emerald-500/60 mb-4" />
       <p className="typography-ui-label font-semibold text-foreground mb-1">
-        Working tree clean
+        {t('status.clean')}
       </p>
       <p className="typography-meta text-muted-foreground mb-4">
-        All changes have been committed
+        {t('status.cleanDescription')}
       </p>
 
       {behind > 0 && (
@@ -34,7 +37,7 @@ export const GitEmptyState: React.FC<GitEmptyStateProps> = ({
           ) : (
             <RiArrowDownLine className="size-4" />
           )}
-          Pull {behind} commit{behind === 1 ? '' : 's'}
+          {t('status.pullCommits', { count: behind })}
         </Button>
       )}
     </div>

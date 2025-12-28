@@ -1,0 +1,135 @@
+{
+  "title": "Einstellungen",
+  "language": {
+    "title": "Sprache",
+    "description": "Wählen Sie Ihre bevorzugte Anzeigesprache",
+    "selectLabel": "Anzeigesprache"
+  },
+  "visual": {
+    "title": "Darstellung",
+    "description": "Aussehen und Verhalten anpassen",
+    "theme": {
+      "title": "Design",
+      "description": "Farbschema auswählen",
+      "light": "Hell",
+      "dark": "Dunkel",
+      "system": "System"
+    },
+    "fontSize": {
+      "title": "Schriftgröße",
+      "description": "Textgröße anpassen",
+      "small": "Klein",
+      "medium": "Mittel",
+      "large": "Groß"
+    },
+    "spacing": {
+      "title": "Abstände",
+      "description": "Inhaltsdichte anpassen",
+      "compact": "Kompakt",
+      "comfortable": "Komfortabel",
+      "spacious": "Großzügig"
+    }
+  },
+  "chat": {
+    "title": "Chat",
+    "description": "Chat-Anzeigeeinstellungen",
+    "toolOutput": {
+      "title": "Tool-Ausgabe",
+      "description": "Wie Tool-Ergebnisse angezeigt werden",
+      "collapsed": "Eingeklappt",
+      "activity": "Aktivität",
+      "detailed": "Detailliert"
+    },
+    "diffLayout": {
+      "title": "Diff-Layout",
+      "description": "Wie Code-Unterschiede angezeigt werden",
+      "inline": "Inline",
+      "sideBySide": "Nebeneinander",
+      "dynamic": "Dynamisch"
+    },
+    "reasoning": {
+      "title": "Begründungsverlauf",
+      "description": "Modell-Denkprozess anzeigen",
+      "show": "Anzeigen",
+      "hide": "Ausblenden"
+    },
+    "wrapLines": {
+      "title": "Zeilenumbruch",
+      "description": "Lange Zeilen in Diff-Ansicht umbrechen"
+    }
+  },
+  "sessions": {
+    "title": "Sitzungen",
+    "description": "Sitzungsverwaltungseinstellungen",
+    "defaults": {
+      "title": "Standardwerte",
+      "description": "Standardmodell und -agent für neue Sitzungen",
+      "model": "Standardmodell",
+      "agent": "Standard-Agent",
+      "noDefault": "Kein Standard"
+    },
+    "retention": {
+      "title": "Sitzungsaufbewahrung",
+      "description": "Alte Sitzungen automatisch löschen",
+      "enabled": "Auto-Löschen aktiviert",
+      "disabled": "Auto-Löschen deaktiviert",
+      "afterDays": "Nach {{days}} Tagen löschen",
+      "daysLabel": "Aufbewahrungstage"
+    }
+  },
+  "providers": {
+    "title": "Anbieter",
+    "description": "KI-Anbieter-Konfiguration",
+    "add": "Anbieter hinzufügen",
+    "edit": "Anbieter bearbeiten",
+    "delete": "Anbieter löschen",
+    "apiKey": "API-Schlüssel",
+    "baseUrl": "Basis-URL",
+    "models": "Modelle",
+    "enabled": "Aktiviert",
+    "disabled": "Deaktiviert"
+  },
+  "agents": {
+    "title": "Agenten",
+    "description": "Benutzerdefinierte Agenten-Konfiguration",
+    "add": "Agent hinzufügen",
+    "edit": "Agent bearbeiten",
+    "delete": "Agent löschen",
+    "name": "Agentenname",
+    "systemPrompt": "System-Prompt",
+    "model": "Modell",
+    "tools": "Tools"
+  },
+  "commands": {
+    "title": "Befehle",
+    "description": "Benutzerdefinierte Befehlskonfiguration",
+    "add": "Befehl hinzufügen",
+    "edit": "Befehl bearbeiten",
+    "delete": "Befehl löschen",
+    "name": "Befehlsname",
+    "command": "Befehl",
+    "description_label": "Beschreibung"
+  },
+  "gitIdentities": {
+    "title": "Git-Identitäten",
+    "description": "Git-Benutzerprofile verwalten",
+    "add": "Identität hinzufügen",
+    "edit": "Identität bearbeiten",
+    "delete": "Identität löschen",
+    "name": "Profilname",
+    "userName": "Git-Benutzername",
+    "userEmail": "Git-E-Mail",
+    "sshKey": "SSH-Schlüssel",
+    "setActive": "Als aktiv setzen",
+    "active": "Aktiv"
+  },
+  "about": {
+    "title": "Über",
+    "version": "Version",
+    "checkUpdates": "Nach Updates suchen",
+    "updateAvailable": "Update verfügbar",
+    "upToDate": "Sie sind auf dem neuesten Stand",
+    "downloadUpdate": "Update herunterladen",
+    "restartToUpdate": "Zum Aktualisieren neu starten"
+  }
+}

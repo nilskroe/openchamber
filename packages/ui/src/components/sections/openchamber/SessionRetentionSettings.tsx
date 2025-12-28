@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { RiInformationLine } from '@remixicon/react';
 import { NumberInput } from '@/components/ui/number-input';
@@ -12,6 +13,7 @@ const MIN_DAYS = 1;
 const MAX_DAYS = 365;
 
 export const SessionRetentionSettings: React.FC = () => {
+  const { t } = useTranslation('settings');
   const { isMobile } = useDeviceInfo();
   const autoDeleteEnabled = useUIStore((state) => state.autoDeleteEnabled);
   const autoDeleteAfterDays = useUIStore((state) => state.autoDeleteAfterDays);
@@ -30,30 +32,28 @@ export const SessionRetentionSettings: React.FC = () => {
   const handleRunCleanup = React.useCallback(async () => {
     const result = await runCleanup({ force: true });
     if (result.deletedIds.length === 0 && result.failedIds.length === 0) {
-      toast.message('No sessions eligible for deletion');
+      toast.message(t('sessions.retention.noEligible', 'No sessions eligible for deletion'));
       return;
     }
     if (result.deletedIds.length > 0) {
-      toast.success(`Deleted ${result.deletedIds.length} session${result.deletedIds.length === 1 ? '' : 's'}`);
+      toast.success(t('sessions.retention.deleted', { count: result.deletedIds.length }));
     }
     if (result.failedIds.length > 0) {
-      toast.error(`Failed to delete ${result.failedIds.length} session${result.failedIds.length === 1 ? '' : 's'}`);
+      toast.error(t('sessions.retention.deleteFailed', { count: result.failedIds.length }));
     }
-  }, [runCleanup]);
+  }, [runCleanup, t]);
 
   return (
     <div className="space-y-4">
       <div className="space-y-1">
         <div className="flex items-center gap-2">
-          <h3 className="typography-ui-header font-semibold text-foreground">Session retention</h3>
+          <h3 className="typography-ui-header font-semibold text-foreground">{t('sessions.retention.title')}</h3>
           <Tooltip delayDuration={1000}>
             <TooltipTrigger asChild>
               <RiInformationLine className="h-3.5 w-3.5 text-muted-foreground/60 cursor-help" />
             </TooltipTrigger>
             <TooltipContent sideOffset={8} className="max-w-xs">
-              Automatically delete inactive sessions based on their last activity.<br />
-              You can also run a one-time cleanup without enabling auto-cleanup.<br />
-              Keeps the most recent 5 sessions, and never deletes shared sessions.
+              {t('sessions.retention.description')}
             </TooltipContent>
           </Tooltip>
         </div>
@@ -66,7 +66,7 @@ export const SessionRetentionSettings: React.FC = () => {
           checked={autoDeleteEnabled}
           onChange={(event) => setAutoDeleteEnabled(event.target.checked)}
         />
-        <span className="typography-ui-header font-semibold text-foreground">Enable auto-cleanup</span>
+        <span className="typography-ui-header font-semibold text-foreground">{t('sessions.retention.enableAutoCleanup', 'Enable auto-cleanup')}</span>
       </label>
 
       <div className="flex flex-wrap items-center gap-3">
@@ -116,7 +116,7 @@ export const SessionRetentionSettings: React.FC = () => {
               aria-label="Retention period in days"
             />
           )}
-          <span className="typography-ui-label text-muted-foreground">days since last activity</span>
+          <span className="typography-ui-label text-muted-foreground">{t('sessions.retention.daysLabel', 'days since last activity')}</span>
         </div>
         <ButtonSmall
           type="button"
@@ -124,12 +124,12 @@ export const SessionRetentionSettings: React.FC = () => {
           onClick={handleRunCleanup}
           disabled={isRunning}
         >
-          {isRunning ? 'Cleaning up...' : 'Run cleanup now'}
+          {isRunning ? t('sessions.retention.cleaningUp', 'Cleaning up...') : t('sessions.retention.runCleanup', 'Run cleanup now')}
         </ButtonSmall>
       </div>
 
       <div className="typography-meta text-muted-foreground">
-        Eligible for deletion right now: {pendingCount}
+        {t('sessions.retention.eligibleCount', { count: pendingCount })}
       </div>
     </div>
   );

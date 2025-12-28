@@ -1,0 +1,49 @@
+{
+  "connection": {
+    "failed": "Verbindung zum Server fehlgeschlagen",
+    "timeout": "Verbindungszeitüberschreitung",
+    "retry": "Verbindung wird erneut versucht...",
+    "offline": "Sie scheinen offline zu sein",
+    "serverError": "Serverfehler aufgetreten"
+  },
+  "api": {
+    "requestFailed": "Anfrage fehlgeschlagen",
+    "unauthorized": "Nicht autorisiert",
+    "forbidden": "Zugriff verweigert",
+    "notFound": "Nicht gefunden",
+    "rateLimited": "Anfragelimit erreicht, bitte später erneut versuchen",
+    "serverError": "Serverfehler"
+  },
+  "file": {
+    "readFailed": "Datei konnte nicht gelesen werden",
+    "writeFailed": "Datei konnte nicht geschrieben werden",
+    "deleteFailed": "Datei konnte nicht gelöscht werden",
+    "notFound": "Datei nicht gefunden",
+    "permissionDenied": "Zugriff verweigert",
+    "tooLarge": "Datei zu groß"
+  },
+  "session": {
+    "createFailed": "Sitzung konnte nicht erstellt werden",
+    "loadFailed": "Sitzung konnte nicht geladen werden",
+    "deleteFailed": "Sitzung konnte nicht gelöscht werden",
+    "notFound": "Sitzung nicht gefunden"
+  },
+  "message": {
+    "sendFailed": "Nachricht konnte nicht gesendet werden",
+    "streamFailed": "Nachrichtenstream fehlgeschlagen",
+    "parseFailed": "Antwort konnte nicht analysiert werden"
+  },
+  "generic": {
+    "unknown": "Ein unerwarteter Fehler ist aufgetreten",
+    "tryAgain": "Bitte versuchen Sie es erneut",
+    "contactSupport": "Wenn das Problem weiterhin besteht, wenden Sie sich bitte an den Support"
+  },
+  "validation": {
+    "required": "Dieses Feld ist erforderlich",
+    "invalid": "Ungültige Eingabe",
+    "invalidEmail": "Ungültige E-Mail-Adresse",
+    "invalidUrl": "Ungültige URL",
+    "minLength": "Muss mindestens {{min}} Zeichen haben",
+    "maxLength": "Darf höchstens {{max}} Zeichen haben"
+  }
+}

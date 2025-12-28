@@ -1,0 +1,98 @@
+{
+  "input": {
+    "placeholder": "# 选择代理；@ 选择文件；/ 选择命令",
+    "placeholderWithModel": "询问 {{model}}...",
+    "send": "发送消息",
+    "stop": "停止生成",
+    "attachFile": "附加文件",
+    "attachedFiles_one": "已附加 {{count}} 个文件",
+    "attachedFiles_other": "已附加 {{count}} 个文件"
+  },
+  "message": {
+    "empty": "暂无消息",
+    "emptyDescription": "在下方输入消息开始对话",
+    "count_one": "{{count}} 条消息",
+    "count_other": "{{count}} 条消息",
+    "thinking": "思考中...",
+    "generating": "生成中...",
+    "copied": "消息已复制",
+    "copyFailed": "复制消息失败",
+    "regenerate": "重新生成回复",
+    "edit": "编辑消息"
+  },
+  "session": {
+    "new": "新会话",
+    "newDescription": "开始新对话",
+    "rename": "重命名会话",
+    "delete": "删除会话",
+    "deleteConfirm": "删除此会话？",
+    "noSessions": "无会话",
+    "switchTo": "切换到会话",
+    "current": "当前会话",
+    "count_one": "{{count}} 个会话",
+    "count_other": "{{count}} 个会话",
+    "selectOrCreate": "选择或创建会话以开始聊天"
+  },
+  "tool": {
+    "output": "工具输出",
+    "collapsed": "已折叠",
+    "activity": "活动",
+    "detailed": "详细",
+    "running": "运行中...",
+    "completed": "已完成",
+    "failed": "失败"
+  },
+  "model": {
+    "select": "选择模型",
+    "noModels": "无可用模型",
+    "favorites": "收藏",
+    "recent": "最近使用",
+    "all": "所有模型",
+    "addFavorite": "添加到收藏",
+    "removeFavorite": "从收藏中移除"
+  },
+  "agent": {
+    "select": "选择代理",
+    "noAgents": "无可用代理",
+    "default": "默认代理"
+  },
+  "file": {
+    "tooLarge": "文件过大（最大 {{size}}）",
+    "invalidType": "文件类型无效",
+    "uploadFailed": "文件上传失败",
+    "count_one": "{{count}} 个文件",
+    "count_other": "{{count}} 个文件",
+    "dropToAttach": "拖放文件到此处以附加",
+    "attachFiles": "附加文件",
+    "attachFromProject": "从项目中附加"
+  },
+  "filePicker": {
+    "title": "选择项目文件",
+    "searchPlaceholder": "搜索文件...",
+    "loading": "加载文件中...",
+    "loadingChildren": "加载中...",
+    "searching": "搜索文件中...",
+    "noFilesInDirectory": "此目录中没有文件",
+    "noFilesFound": "未找到文件",
+    "filesSelected_one": "已选择 {{count}} 个文件",
+    "filesSelected_other": "已选择 {{count}} 个文件",
+    "noFilesSelected": "未选择文件",
+    "attachFiles": "附加文件",
+    "attaching": "附加中..."
+  },
+  "diff": {
+    "inline": "内联",
+    "sideBySide": "并排",
+    "dynamic": "动态",
+    "noChanges": "无更改",
+    "additions_one": "{{count}} 处添加",
+    "additions_other": "{{count}} 处添加",
+    "deletions_one": "{{count}} 处删除",
+    "deletions_other": "{{count}} 处删除"
+  },
+  "reasoning": {
+    "show": "显示推理",
+    "hide": "隐藏推理",
+    "traces": "推理过程"
+  }
+}

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSessionStore } from '@/stores/useSessionStore';
 import { useFireworksCelebration } from '@/contexts/FireworksContext';
 import type { GitIdentityProfile, CommitFileEntry } from '@/lib/api/types';
@@ -53,6 +54,7 @@ const useEffectiveDirectory = () => {
 };
 
 export const GitView: React.FC = () => {
+  const { t } = useTranslation('git');
   const { git } = useRuntimeAPIs();
   const currentDirectory = useEffectiveDirectory();
   const { currentSessionId, worktreeMetadata: worktreeMap } = useSessionStore();
@@ -113,12 +115,12 @@ export const GitView: React.FC = () => {
     navigator.clipboard
       .writeText(hash)
       .then(() => {
-        toast.success('Commit hash copied');
+        toast.success(t('commit.hashCopied'));
       })
       .catch(() => {
-        toast.error('Failed to copy');
+        toast.error(t('error.copyFailed'));
       });
-  }, []);
+  }, [t]);
 
   const handleToggleCommit = React.useCallback((hash: string) => {
     setExpandedCommitHashes((prev) => {
@@ -211,12 +213,12 @@ export const GitView: React.FC = () => {
       } catch (err) {
         if (showErrors) {
           const message =
-            err instanceof Error ? err.message : 'Failed to refresh repository state';
+            err instanceof Error ? err.message : t('error.refreshFailed');
           toast.error(message);
         }
       }
     },
-    [currentDirectory, git, fetchStatus, fetchBranches]
+    [currentDirectory, git, fetchStatus, fetchBranches, t]
   );
 
   const refreshLog = React.useCallback(async () => {
@@ -271,15 +273,13 @@ export const GitView: React.FC = () => {
     try {
       if (action === 'fetch') {
         await git.gitFetch(currentDirectory);
-        toast.success('Fetched latest updates');
+        toast.success(t('remote.fetchSuccess'));
       } else if (action === 'pull') {
         const result = await git.gitPull(currentDirectory);
-        toast.success(
-          `Pulled ${result.files.length} file${result.files.length === 1 ? '' : 's'}`
-        );
+        toast.success(t('remote.pullSuccess', { count: result.files.length }));
       } else if (action === 'push') {
         await git.gitPush(currentDirectory);
-        toast.success('Pushed to remote');
+        toast.success(t('remote.pushSuccess'));
       }
 
       await refreshStatusAndBranches(false);
@@ -298,13 +298,13 @@ export const GitView: React.FC = () => {
   const handleCommit = async (options: { pushAfter?: boolean } = {}) => {
     if (!currentDirectory) return;
     if (!commitMessage.trim()) {
-      toast.error('Please enter a commit message');
+      toast.error(t('error.enterCommitMessage'));
       return;
     }
 
     const filesToCommit = Array.from(selectedPaths).sort();
     if (filesToCommit.length === 0) {
-      toast.error('Select at least one file to commit');
+      toast.error(t('error.selectAtLeastOneFile'));
       return;
     }
 
@@ -315,7 +315,7 @@ export const GitView: React.FC = () => {
       await git.createGitCommit(currentDirectory, commitMessage.trim(), {
         files: filesToCommit,
       });
-      toast.success('Commit created successfully');
+      toast.success(t('commit.success'));
       setCommitMessage('');
       setSelectedPaths(new Set());
       setHasUserAdjustedSelection(false);
@@ -325,7 +325,7 @@ export const GitView: React.FC = () => {
 
       if (options.pushAfter) {
         await git.gitPush(currentDirectory);
-        toast.success('Pushed to remote');
+        toast.success(t('remote.pushSuccess'));
         triggerFireworks();
         await refreshStatusAndBranches(false);
       } else {
@@ -334,7 +334,7 @@ export const GitView: React.FC = () => {
 
       await refreshLog();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to create commit';
+      const message = err instanceof Error ? err.message : t('error.commitFailed');
       toast.error(message);
     } finally {
       setCommitAction(null);
@@ -344,7 +344,7 @@ export const GitView: React.FC = () => {
   const handleGenerateCommitMessage = React.useCallback(async () => {
     if (!currentDirectory) return;
     if (selectedPaths.size === 0) {
-      toast.error('Select at least one file to describe');
+      toast.error(t('error.selectAtLeastOneFileToDescribe'));
       return;
     }
 
@@ -362,15 +362,15 @@ export const GitView: React.FC = () => {
       }
       setGeneratedHighlights(highlights);
 
-      toast.success('Commit message generated');
+      toast.success(t('commit.messageGenerated'));
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : 'Failed to generate commit message';
+        error instanceof Error ? error.message : t('error.generateFailed');
       toast.error(message);
     } finally {
       setIsGeneratingMessage(false);
     }
-  }, [currentDirectory, selectedPaths, git]);
+  }, [currentDirectory, selectedPaths, git, t]);
 
   const handleCreateBranch = async (branchName: string) => {
     if (!currentDirectory || !status) return;
@@ -378,7 +378,7 @@ export const GitView: React.FC = () => {
 
     try {
       await git.createBranch(currentDirectory, branchName, checkoutBase ?? 'HEAD');
-      toast.success(`Created branch ${branchName}`);
+      toast.success(t('branch.created', { branch: branchName }));
 
       let pushSucceeded = false;
       try {
@@ -390,14 +390,14 @@ export const GitView: React.FC = () => {
         });
         pushSucceeded = true;
       } catch (pushError) {
-        const message =
+        const errorMessage =
           pushError instanceof Error
             ? pushError.message
             : 'Unable to push new branch to origin.';
-        toast.warning('Branch created locally', {
+        toast.warning(t('branch.createdLocally'), {
           description: (
             <span className="text-foreground/80 dark:text-foreground/70">
-              Upstream setup failed: {message}
+              {t('branch.upstreamFailed', { message: errorMessage })}
             </span>
           ),
         });
@@ -415,10 +415,10 @@ export const GitView: React.FC = () => {
       await refreshLog();
 
       if (pushSucceeded) {
-        toast.success(`Upstream set for ${branchName}`);
+        toast.success(t('branch.upstreamSet', { branch: branchName }));
       }
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to create branch';
+      const message = err instanceof Error ? err.message : t('error.branchFailed');
       toast.error(message);
       throw err;
     }
@@ -434,12 +434,12 @@ export const GitView: React.FC = () => {
 
     try {
       await git.checkoutBranch(currentDirectory, normalized);
-      toast.success(`Checked out ${normalized}`);
+      toast.success(t('branch.checkedOut', { branch: normalized }));
       await refreshStatusAndBranches();
       await refreshLog();
     } catch (err) {
       const message =
-        err instanceof Error ? err.message : `Failed to checkout ${normalized}`;
+        err instanceof Error ? err.message : t('error.checkoutFailed', { branch: normalized });
       toast.error(message);
     }
   };
@@ -450,10 +450,10 @@ export const GitView: React.FC = () => {
 
     try {
       await git.setGitIdentity(currentDirectory, profile.id);
-      toast.success(`Applied "${profile.name}" to repository`);
+      toast.success(t('identity.applied', { name: profile.name }));
       await refreshIdentity();
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to apply git identity';
+      const message = err instanceof Error ? err.message : t('error.identityFailed');
       toast.error(message);
     } finally {
       setIsSettingIdentity(false);
@@ -561,10 +561,10 @@ export const GitView: React.FC = () => {
 
       try {
         await git.revertGitFile(currentDirectory, filePath);
-        toast.success(`Reverted ${filePath}`);
+        toast.success(t('diff.reverted', { path: filePath }));
         await refreshStatusAndBranches(false);
       } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to revert changes';
+        const message = err instanceof Error ? err.message : t('error.revertFailed');
         toast.error(message);
       } finally {
         setRevertingPaths((previous) => {
@@ -574,7 +574,7 @@ export const GitView: React.FC = () => {
         });
       }
     },
-    [currentDirectory, refreshStatusAndBranches, git]
+    [currentDirectory, refreshStatusAndBranches, git, t]
   );
 
   const handleInsertHighlights = React.useCallback(() => {
@@ -608,7 +608,7 @@ export const GitView: React.FC = () => {
     return (
       <div className="flex h-full items-center justify-center px-4 text-center">
         <p className="typography-ui-label text-muted-foreground">
-          Select a session or directory to view repository details.
+          {t('status.selectSessionOrDirectory')}
         </p>
       </div>
     );
@@ -619,7 +619,7 @@ export const GitView: React.FC = () => {
       <div className="flex h-full items-center justify-center">
         <div className="flex items-center gap-2 text-muted-foreground">
           <RiLoader4Line className="size-4 animate-spin" />
-          <span className="typography-ui-label">Checking repository...</span>
+          <span className="typography-ui-label">{t('status.checkingRepository')}</span>
         </div>
       </div>
     );
@@ -630,10 +630,10 @@ export const GitView: React.FC = () => {
       <div className="flex h-full flex-col items-center justify-center px-4 text-center">
         <RiGitBranchLine className="mb-3 size-6 text-muted-foreground" />
         <p className="typography-ui-label font-semibold text-foreground">
-          Not a Git repository
+          {t('status.notGitRepo')}
         </p>
         <p className="typography-meta mt-1 text-muted-foreground">
-          Choose a different directory or initialize Git to use this workspace.
+          {t('status.notGitRepoDescription')}
         </p>
       </div>
     );

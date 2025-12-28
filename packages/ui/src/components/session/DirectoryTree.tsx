@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -53,6 +54,7 @@ export const DirectoryTree: React.FC<DirectoryTreeProps> = ({
   isRootReady,
   alwaysShowActions = false,
 }) => {
+  const { t } = useTranslation('ui');
   const desktopRuntime = React.useMemo(() => isDesktopRuntime(), []);
   const [directories, setDirectories] = React.useState<DirectoryItem[]>([]);
   const [expandedPaths, setExpandedPaths] = React.useState<Set<string>>(new Set());
@@ -682,7 +684,7 @@ export const DirectoryTree: React.FC<DirectoryTreeProps> = ({
             "p-1 hover:bg-accent rounded transition-opacity",
             alwaysShowActions ? "opacity-70" : "opacity-0 group-hover:opacity-100"
           )}
-          title="Create new directory"
+          title={t('directory.tree.createNewDirectory', 'Create new directory')}
         >
           <RiAddLine className="h-3 w-3 text-muted-foreground" />
         </button>
@@ -696,7 +698,7 @@ export const DirectoryTree: React.FC<DirectoryTreeProps> = ({
             "p-1 hover:bg-accent rounded transition-opacity",
             alwaysShowActions ? "opacity-70" : "opacity-0 group-hover:opacity-100"
           )}
-          title={isPinned ? "Unpin directory" : "Pin directory"}
+          title={isPinned ? t('directory.tree.unpinDirectory', 'Unpin directory') : t('directory.tree.pinDirectory', 'Pin directory')}
         >
           {isPinned ? (
             <RiPushpin2Line className="h-3 w-3 text-primary" />
@@ -754,7 +756,7 @@ export const DirectoryTree: React.FC<DirectoryTreeProps> = ({
                       createDirectory();
                     }}
                     className="p-1 hover:bg-accent rounded"
-                    title="Create directory"
+                    title={t('directory.tree.createDirectory', 'Create directory')}
                   >
                     <RiCheckLine className="h-3 w-3 text-green-600" />
                   </button>
@@ -765,7 +767,7 @@ export const DirectoryTree: React.FC<DirectoryTreeProps> = ({
                       cancelCreatingDirectory();
                     }}
                     className="p-1 hover:bg-accent rounded"
-                    title="Cancel"
+                    title={t('directory.tree.cancel', 'Cancel')}
                   >
                     <RiCloseLine className="h-3 w-3 text-muted-foreground" />
                   </button>
@@ -843,7 +845,7 @@ export const DirectoryTree: React.FC<DirectoryTreeProps> = ({
                     createDirectory();
                   }}
                   className="p-1 hover:bg-accent rounded"
-                  title="Create directory"
+                  title={t('directory.tree.createDirectory', 'Create directory')}
                 >
                   <RiCheckLine className="h-3 w-3 text-green-600" />
                 </button>
@@ -854,7 +856,7 @@ export const DirectoryTree: React.FC<DirectoryTreeProps> = ({
                     cancelCreatingDirectory();
                   }}
                   className="p-1 hover:bg-accent rounded"
-                  title="Cancel"
+                  title={t('directory.tree.cancel', 'Cancel')}
                 >
                   <RiCloseLine className="h-3 w-3 text-muted-foreground" />
                 </button>
@@ -913,7 +915,7 @@ export const DirectoryTree: React.FC<DirectoryTreeProps> = ({
           <button
             onClick={() => togglePin(path)}
             className="p-1 opacity-0 group-hover:opacity-100 hover:bg-accent rounded transition-opacity"
-            title="Unpin directory"
+            title={t('directory.tree.unpinDirectory', 'Unpin directory')}
           >
             <RiPushpin2Line className="h-3 w-3 text-primary" />
           </button>
@@ -950,7 +952,7 @@ export const DirectoryTree: React.FC<DirectoryTreeProps> = ({
             togglePin(path);
           }}
           className="p-1 opacity-0 group-hover:opacity-100 hover:bg-accent rounded transition-opacity"
-          title="Unpin directory"
+          title={t('directory.tree.unpinDirectory', 'Unpin directory')}
         >
           <RiPushpin2Line className="h-3 w-3 text-primary" />
         </button>
@@ -962,7 +964,7 @@ export const DirectoryTree: React.FC<DirectoryTreeProps> = ({
     <>
       {!rootReady ? (
         <div className="px-3 py-2 typography-ui-label text-muted-foreground">
-          Locating home directory...
+          {t('directory.tree.locatingHome', 'Locating home directory...')}
         </div>
       ) : (
         <>
@@ -979,7 +981,7 @@ export const DirectoryTree: React.FC<DirectoryTreeProps> = ({
                   <RiArrowRightSLine className="h-3.5 w-3.5" />
                 )}
                 <RiStarLine className="h-3.5 w-3.5" />
-                <span>Pinned</span>
+                <span>{t('directory.tree.pinned', 'Pinned')}</span>
                 <span className="ml-auto typography-micro text-muted-foreground/70">
                   {pinnedDirectories.length}
                 </span>
@@ -994,12 +996,12 @@ export const DirectoryTree: React.FC<DirectoryTreeProps> = ({
 
           <div className="px-2 py-1.5 typography-meta font-semibold text-muted-foreground flex items-center gap-1.5">
             <RiFolder6Line className="h-3.5 w-3.5" />
-            Browse
+            {t('directory.tree.browse', 'Browse')}
           </div>
 
           {isLoading ? (
             <div className="px-3 py-2 typography-ui-label text-muted-foreground">
-              Loading...
+              {t('directory.tree.loading', 'Loading...')}
             </div>
           ) : (
             directories.map((item) => renderTreeItem(item))
@@ -1007,7 +1009,7 @@ export const DirectoryTree: React.FC<DirectoryTreeProps> = ({
 
           {!isLoading && directories.length === 0 && (
             <div className="px-3 py-2 typography-ui-label text-muted-foreground">
-              No directories found
+              {t('directory.tree.noDirectoriesFound', 'No directories found')}
             </div>
           )}
         </>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { ButtonSmall } from '@/components/ui/button-small';
 import { Input } from '@/components/ui/input';
@@ -14,6 +15,7 @@ import { ScrollableOverlay } from '@/components/ui/ScrollableOverlay';
 import { useAvailableTools } from '@/hooks/useAvailableTools';
 
 export const AgentsPage: React.FC = () => {
+    const { t } = useTranslation(['settings', 'common']);
     const { selectedAgentName, getAgentByName, createAgent, updateAgent, agents } = useAgentsStore();
     useConfigStore();
     const { tools: availableTools } = useAvailableTools();
@@ -84,7 +86,7 @@ export const AgentsPage: React.FC = () => {
     const handleSave = async () => {
 
         if (!name.trim()) {
-            toast.error('Agent name is required');
+            toast.error(t('settings:agents.errors.nameRequired', 'Agent name is required'));
             return;
         }
 
@@ -116,13 +118,13 @@ export const AgentsPage: React.FC = () => {
             }
 
             if (success) {
-                toast.success(isNewAgent ? 'Agent created successfully' : 'Agent updated successfully');
+                toast.success(isNewAgent ? t('settings:agents.success.created', 'Agent created successfully') : t('settings:agents.success.updated', 'Agent updated successfully'));
             } else {
-                toast.error(isNewAgent ? 'Failed to create agent' : 'Failed to update agent');
+                toast.error(isNewAgent ? t('settings:agents.errors.createFailed', 'Failed to create agent') : t('settings:agents.errors.updateFailed', 'Failed to update agent'));
             }
         } catch (error) {
             console.error('Error saving agent:', error);
-            toast.error('An error occurred while saving');
+            toast.error(t('settings:agents.errors.saveFailed', 'An error occurred while saving'));
         } finally {
             setIsSaving(false);
         }
@@ -148,8 +150,8 @@ export const AgentsPage: React.FC = () => {
             <div className="flex h-full items-center justify-center">
                 <div className="text-center text-muted-foreground">
                     <RiRobot2Line className="mx-auto mb-3 h-12 w-12 opacity-50" />
-                    <p className="typography-body">Select an agent from the sidebar</p>
-                    <p className="typography-meta mt-1 opacity-75">or create a new one</p>
+                    <p className="typography-body">{t('settings:agents.selectFromSidebar', 'Select an agent from the sidebar')}</p>
+                    <p className="typography-meta mt-1 opacity-75">{t('settings:agents.orCreateNew', 'or create a new one')}</p>
                 </div>
             </div>
         );
@@ -160,46 +162,46 @@ export const AgentsPage: React.FC = () => {
             {}
             <div className="space-y-1">
                 <h1 className="typography-ui-header font-semibold text-lg">
-                    {isNewAgent ? 'New Agent' : name}
+                    {isNewAgent ? t('settings:agents.newAgent', 'New Agent') : name}
                 </h1>
             </div>
 
             {}
             <div className="space-y-4">
                 <div className="space-y-1">
-                    <h2 className="typography-ui-header font-semibold text-foreground">Basic Information</h2>
+                    <h2 className="typography-ui-header font-semibold text-foreground">{t('settings:agents.sections.basicInfo', 'Basic Information')}</h2>
                     <p className="typography-meta text-muted-foreground/80">
-                        Configure agent identity and behavior mode
+                        {t('settings:agents.sections.basicInfoDesc', 'Configure agent identity and metadata')}
                     </p>
                 </div>
 
                 <div className="space-y-2">
                     <label className="typography-ui-label font-medium text-foreground">
-                        Agent Name
+                        {t('settings:agents.fields.name', 'Agent Name')}
                     </label>
                     <Input
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        placeholder="my-agent"
+                        placeholder={t('settings:agents.fields.namePlaceholder', 'my-agent')}
                         disabled={!isNewAgent}
                     />
                 </div>
 
                 <div className="space-y-2">
                     <label className="typography-ui-label font-medium text-foreground">
-                        Description
+                        {t('settings:agents.fields.description', 'Description')}
                     </label>
                     <Textarea
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
-                        placeholder="What does this agent do?"
+                        placeholder={t('settings:agents.fields.descriptionPlaceholder', 'What does this agent do?')}
                         rows={3}
                     />
                 </div>
 
                 <div className="space-y-2">
                     <label className="typography-ui-label font-medium text-foreground">
-                        Mode
+                        {t('settings:agents.fields.mode', 'Mode')}
                     </label>
                     <div className="flex gap-1 w-fit">
                         <ButtonSmall
@@ -208,7 +210,7 @@ export const AgentsPage: React.FC = () => {
                             className={cn('gap-2', mode === 'primary' ? undefined : 'text-foreground')}
                         >
                             <RiAiAgentLine className="h-3 w-3" />
-                            Primary
+                            {t('settings:agents.modes.primary', 'Primary')}
                         </ButtonSmall>
                         <ButtonSmall
                             variant={mode === 'subagent' ? 'default' : 'outline'}
@@ -216,7 +218,7 @@ export const AgentsPage: React.FC = () => {
                             className={cn('gap-2', mode === 'subagent' ? undefined : 'text-foreground')}
                         >
                             <RiRobotLine className="h-3 w-3" />
-                            Subagent
+                            {t('settings:agents.modes.subagent', 'Subagent')}
                         </ButtonSmall>
                         <ButtonSmall
                             variant={mode === 'all' ? 'default' : 'outline'}
@@ -224,11 +226,11 @@ export const AgentsPage: React.FC = () => {
                             className={cn('gap-2', mode === 'all' ? undefined : 'text-foreground')}
                         >
                             <RiAiAgentFill className="h-3 w-3" />
-                            All
+                            {t('settings:agents.modes.all', 'All')}
                         </ButtonSmall>
                     </div>
                     <p className="typography-meta text-muted-foreground">
-                        Primary: main agent, Subagent: helper agent, All: both modes
+                        {t('settings:agents.fields.modeDescription', 'Primary: main agent, Subagent: helper agent, All: both modes')}
                     </p>
                 </div>
             </div>
@@ -236,15 +238,15 @@ export const AgentsPage: React.FC = () => {
             {}
             <div className="space-y-4">
                 <div className="space-y-1">
-                    <h2 className="typography-h2 font-semibold text-foreground">Model Configuration</h2>
+                    <h2 className="typography-h2 font-semibold text-foreground">{t('settings:agents.sections.modelConfig', 'Model Configuration')}</h2>
                     <p className="typography-meta text-muted-foreground/80">
-                        Configure model and generation parameters
+                        {t('settings:agents.sections.modelConfigDesc', 'Configure model and generation parameters')}
                     </p>
                 </div>
 
                 <div className="space-y-2">
                     <label className="typography-ui-label font-medium text-foreground">
-                        Model
+                        {t('settings:agents.fields.model', 'Model')}
                     </label>
                     <ModelSelector
                         providerId={model ? model.split('/')[0] : ''}
@@ -262,15 +264,13 @@ export const AgentsPage: React.FC = () => {
                 <div className="flex gap-4">
                     <div className="space-y-2">
                         <label className="typography-ui-label font-medium text-foreground flex items-center gap-2">
-                            Temperature
+                            {t('settings:agents.fields.temperature', 'Temperature')}
                             <Tooltip delayDuration={1000}>
                                 <TooltipTrigger asChild>
                                     <RiInformationLine className="h-3.5 w-3.5 text-muted-foreground/60 cursor-help" />
                                 </TooltipTrigger>
                                 <TooltipContent sideOffset={8} className="max-w-xs">
-                                    Controls randomness in responses.<br />
-                                    Higher values make output more creative and unpredictable,<br />
-                                    lower values make it more focused and deterministic.
+                                    {t('settings:agents.tooltips.temperature', 'Controls randomness in responses. Lower values (0.0) make output more focused and deterministic. Higher values (1.0+) make output more creative and varied.')}
                                 </TooltipContent>
                             </Tooltip>
                         </label>
@@ -330,15 +330,13 @@ export const AgentsPage: React.FC = () => {
 
                     <div className="space-y-2">
                         <label className="typography-ui-label font-medium text-foreground flex items-center gap-2">
-                            Top P
+                            {t('settings:agents.fields.topP', 'Top P')}
                             <Tooltip delayDuration={1000}>
                                 <TooltipTrigger asChild>
                                     <RiInformationLine className="h-3.5 w-3.5 text-muted-foreground/60 cursor-help" />
                                 </TooltipTrigger>
                                 <TooltipContent sideOffset={8} className="max-w-xs">
-                                    Controls diversity via nucleus sampling.<br />
-                                    Lower values focus on most likely tokens,<br />
-                                    higher values consider more possibilities.
+                                    {t('settings:agents.tooltips.topP', 'Controls diversity via nucleus sampling. Lower values (0.1) focus on most likely tokens. Higher values (0.9) allow more diverse output.')}
                                 </TooltipContent>
                             </Tooltip>
                         </label>
@@ -401,15 +399,15 @@ export const AgentsPage: React.FC = () => {
             {}
             <div className="space-y-4">
                 <div className="space-y-1">
-                    <h2 className="typography-h2 font-semibold text-foreground">System Prompt</h2>
+                    <h2 className="typography-h2 font-semibold text-foreground">{t('settings:agents.sections.systemPrompt', 'System Prompt')}</h2>
                     <p className="typography-meta text-muted-foreground/80">
-                        Override the default system prompt for this agent
+                        {t('settings:agents.sections.systemPromptDesc', 'Override the default system prompt for this agent')}
                     </p>
                 </div>
                 <Textarea
                     value={prompt}
                     onChange={(e) => setPrompt(e.target.value)}
-                    placeholder="Custom system prompt for this agent..."
+                    placeholder={t('settings:agents.fields.systemPromptPlaceholder', 'Custom system prompt...')}
                     rows={8}
                     className="font-mono typography-meta"
                 />
@@ -419,9 +417,9 @@ export const AgentsPage: React.FC = () => {
             <div className="space-y-4">
                 <div className="flex items-center justify-between">
                     <div className="space-y-1">
-                        <h2 className="typography-h2 font-semibold text-foreground">Available Tools</h2>
+                        <h2 className="typography-h2 font-semibold text-foreground">{t('settings:agents.sections.availableTools', 'Available Tools')}</h2>
                         <p className="typography-meta text-muted-foreground/80">
-                            Select tools this agent can access
+                            {t('settings:agents.sections.availableToolsDesc', 'Select tools this agent can access')}
                         </p>
                     </div>
                     <div className="flex gap-1 w-fit">
@@ -431,7 +429,7 @@ export const AgentsPage: React.FC = () => {
                             onClick={() => toggleAllTools(true)}
                             className="h-6 px-2 text-xs"
                         >
-                            Enable All
+                            {t('common:button.enableAll', 'Enable All')}
                         </Button>
                         <Button
                             variant="outline"
@@ -439,7 +437,7 @@ export const AgentsPage: React.FC = () => {
                             onClick={() => toggleAllTools(false)}
                             className="h-6 px-2 text-xs"
                         >
-                            Disable All
+                            {t('common:button.disableAll', 'Disable All')}
                         </Button>
                     </div>
                 </div>
@@ -466,16 +464,16 @@ export const AgentsPage: React.FC = () => {
             {}
             <div className="space-y-4">
                 <div className="space-y-1">
-                    <h2 className="typography-h2 font-semibold text-foreground">Permissions</h2>
+                    <h2 className="typography-h2 font-semibold text-foreground">{t('settings:agents.sections.permissions', 'Permissions')}</h2>
                     <p className="typography-meta text-muted-foreground/80">
-                        Configure permission levels for different operations
+                        {t('settings:agents.sections.permissionsDesc', 'Configure permission levels for different actions')}
                     </p>
                 </div>
 
                 <div className="space-y-4">
                     <div className="space-y-2">
                         <label className="typography-ui-label font-medium text-foreground">
-                            Edit Permission
+                            {t('settings:agents.permissions.edit', 'Edit Permission')}
                         </label>
                         <div className="flex gap-1 w-fit">
                             <Button
@@ -484,7 +482,7 @@ export const AgentsPage: React.FC = () => {
                                 onClick={() => setEditPermission('full')}
                                 className="h-6 px-2 text-xs"
                             >
-                                Full
+                                {t('settings:agents.permissions.modes.full', 'Full')}
                             </Button>
                             <Button
                                 size="sm"
@@ -492,7 +490,7 @@ export const AgentsPage: React.FC = () => {
                                 onClick={() => setEditPermission('allow')}
                                 className="h-6 px-2 text-xs"
                             >
-                                Allow
+                                {t('settings:agents.permissions.modes.allow', 'Allow')}
                             </Button>
                             <Button
                                 size="sm"
@@ -500,7 +498,7 @@ export const AgentsPage: React.FC = () => {
                                 onClick={() => setEditPermission('ask')}
                                 className="h-6 px-2 text-xs"
                             >
-                                Ask
+                                {t('settings:agents.permissions.modes.ask', 'Ask')}
                             </Button>
                             <Button
                                 size="sm"
@@ -508,12 +506,12 @@ export const AgentsPage: React.FC = () => {
                                 onClick={() => setEditPermission('deny')}
                                 className="h-6 px-2 text-xs"
                             >
-                                Deny
+                                {t('settings:agents.permissions.modes.deny', 'Deny')}
                             </Button>
                         </div>
                         <div className="flex items-center gap-2">
                             <p className="typography-meta text-muted-foreground">
-                                Controls file editing permissions.
+                                {t('settings:agents.permissions.editDescription', 'Controls file editing permissions.')}
                             </p>
                             <Tooltip delayDuration={1000}>
                                 <TooltipTrigger asChild>
@@ -521,10 +519,10 @@ export const AgentsPage: React.FC = () => {
                                 </TooltipTrigger>
                                 <TooltipContent sideOffset={8} className="max-w-xs">
                                     <div className="space-y-1">
-                                        <p><strong>Full:</strong> Auto-approves all tool requests</p>
-                                        <p><strong>Allow:</strong> Allows file editing with standard checks</p>
-                                        <p><strong>Ask:</strong> Prompts for confirmation before editing</p>
-                                        <p><strong>Deny:</strong> Blocks all file editing operations</p>
+                                        <p><strong>{t('settings:agents.permissions.modes.full', 'Full')}:</strong> Auto-approves all tool requests</p>
+                                        <p><strong>{t('settings:agents.permissions.modes.allow', 'Allow')}:</strong> Allows file editing with standard checks</p>
+                                        <p><strong>{t('settings:agents.permissions.modes.ask', 'Ask')}:</strong> Prompts for confirmation before editing</p>
+                                        <p><strong>{t('settings:agents.permissions.modes.deny', 'Deny')}:</strong> Blocks all file editing operations</p>
                                     </div>
                                 </TooltipContent>
                             </Tooltip>
@@ -533,7 +531,7 @@ export const AgentsPage: React.FC = () => {
 
                     <div className="space-y-2">
                         <label className="typography-ui-label font-medium text-foreground">
-                            Bash Permission
+                            {t('settings:agents.permissions.bash', 'Bash Permission')}
                         </label>
                         <div className="flex gap-1 w-fit">
                             <Button
@@ -542,7 +540,7 @@ export const AgentsPage: React.FC = () => {
                                 onClick={() => setBashPermission('allow')}
                                 className="h-6 px-2 text-xs"
                             >
-                                Allow
+                                {t('settings:agents.permissions.modes.allow', 'Allow')}
                             </Button>
                             <Button
                                 size="sm"
@@ -550,7 +548,7 @@ export const AgentsPage: React.FC = () => {
                                 onClick={() => setBashPermission('ask')}
                                 className="h-6 px-2 text-xs"
                             >
-                                Ask
+                                {t('settings:agents.permissions.modes.ask', 'Ask')}
                             </Button>
                             <Button
                                 size="sm"
@@ -558,12 +556,12 @@ export const AgentsPage: React.FC = () => {
                                 onClick={() => setBashPermission('deny')}
                                 className="h-6 px-2 text-xs"
                             >
-                                Deny
+                                {t('settings:agents.permissions.modes.deny', 'Deny')}
                             </Button>
                         </div>
                         <div className="flex items-center gap-2">
                             <p className="typography-meta text-muted-foreground">
-                                Permission for running bash commands
+                                {t('settings:agents.permissions.bashDescription', 'Controls shell command execution.')}
                             </p>
                             <Tooltip delayDuration={1000}>
                                 <TooltipTrigger asChild>
@@ -571,9 +569,9 @@ export const AgentsPage: React.FC = () => {
                                 </TooltipTrigger>
                                 <TooltipContent sideOffset={8} className="max-w-xs">
                                     <div className="space-y-1">
-                                        <p><strong>Allow:</strong> Run bash commands without confirmation</p>
-                                        <p><strong>Ask:</strong> Prompt for confirmation before execution</p>
-                                        <p><strong>Deny:</strong> Block all bash command execution</p>
+                                        <p><strong>{t('settings:agents.permissions.modes.allow', 'Allow')}:</strong> Run bash commands without confirmation</p>
+                                        <p><strong>{t('settings:agents.permissions.modes.ask', 'Ask')}:</strong> Prompt for confirmation before execution</p>
+                                        <p><strong>{t('settings:agents.permissions.modes.deny', 'Deny')}:</strong> Block all bash command execution</p>
                                     </div>
                                 </TooltipContent>
                             </Tooltip>
@@ -582,7 +580,7 @@ export const AgentsPage: React.FC = () => {
 
                     <div className="space-y-2">
                         <label className="typography-ui-label font-medium text-foreground">
-                            WebFetch Permission
+                            {t('settings:agents.permissions.webfetch', 'WebFetch Permission')}
                         </label>
                         <div className="flex gap-1 w-fit">
                             <Button
@@ -591,7 +589,7 @@ export const AgentsPage: React.FC = () => {
                                 onClick={() => setWebfetchPermission('allow')}
                                 className="h-6 px-2 text-xs"
                             >
-                                Allow
+                                {t('settings:agents.permissions.modes.allow', 'Allow')}
                             </Button>
                             <Button
                                 size="sm"
@@ -599,7 +597,7 @@ export const AgentsPage: React.FC = () => {
                                 onClick={() => setWebfetchPermission('ask')}
                                 className="h-6 px-2 text-xs"
                             >
-                                Ask
+                                {t('settings:agents.permissions.modes.ask', 'Ask')}
                             </Button>
                             <Button
                                 size="sm"
@@ -607,12 +605,12 @@ export const AgentsPage: React.FC = () => {
                                 onClick={() => setWebfetchPermission('deny')}
                                 className="h-6 px-2 text-xs"
                             >
-                                Deny
+                                {t('settings:agents.permissions.modes.deny', 'Deny')}
                             </Button>
                         </div>
                         <div className="flex items-center gap-2">
                             <p className="typography-meta text-muted-foreground">
-                                Permission for fetching web content
+                                {t('settings:agents.permissions.webfetchDescription', 'Controls web request permissions.')}
                             </p>
                             <Tooltip delayDuration={1000}>
                                 <TooltipTrigger asChild>
@@ -620,9 +618,9 @@ export const AgentsPage: React.FC = () => {
                                 </TooltipTrigger>
                                 <TooltipContent sideOffset={8} className="max-w-xs">
                                     <div className="space-y-1">
-                                        <p><strong>Allow:</strong> Fetch web content without confirmation</p>
-                                        <p><strong>Ask:</strong> Prompt for confirmation before fetching</p>
-                                        <p><strong>Deny:</strong> Block all web content access</p>
+                                        <p><strong>{t('settings:agents.permissions.modes.allow', 'Allow')}:</strong> Fetch web content without confirmation</p>
+                                        <p><strong>{t('settings:agents.permissions.modes.ask', 'Ask')}:</strong> Prompt for confirmation before fetching</p>
+                                        <p><strong>{t('settings:agents.permissions.modes.deny', 'Deny')}:</strong> Block all web content access</p>
                                     </div>
                                 </TooltipContent>
                             </Tooltip>
@@ -640,7 +638,7 @@ export const AgentsPage: React.FC = () => {
                         className="gap-2 h-6 px-2 text-xs w-fit"
                     >
                         <RiSaveLine className="h-3 w-3" />
-                        {isSaving ? 'Saving...' : 'Save Changes'}
+                        {isSaving ? t('common:button.saving', 'Saving...') : t('common:button.saveChanges', 'Save Changes')}
                     </Button>
                 </div>
             </div>

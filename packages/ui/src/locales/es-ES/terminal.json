@@ -1,0 +1,26 @@
+{
+  "title": "Terminal",
+  "new": "Nueva terminal",
+  "close": "Cerrar terminal",
+  "restart": "Reiniciar terminal",
+  "clear": "Limpiar terminal",
+  "copy": "Copiar seleccion",
+  "paste": "Pegar",
+  "selectAll": "Seleccionar todo",
+  "find": "Buscar",
+  "split": "Dividir terminal",
+  "connecting": "Conectando...",
+  "connected": "Conectado",
+  "disconnected": "Desconectado",
+  "reconnecting": "Reconectando...",
+  "error": {
+    "connectionFailed": "Error al conectar con la terminal",
+    "sessionClosed": "Sesion de terminal cerrada",
+    "timeout": "Tiempo de conexion agotado"
+  },
+  "status": {
+    "running": "Ejecutando",
+    "exited": "Terminado",
+    "exitCode": "Codigo de salida: {{code}}"
+  }
+}

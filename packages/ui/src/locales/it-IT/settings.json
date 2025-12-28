@@ -1,0 +1,135 @@
+{
+  "title": "Impostazioni",
+  "language": {
+    "title": "Lingua",
+    "description": "Scegli la tua lingua preferita",
+    "selectLabel": "Lingua di visualizzazione"
+  },
+  "visual": {
+    "title": "Aspetto",
+    "description": "Personalizza l'aspetto e lo stile",
+    "theme": {
+      "title": "Tema",
+      "description": "Scegli il tema colori",
+      "light": "Chiaro",
+      "dark": "Scuro",
+      "system": "Sistema"
+    },
+    "fontSize": {
+      "title": "Dimensione carattere",
+      "description": "Regola la dimensione del testo",
+      "small": "Piccolo",
+      "medium": "Medio",
+      "large": "Grande"
+    },
+    "spacing": {
+      "title": "Spaziatura",
+      "description": "Regola la densità dei contenuti",
+      "compact": "Compatto",
+      "comfortable": "Comodo",
+      "spacious": "Spazioso"
+    }
+  },
+  "chat": {
+    "title": "Chat",
+    "description": "Impostazioni di visualizzazione chat",
+    "toolOutput": {
+      "title": "Output strumenti",
+      "description": "Come visualizzare i risultati degli strumenti",
+      "collapsed": "Compresso",
+      "activity": "Attività",
+      "detailed": "Dettagliato"
+    },
+    "diffLayout": {
+      "title": "Layout diff",
+      "description": "Come visualizzare le differenze nel codice",
+      "inline": "In linea",
+      "sideBySide": "Affiancato",
+      "dynamic": "Dinamico"
+    },
+    "reasoning": {
+      "title": "Tracce di ragionamento",
+      "description": "Mostra il processo di ragionamento del modello",
+      "show": "Mostra",
+      "hide": "Nascondi"
+    },
+    "wrapLines": {
+      "title": "A capo automatico",
+      "description": "Vai a capo per righe lunghe nella vista diff"
+    }
+  },
+  "sessions": {
+    "title": "Sessioni",
+    "description": "Impostazioni gestione sessioni",
+    "defaults": {
+      "title": "Predefiniti",
+      "description": "Modello e agente predefiniti per nuove sessioni",
+      "model": "Modello predefinito",
+      "agent": "Agente predefinito",
+      "noDefault": "Nessun predefinito"
+    },
+    "retention": {
+      "title": "Conservazione sessioni",
+      "description": "Elimina automaticamente le sessioni vecchie",
+      "enabled": "Eliminazione automatica abilitata",
+      "disabled": "Eliminazione automatica disabilitata",
+      "afterDays": "Elimina dopo {{days}} giorni",
+      "daysLabel": "Giorni di conservazione"
+    }
+  },
+  "providers": {
+    "title": "Provider",
+    "description": "Configurazione provider AI",
+    "add": "Aggiungi provider",
+    "edit": "Modifica provider",
+    "delete": "Elimina provider",
+    "apiKey": "Chiave API",
+    "baseUrl": "URL base",
+    "models": "Modelli",
+    "enabled": "Abilitato",
+    "disabled": "Disabilitato"
+  },
+  "agents": {
+    "title": "Agenti",
+    "description": "Configurazione agenti personalizzati",
+    "add": "Aggiungi agente",
+    "edit": "Modifica agente",
+    "delete": "Elimina agente",
+    "name": "Nome agente",
+    "systemPrompt": "Prompt di sistema",
+    "model": "Modello",
+    "tools": "Strumenti"
+  },
+  "commands": {
+    "title": "Comandi",
+    "description": "Configurazione comandi personalizzati",
+    "add": "Aggiungi comando",
+    "edit": "Modifica comando",
+    "delete": "Elimina comando",
+    "name": "Nome comando",
+    "command": "Comando",
+    "description_label": "Descrizione"
+  },
+  "gitIdentities": {
+    "title": "Identità Git",
+    "description": "Gestisci i profili utente Git",
+    "add": "Aggiungi identità",
+    "edit": "Modifica identità",
+    "delete": "Elimina identità",
+    "name": "Nome profilo",
+    "userName": "Nome utente Git",
+    "userEmail": "Email Git",
+    "sshKey": "Chiave SSH",
+    "setActive": "Imposta come attiva",
+    "active": "Attiva"
+  },
+  "about": {
+    "title": "Informazioni",
+    "version": "Versione",
+    "checkUpdates": "Verifica aggiornamenti",
+    "updateAvailable": "Aggiornamento disponibile",
+    "upToDate": "Sei aggiornato",
+    "downloadUpdate": "Scarica aggiornamento",
+    "restartToUpdate": "Riavvia per aggiornare"
+  }
+}

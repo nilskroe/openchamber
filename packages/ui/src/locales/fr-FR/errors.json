@@ -1,0 +1,49 @@
+{
+  "connection": {
+    "failed": "Echec de connexion au serveur",
+    "timeout": "Delai de connexion expire",
+    "retry": "Nouvelle tentative de connexion...",
+    "offline": "Vous semblez etre hors ligne",
+    "serverError": "Erreur du serveur"
+  },
+  "api": {
+    "requestFailed": "Echec de la requete",
+    "unauthorized": "Non autorise",
+    "forbidden": "Acces interdit",
+    "notFound": "Non trouve",
+    "rateLimited": "Limite de debit atteinte, reessayez plus tard",
+    "serverError": "Erreur du serveur"
+  },
+  "file": {
+    "readFailed": "Echec de lecture du fichier",
+    "writeFailed": "Echec d'ecriture du fichier",
+    "deleteFailed": "Echec de suppression du fichier",
+    "notFound": "Fichier non trouve",
+    "permissionDenied": "Permission refusee",
+    "tooLarge": "Fichier trop volumineux"
+  },
+  "session": {
+    "createFailed": "Echec de creation de la session",
+    "loadFailed": "Echec de chargement de la session",
+    "deleteFailed": "Echec de suppression de la session",
+    "notFound": "Session non trouvee"
+  },
+  "message": {
+    "sendFailed": "Echec d'envoi du message",
+    "streamFailed": "Echec du flux de messages",
+    "parseFailed": "Echec d'analyse de la reponse"
+  },
+  "generic": {
+    "unknown": "Une erreur inattendue s'est produite",
+    "tryAgain": "Veuillez reessayer",
+    "contactSupport": "Si le probleme persiste, contactez le support"
+  },
+  "validation": {
+    "required": "Ce champ est requis",
+    "invalid": "Entree invalide",
+    "invalidEmail": "Adresse e-mail invalide",
+    "invalidUrl": "URL invalide",
+    "minLength": "Doit contenir au moins {{min}} caracteres",
+    "maxLength": "Doit contenir au maximum {{max}} caracteres"
+  }
+}

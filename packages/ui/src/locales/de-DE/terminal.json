@@ -1,0 +1,26 @@
+{
+  "title": "Terminal",
+  "new": "Neues Terminal",
+  "close": "Terminal schließen",
+  "restart": "Terminal neu starten",
+  "clear": "Terminal leeren",
+  "copy": "Auswahl kopieren",
+  "paste": "Einfügen",
+  "selectAll": "Alles auswählen",
+  "find": "Suchen",
+  "split": "Terminal teilen",
+  "connecting": "Verbinden...",
+  "connected": "Verbunden",
+  "disconnected": "Getrennt",
+  "reconnecting": "Verbindung wird wiederhergestellt...",
+  "error": {
+    "connectionFailed": "Verbindung zum Terminal fehlgeschlagen",
+    "sessionClosed": "Terminal-Sitzung geschlossen",
+    "timeout": "Terminal-Verbindung abgelaufen"
+  },
+  "status": {
+    "running": "Läuft",
+    "exited": "Beendet",
+    "exitCode": "Exit-Code: {{code}}"
+  }
+}

@@ -1,0 +1,47 @@
+{
+  "title": "Terminal",
+  "new": "New terminal",
+  "close": "Close terminal",
+  "restart": "Restart terminal",
+  "clear": "Clear terminal",
+  "copy": "Copy selection",
+  "paste": "Paste",
+  "selectAll": "Select all",
+  "find": "Find",
+  "split": "Split terminal",
+  "connecting": "Connecting...",
+  "connected": "Connected",
+  "disconnected": "Disconnected",
+  "reconnecting": "Reconnecting...",
+  "actions": {
+    "clear": "Clear",
+    "clearOutput": "Clear output",
+    "restart": "Restart",
+    "restartSession": "Restart terminal session",
+    "hardRestart": "Hard Restart",
+    "hardRestartTitle": "Force kill and create fresh session"
+  },
+  "status": {
+    "running": "Running",
+    "exited": "Exited",
+    "exitCode": "Exit code: {{code}}",
+    "reconnecting": "Reconnecting ({{attempt}}/{{maxAttempts}})...",
+    "processExited": "Process exited",
+    "withCode": "with code {{code}}",
+    "signal": "signal {{signal}}",
+    "sessionEnded": "Terminal session ended"
+  },
+  "errors": {
+    "connectionFailed": "Connection failed: {{message}}",
+    "streamError": "Terminal stream connection error",
+    "noWorkingDir": "No working directory available for terminal.",
+    "selectSession": "Select a session to open the terminal.",
+    "startFailed": "Failed to start terminal session",
+    "restartFailed": "Failed to restart terminal",
+    "createFailed": "Failed to create terminal",
+    "refreshFailed": "Failed to refresh prompt",
+    "sendFailed": "Failed to send input",
+    "sessionClosed": "Terminal session closed",
+    "timeout": "Terminal connection timed out"
+  }
+}

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { RiCheckLine, RiCloseLine, RiFileEditLine, RiGlobalLine, RiPencilAiLine, RiQuestionLine, RiTerminalBoxLine, RiTimeLine, RiToolsLine } from '@remixicon/react';
 import { cn } from '@/lib/utils';
 import type { Permission, PermissionResponse } from '@/types/permission';
@@ -60,6 +61,7 @@ export const PermissionCard: React.FC<PermissionCardProps> = ({
   permission,
   onResponse
 }) => {
+  const { t } = useTranslation('chat');
   const [isResponding, setIsResponding] = React.useState(false);
   const [hasResponded, setHasResponded] = React.useState(false);
   const { respondToPermission } = useSessionStore();
@@ -116,12 +118,12 @@ export const PermissionCard: React.FC<PermissionCardProps> = ({
           )}
           {workingDir && (
             <div className="typography-meta text-muted-foreground mb-2">
-              <span className="font-semibold">Working Directory:</span> <code className="px-1 py-0.5 bg-muted/30 rounded">{workingDir}</code>
+              <span className="font-semibold">{t('permissions.bash.workingDirectory')}</span> <code className="px-1 py-0.5 bg-muted/30 rounded">{workingDir}</code>
             </div>
           )}
           {timeout && (
             <div className="typography-meta text-muted-foreground mb-2">
-              <span className="font-semibold">Timeout:</span> {timeout}ms
+              <span className="font-semibold">{t('permissions.bash.timeout')}</span> {timeout}ms
             </div>
           )}
           {}
@@ -169,7 +171,7 @@ export const PermissionCard: React.FC<PermissionCardProps> = ({
         <>
           {replaceAll && (
             <div className="typography-meta text-muted-foreground mb-2">
-              <span className="font-semibold">⚠️ Replace All Occurrences</span>
+              <span className="font-semibold">⚠️ {t('permissions.edit.replaceAll')}</span>
             </div>
           )}
           {changes && (
@@ -208,7 +210,7 @@ export const PermissionCard: React.FC<PermissionCardProps> = ({
         <>
           {url && (
             <div className="mb-2">
-              <div className="typography-meta text-muted-foreground mb-1">Request:</div>
+              <div className="typography-meta text-muted-foreground mb-1">{t('permissions.webfetch.request')}</div>
               <div className="flex items-center gap-2">
                 <span className="typography-meta font-semibold px-1.5 py-0.5 bg-primary/20 text-primary rounded">
                   {method}
@@ -221,7 +223,7 @@ export const PermissionCard: React.FC<PermissionCardProps> = ({
           )}
           {headers && Object.keys(headers).length > 0 && (
             <div className="mb-2">
-              <div className="typography-meta text-muted-foreground mb-1">Headers:</div>
+              <div className="typography-meta text-muted-foreground mb-1">{t('permissions.webfetch.headers')}</div>
               <ScrollableOverlay outerClassName="max-h-24" className="p-0">
                 <SyntaxHighlighter
                   language="json"
@@ -243,7 +245,7 @@ export const PermissionCard: React.FC<PermissionCardProps> = ({
           )}
           {body && (
             <div className="mb-2">
-              <div className="typography-meta text-muted-foreground mb-1">Body:</div>
+              <div className="typography-meta text-muted-foreground mb-1">{t('permissions.webfetch.body')}</div>
               <ScrollableOverlay outerClassName="max-h-32" className="p-0">
                 <SyntaxHighlighter
                   language={typeof body === 'object' ? 'json' : 'text'}
@@ -284,7 +286,7 @@ export const PermissionCard: React.FC<PermissionCardProps> = ({
         )}
         {genericContent && (
           <div className="mb-2">
-            <div className="typography-meta text-muted-foreground mb-1">Action:</div>
+            <div className="typography-meta text-muted-foreground mb-1">{t('permissions.generic.action')}</div>
             <ScrollableOverlay outerClassName="max-h-32" className="p-0">
               <pre className="typography-meta font-mono px-2 py-1 bg-muted/30 rounded whitespace-pre-wrap break-all">
                 {String(genericContent)}
@@ -295,7 +297,7 @@ export const PermissionCard: React.FC<PermissionCardProps> = ({
         {}
         {Object.keys(permission.metadata).length > 0 && !genericContent && !description && (
           <div>
-            <div className="typography-meta text-muted-foreground mb-1">Details:</div>
+            <div className="typography-meta text-muted-foreground mb-1">{t('permissions.generic.details')}</div>
             <ScrollableOverlay outerClassName="max-h-32" className="p-0">
               <pre className="typography-meta font-mono px-2 py-1 bg-muted/30 rounded whitespace-pre-wrap break-all">
                 {JSON.stringify(permission.metadata, null, 2)}
@@ -317,7 +319,7 @@ export const PermissionCard: React.FC<PermissionCardProps> = ({
               <div className="flex items-center gap-2">
                 <RiQuestionLine className="h-3.5 w-3.5 text-yellow-500" />
                 <span className="typography-meta font-medium text-muted-foreground">
-                  Permission Required
+                  {t('permissions.title')}
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
@@ -438,7 +440,7 @@ export const PermissionCard: React.FC<PermissionCardProps> = ({
               }}
             >
               <RiCheckLine className="h-3 w-3" />
-              Allow Once
+              {t('permissions.allowOnce')}
             </button>
 
             <button
@@ -460,7 +462,7 @@ export const PermissionCard: React.FC<PermissionCardProps> = ({
               }}
             >
               <RiTimeLine className="h-3 w-3" />
-              Always Allow
+              {t('permissions.alwaysAllow')}
             </button>
 
             <button
@@ -482,7 +484,7 @@ export const PermissionCard: React.FC<PermissionCardProps> = ({
               }}
             >
               <RiCloseLine className="h-3 w-3" />
-              Deny
+              {t('permissions.deny')}
             </button>
 
             {isResponding && (

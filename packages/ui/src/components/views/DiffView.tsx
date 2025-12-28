@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { RiGitCommitLine, RiLoader4Line, RiTextWrap } from '@remixicon/react';
 
 import { useSessionStore } from '@/stores/useSessionStore';
@@ -64,6 +65,7 @@ const FileSelector = React.memo<FileSelectorProps>(({
     onSelectFile,
     isMobile,
 }) => {
+    const { t } = useTranslation('git');
     const getLabel = React.useCallback((path: string) => {
         if (!isMobile) return path;
         const lastSlash = path.lastIndexOf('/');
@@ -84,7 +86,7 @@ const FileSelector = React.memo<FileSelectorProps>(({
                             {formatDiffTotals(selectedFileEntry.insertions, selectedFileEntry.deletions)}
                         </div>
                     ) : (
-                        <span className="text-muted-foreground">Select file</span>
+                        <span className="text-muted-foreground">{t('diff.selectFile', 'Select file')}</span>
                     )}
                     <RiArrowDownSLine className="size-4 opacity-50" />
                 </button>
@@ -123,6 +125,7 @@ const ImageDiffViewer = React.memo<ImageDiffViewerProps>(({
     isVisible,
     renderSideBySide,
 }) => {
+    const { t } = useTranslation('git');
     const hasOriginal = diff.original.length > 0;
     const hasModified = diff.modified.length > 0;
 
@@ -144,7 +147,7 @@ const ImageDiffViewer = React.memo<ImageDiffViewerProps>(({
             <div className={containerClass}>
                 {hasOriginal && (
                     <div className={imageContainerClass}>
-                        <span className="typography-meta text-muted-foreground font-medium">Original</span>
+                        <span className="typography-meta text-muted-foreground font-medium">{t('diff.original', 'Original')}</span>
                         <img
                             src={diff.original}
                             alt={`Original: ${filePath}`}
@@ -156,7 +159,7 @@ const ImageDiffViewer = React.memo<ImageDiffViewerProps>(({
                 {hasModified && (
                     <div className={imageContainerClass}>
                         <span className="typography-meta text-muted-foreground font-medium">
-                            {hasOriginal ? 'Modified' : 'New'}
+                            {hasOriginal ? t('diff.modified', 'Modified') : t('diff.new', 'New')}
                         </span>
                         <img
                             src={diff.modified}
@@ -286,6 +289,7 @@ const useEffectiveDirectory = () => {
 };
 
 export const DiffView: React.FC = () => {
+    const { t } = useTranslation('git');
     const { git } = useRuntimeAPIs();
     const effectiveDirectory = useEffectiveDirectory();
     const { screenWidth, isMobile } = useDeviceInfo();
@@ -475,7 +479,7 @@ export const DiffView: React.FC = () => {
         if (!effectiveDirectory) {
             return (
                 <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-                    Select a session directory to view diffs
+                    {t('diff.selectSessionDirectory', 'Select a session directory to view diffs')}
                 </div>
             );
         }
@@ -484,7 +488,7 @@ export const DiffView: React.FC = () => {
             return (
                 <div className="flex flex-1 items-center justify-center gap-2 text-sm text-muted-foreground">
                     <RiLoader4Line size={16} className="animate-spin" />
-                    Loading repository status…
+                    {t('diff.loadingStatus', 'Loading repository status...')}
                 </div>
             );
         }
@@ -492,7 +496,7 @@ export const DiffView: React.FC = () => {
         if (isGitRepo === false) {
             return (
                 <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-                    Not a git repository. Use the Git tab to initialize or change directories.
+                    {t('diff.notGitRepo', 'Not a git repository. Use the Git tab to initialize or change directories.')}
                 </div>
             );
         }
@@ -500,7 +504,7 @@ export const DiffView: React.FC = () => {
         if (changedFiles.length === 0) {
             return (
                 <div className="flex flex-1 items-center justify-center text-sm text-muted-foreground">
-                    Working tree clean — no changes to display
+                    {t('diff.workingTreeClean', 'Working tree clean - no changes to display')}
                 </div>
             );
         }
@@ -513,9 +517,9 @@ export const DiffView: React.FC = () => {
                     <div className="absolute inset-0 flex items-center justify-center gap-2 text-sm text-muted-foreground">
                         {diffLoadError ? (
                             <div className="flex flex-col items-center gap-2">
-                                <div className="typography-ui-label font-semibold text-foreground">
-                                    Failed to load diff
-                                </div>
+                            <div className="typography-ui-label font-semibold text-foreground">
+                                                    {t('diff.loadFailed', 'Failed to load diff')}
+                                                </div>
                                 <div className="typography-meta text-muted-foreground max-w-[32rem] text-center">
                                     {diffLoadError}
                                 </div>
@@ -527,13 +531,13 @@ export const DiffView: React.FC = () => {
                                         setDiffRetryNonce((n) => n + 1);
                                     }}
                                 >
-                                    Retry
+                                    {t('diff.retry', 'Retry')}
                                 </button>
                             </div>
                         ) : (
                             <>
                                 <RiLoader4Line size={16} className="animate-spin" />
-                                Loading diff…
+                                {t('diff.loadingDiff', 'Loading diff...')}
                             </>
                         )}
                     </div>
@@ -550,8 +554,8 @@ export const DiffView: React.FC = () => {
                         <RiGitCommitLine size={16} />
                         <span className="typography-ui-label font-semibold text-foreground">
                             {isLoadingStatus && !status
-                                ? 'Loading changes…'
-                                : `${changedFiles.length} ${changedFiles.length === 1 ? 'file' : 'files'} changed`}
+                                ? t('diff.loadingChanges', 'Loading changes...')
+                                : t('diff.filesChanged', '{{count}} file changed', { count: changedFiles.length })}
                         </span>
                     </div>
                 )}
@@ -572,7 +576,7 @@ export const DiffView: React.FC = () => {
                                 ? 'text-foreground opacity-100'
                                 : 'text-muted-foreground opacity-60 hover:opacity-100'
                         }`}
-                        title={diffWrapLines ? 'Disable line wrap' : 'Enable line wrap'}
+                        title={diffWrapLines ? t('diff.disableLineWrap', 'Disable line wrap') : t('diff.enableLineWrap', 'Enable line wrap')}
                     >
                         <RiTextWrap className="size-4" />
                     </button>

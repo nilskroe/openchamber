@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { ButtonLarge } from '@/components/ui/button-large';
 import { Input } from '@/components/ui/input';
@@ -32,6 +33,7 @@ interface AgentsSidebarProps {
 }
 
 export const AgentsSidebar: React.FC<AgentsSidebarProps> = ({ onItemSelect }) => {
+    const { t } = useTranslation('settings');
     const [newAgentName, setNewAgentName] = React.useState('');
     const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
 
@@ -70,12 +72,12 @@ export const AgentsSidebar: React.FC<AgentsSidebarProps> = ({ onItemSelect }) =>
 
     const handleCreateAgent = () => {
         if (!newAgentName.trim()) {
-            toast.error('Agent name is required');
+            toast.error(t('agents.errors.nameRequired'));
             return;
         }
 
         if (agents.some((agent) => agent.name === newAgentName)) {
-            toast.error('An agent with this name already exists');
+            toast.error(t('agents.errors.alreadyExists', 'An agent with this name already exists'));
             return;
         }
 
@@ -90,16 +92,16 @@ export const AgentsSidebar: React.FC<AgentsSidebarProps> = ({ onItemSelect }) =>
 
     const handleDeleteAgent = async (agent: Agent) => {
         if (isAgentBuiltIn(agent)) {
-            toast.error('Built-in agents cannot be deleted');
+            toast.error(t('agents.errors.builtInDelete', 'Built-in agents cannot be deleted'));
             return;
         }
 
-        if (window.confirm(`Are you sure you want to delete agent "${agent.name}"?`)) {
+        if (window.confirm(t('agents.deleteConfirm', { name: agent.name }))) {
             const success = await deleteAgent(agent.name);
             if (success) {
-                toast.success(`Agent "${agent.name}" deleted successfully`);
+                toast.success(t('agents.success.deleted', { name: agent.name }));
             } else {
-                toast.error('Failed to delete agent');
+                toast.error(t('agents.errors.deleteFailed', 'Failed to delete agent'));
             }
         }
     };
@@ -145,7 +147,7 @@ export const AgentsSidebar: React.FC<AgentsSidebarProps> = ({ onItemSelect }) =>
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
                 <div className={cn('border-b px-3', isMobile ? 'mt-2 py-3' : 'py-3')}>
                     <div className="flex items-center justify-between gap-2">
-                        <span className="typography-meta text-muted-foreground">Total {visibleAgents.length}</span>
+                        <span className="typography-meta text-muted-foreground">{t('common:total', 'Total')} {visibleAgents.length}</span>
                         <DialogTrigger asChild>
                             <Button type="button" variant="ghost" size="icon" className="h-7 w-7 -my-1 text-muted-foreground">
                                 <RiAddLine className="size-4" />
@@ -158,15 +160,15 @@ export const AgentsSidebar: React.FC<AgentsSidebarProps> = ({ onItemSelect }) =>
                     {visibleAgents.length === 0 ? (
                         <div className="py-12 px-4 text-center text-muted-foreground">
                             <RiRobot2Line className="mx-auto mb-3 h-10 w-10 opacity-50" />
-                            <p className="typography-ui-label font-medium">No agents configured</p>
-                            <p className="typography-meta mt-1 opacity-75">Use the + button above to create one</p>
+                            <p className="typography-ui-label font-medium">{t('agents.noAgents', 'No agents configured')}</p>
+                            <p className="typography-meta mt-1 opacity-75">{t('agents.noAgentsHint', 'Use the + button above to create one')}</p>
                         </div>
                     ) : (
                         <>
                             {builtInAgents.length > 0 && (
                                 <>
                                     <div className="px-2 pb-1.5 pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                        Built-in Agents
+                                        {t('agents.builtIn', 'Built-in Agents')}
                                     </div>
                                     {builtInAgents.map((agent) => (
                                         <AgentListItem
@@ -190,7 +192,7 @@ export const AgentsSidebar: React.FC<AgentsSidebarProps> = ({ onItemSelect }) =>
                             {customAgents.length > 0 && (
                                 <>
                                     <div className="px-2 pb-1.5 pt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                        Custom Agents
+                                        {t('agents.custom', 'Custom Agents')}
                                     </div>
                                     {customAgents.map((agent) => (
                                         <AgentListItem
@@ -217,15 +219,15 @@ export const AgentsSidebar: React.FC<AgentsSidebarProps> = ({ onItemSelect }) =>
 
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Create New Agent</DialogTitle>
+                        <DialogTitle>{t('agents.createTitle', 'Create New Agent')}</DialogTitle>
                         <DialogDescription>
-                            Enter a unique name for your new agent
+                            {t('agents.createDescription', 'Enter a unique name for your new agent')}
                         </DialogDescription>
                     </DialogHeader>
                     <Input
                         value={newAgentName}
                         onChange={(e) => setNewAgentName(e.target.value)}
-                        placeholder="Agent name..."
+                        placeholder={t('agents.fields.namePlaceholder')}
                         className="text-foreground placeholder:text-muted-foreground"
                         onKeyDown={(e) => {
                             if (e.key === 'Enter') {
@@ -239,10 +241,10 @@ export const AgentsSidebar: React.FC<AgentsSidebarProps> = ({ onItemSelect }) =>
                             onClick={() => setIsCreateDialogOpen(false)}
                             className="text-foreground hover:bg-muted hover:text-foreground"
                         >
-                            Cancel
+                            {t('common:cancel', 'Cancel')}
                         </Button>
                         <ButtonLarge onClick={handleCreateAgent}>
-                            Create
+                            {t('common:create', 'Create')}
                         </ButtonLarge>
                     </DialogFooter>
                 </DialogContent>
@@ -268,6 +270,7 @@ const AgentListItem: React.FC<AgentListItemProps> = ({
     onDuplicate,
     getAgentModeIcon,
 }) => {
+    const { t } = useTranslation('settings');
     return (
         <div
             className={cn(
@@ -313,7 +316,7 @@ const AgentListItem: React.FC<AgentListItemProps> = ({
                                 }}
                             >
                                 <RiFileCopyLine className="h-4 w-4 mr-px" />
-                                Duplicate
+                                {t('common:duplicate', 'Duplicate')}
                             </DropdownMenuItem>
 
                             {!isAgentBuiltIn(agent) && onDelete && (
@@ -325,7 +328,7 @@ const AgentListItem: React.FC<AgentListItemProps> = ({
                                     className="text-destructive focus:text-destructive"
                                 >
                                     <RiDeleteBinLine className="h-4 w-4 mr-px" />
-                                    Delete
+                                    {t('agents.delete')}
                                 </DropdownMenuItem>
                             )}
                         </DropdownMenuContent>

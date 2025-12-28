@@ -1,0 +1,188 @@
+{
+  "help": {
+    "title": "Raccourcis clavier",
+    "description": "Utilisez ces raccourcis clavier pour naviguer et contrôler l'application rapidement.",
+    "categories": {
+      "navigation": "Navigation et Commandes",
+      "sessionManagement": "Gestion des Sessions",
+      "interface": "Interface"
+    },
+    "shortcuts": {
+      "openCommandPalette": "Ouvrir la palette de commandes",
+      "showKeyboardShortcuts": "Afficher les raccourcis clavier (cette fenêtre)",
+      "toggleSessionSidebar": "Basculer la barre latérale des sessions",
+      "createNewSession": "Créer une nouvelle session",
+      "openWorktreeCreator": "Ouvrir le créateur de worktree",
+      "focusChatInput": "Focus sur l'entrée de chat",
+      "abortActiveRun": "Abandonner l'exécution active (double appui)",
+      "deleteCurrentSession": "Supprimer la session actuelle",
+      "selectPreviousSession": "Sélectionner la session précédente",
+      "selectNextSession": "Sélectionner la session suivante",
+      "cycleTheme": "Changer de thème (Clair → Sombre → Système)",
+      "openDiffPanel": "Ouvrir le panneau de différences",
+      "openGitPanel": "Ouvrir le panneau Git",
+      "openTerminal": "Ouvrir le terminal",
+      "openSettings": "Ouvrir les paramètres"
+    },
+    "proTips": {
+      "title": "Astuces:",
+      "commandPalette": "Utilisez la palette de commandes (Ctrl + X) pour accéder rapidement à toutes les actions",
+      "recentSessions": "Les 5 sessions les plus récentes apparaissent dans la palette de commandes",
+      "themeCycling": "Le changement de thème mémorise votre préférence entre les sessions",
+      "tabCycle": "Appuyez sur Tab dans l'entrée de chat pour parcourir les agents",
+      "atMention": "Utilisez @ pour mentionner et joindre des fichiers de votre projet",
+      "hashMention": "Utilisez # pour mentionner un agent spécifique en ligne",
+      "slashCommand": "Tapez / pour accéder aux commandes rapides"
+    }
+  },
+  "commandPalette": {
+    "placeholder": "Tapez une commande ou recherchez...",
+    "noResults": "Aucun résultat trouvé.",
+    "groups": {
+      "actions": "Actions",
+      "theme": "Thème",
+      "recentSessions": "Sessions récentes"
+    },
+    "actions": {
+      "openSessionList": "Ouvrir la liste des sessions",
+      "newSession": "Nouvelle session",
+      "newSessionWorktree": "Nouvelle session avec Worktree",
+      "keyboardShortcuts": "Raccourcis clavier",
+      "openDiffPanel": "Ouvrir le panneau de différences",
+      "openGitPanel": "Ouvrir le panneau Git",
+      "openTerminal": "Ouvrir le terminal",
+      "openSettings": "Ouvrir les paramètres",
+      "reloadConfig": "Recharger la configuration OpenCode"
+    },
+    "theme": {
+      "light": "Thème clair",
+      "dark": "Thème sombre",
+      "system": "Thème système"
+    }
+  },
+  "directory": {
+    "title": "Sélectionner le répertoire du projet",
+    "description": "Choisissez le répertoire de travail pour votre session de codage",
+    "placeholder": "Entrez le chemin ou sélectionnez dans l'arborescence...",
+    "showHidden": "Afficher les cachés",
+    "openButton": "Ouvrir le répertoire",
+    "applying": "Application...",
+    "errors": {
+      "accessDenied": "Impossible d'accéder au répertoire",
+      "accessDeniedDesc": "L'accès au répertoire a été refusé.",
+      "openFailed": "Échec de l'ouverture du répertoire",
+      "openFailedDesc": "Impossible d'accorder l'accès aux fichiers.",
+      "selectFailed": "Échec de la sélection du répertoire",
+      "selectFailedDesc": "Une erreur inconnue s'est produite."
+    },
+    "tree": {
+      "locatingHome": "Localisation du répertoire home...",
+      "loading": "Chargement...",
+      "noDirectoriesFound": "Aucun répertoire trouvé",
+      "pinned": "Épinglés",
+      "browse": "Parcourir",
+      "createNewDirectory": "Créer un nouveau répertoire",
+      "pinDirectory": "Épingler le répertoire",
+      "unpinDirectory": "Désépingler le répertoire",
+      "createDirectory": "Créer le répertoire",
+      "cancel": "Annuler"
+    }
+  },
+  "worktree": {
+    "title": "Worktree",
+    "manager": {
+      "title": "Gestionnaire de Worktree",
+      "close": "Fermer"
+    },
+    "create": {
+      "title": "Créer un worktree",
+      "description": "Répertoire spécifique à la branche sous {{path}}.",
+      "creating": "Création…",
+      "createButton": "Créer"
+    },
+    "fields": {
+      "branchName": "Nom de la branche",
+      "branchNamePlaceholder": "feature/nouvelle-branche"
+    },
+    "createDescription": "Crée la branche {{branch}} à {{path}}",
+    "existingWorktrees": "Worktrees existants",
+    "loading": "Chargement des worktrees…",
+    "noWorktreesFound": "Aucun worktree trouvé sous {{path}}.",
+    "detachedHead": "HEAD détaché",
+    "notGitRepo": "Le répertoire actuel n'est pas un dépôt Git.",
+    "uncommittedWarning": "Les modifications non validées seront perdues.",
+    "delete": {
+      "title": "Supprimer le worktree",
+      "titleSession": "Supprimer la session",
+      "titleSessions": "Supprimer les sessions",
+      "deleteWorktreeButton": "Supprimer le worktree",
+      "deleteSessionButton": "Supprimer la session",
+      "deleteSessionsButton": "Supprimer les sessions",
+      "deleting": "Suppression…",
+      "sessionOnly": "Supprimer uniquement la session",
+      "sessionOnlyNote": "Les répertoires worktree restent intacts. Les sous-sessions liées seront également supprimées.",
+      "deleteRemoteBranch": "Supprimer la branche distante",
+      "remoteBranchWillRemove": "La branche distante sur origin sera également supprimée.",
+      "remoteBranchKeep": "Conserver la branche distante intacte.",
+      "remoteBranchUnavailable": "Informations sur la branche distante non disponibles pour ce worktree.",
+      "worktreeDescription": "Ceci supprime le worktree sélectionné et {{count}} session liée.",
+      "worktreeDescription_other": "Ceci supprime le worktree sélectionné et {{count}} sessions liées.",
+      "sessionDescription": "Cette action supprime définitivement {{count}} session.",
+      "sessionDescription_other": "Cette action supprime définitivement {{count}} sessions.",
+      "sessionDescriptionWithDate": "Cette action supprime définitivement {{count}} session de {{date}}.",
+      "sessionDescriptionWithDate_other": "Cette action supprime définitivement {{count}} sessions de {{date}}.",
+      "moreItems": "+{{count}} de plus",
+      "pathUnavailable": "Chemin du worktree non disponible."
+    },
+    "validation": {
+      "selectDirectory": "Sélectionnez d'abord un répertoire de projet.",
+      "branchRequired": "Fournissez un nom de branche pour le nouveau worktree.",
+      "invalidBranchName": "Fournissez un nom de branche pouvant être utilisé comme dossier.",
+      "branchExists": "La branche existe déjà",
+      "worktreeExists": "Un worktree avec ce dossier existe déjà."
+    },
+    "success": {
+      "created": "Worktree créé",
+      "upstreamConfigured": "Upstream configuré pour {{branch}}",
+      "sessionDeleted": "Session supprimée",
+      "sessionsDeleted": "{{count}} session supprimée",
+      "sessionsDeleted_other": "{{count}} sessions supprimées",
+      "worktreeArchived": "Worktree attaché archivé.",
+      "worktreeAndRemoteRemoved": "Worktree et branche distante supprimés.",
+      "worktreesArchived": "Worktrees archivés et branches distantes supprimées."
+    },
+    "warnings": {
+      "createdLocally": "Worktree créé localement",
+      "upstreamFailed": "Échec de la configuration upstream: {{error}}"
+    },
+    "errors": {
+      "createFailed": "Échec de la création du worktree",
+      "sessionFailed": "Échec de la création de session pour le worktree",
+      "deleteFailed": "Échec de la suppression de la session",
+      "deleteFailedMultiple": "Échec de la suppression de {{count}} session",
+      "deleteFailedMultiple_other": "Échec de la suppression de {{count}} sessions",
+      "tryAgain": "Veuillez réessayer dans un moment."
+    },
+    "descriptions": {
+      "removedFromDate": "Toutes les sessions de {{date}} supprimées.",
+      "someCouldNotDelete": "{{count}} session n'a pas pu être supprimée.",
+      "someCouldNotDelete_other": "{{count}} sessions n'ont pas pu être supprimées."
+    }
+  },
+  "common": {
+    "cancel": "Annuler",
+    "close": "Fermer"
+  },
+  "onboarding": {
+    "welcome": "Bienvenue sur OpenChamber",
+    "cliRequired": "est requis pour continuer.",
+    "copied": "Copié dans le presse-papiers",
+    "copyToClipboard": "Copier dans le presse-papiers",
+    "viewDocs": "Voir la documentation",
+    "waiting": "En attente de l'installation d'OpenCode...",
+    "hintPath": "Déjà installé? Assurez-vous que",
+    "hintPathEnd": "est dans votre PATH",
+    "hintEnv": "ou définissez la variable d'environnement",
+    "hintEnvEnd": "."
+  }
+}

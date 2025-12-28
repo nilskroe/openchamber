@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -12,6 +13,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { ScrollableOverlay } from '@/components/ui/ScrollableOverlay';
 
 export const CommandsPage: React.FC = () => {
+  const { t } = useTranslation('settings');
   const { selectedCommandName, getCommandByName, createCommand, updateCommand, commands } = useCommandsStore();
 
   const selectedCommand = selectedCommandName ? getCommandByName(selectedCommandName) : null;
@@ -47,12 +49,12 @@ export const CommandsPage: React.FC = () => {
 
   const handleSave = async () => {
     if (!name.trim()) {
-      toast.error('Command name is required');
+      toast.error(t('commands.errors.nameRequired', 'Command name is required'));
       return;
     }
 
     if (!template.trim()) {
-      toast.error('Command template is required');
+      toast.error(t('commands.errors.templateRequired', 'Command template is required'));
       return;
     }
 
@@ -79,13 +81,13 @@ export const CommandsPage: React.FC = () => {
       }
 
       if (success) {
-        toast.success(isNewCommand ? 'Command created successfully' : 'Command updated successfully');
+        toast.success(isNewCommand ? t('commands.success.created', 'Command created successfully') : t('commands.success.updated', 'Command updated successfully'));
       } else {
-        toast.error(isNewCommand ? 'Failed to create command' : 'Failed to update command');
+        toast.error(isNewCommand ? t('commands.errors.createFailed', 'Failed to create command') : t('commands.errors.updateFailed', 'Failed to update command'));
       }
     } catch (error) {
       console.error('Error saving command:', error);
-      toast.error('An error occurred while saving');
+      toast.error(t('commands.errors.saveFailed', 'An error occurred while saving'));
     } finally {
       setIsSaving(false);
     }
@@ -96,8 +98,8 @@ export const CommandsPage: React.FC = () => {
       <div className="flex h-full items-center justify-center">
         <div className="text-center text-muted-foreground">
           <RiTerminalBoxLine className="mx-auto mb-3 h-12 w-12 opacity-50" />
-          <p className="typography-body">Select a command from the sidebar</p>
-          <p className="typography-meta mt-1 opacity-75">or create a new one</p>
+          <p className="typography-body">{t('commands.selectFromSidebar', 'Select a command from the sidebar')}</p>
+          <p className="typography-meta mt-1 opacity-75">{t('commands.orCreateNew', 'or create a new one')}</p>
         </div>
       </div>
     );
@@ -108,42 +110,42 @@ export const CommandsPage: React.FC = () => {
         {}
         <div className="space-y-1">
           <h1 className="typography-ui-header font-semibold text-lg">
-            {isNewCommand ? 'New Command' : name}
+            {isNewCommand ? t('commands.newCommand', 'New Command') : name}
           </h1>
         </div>
 
         {}
         <div className="space-y-4">
           <div className="space-y-1">
-            <h2 className="typography-ui-header font-semibold text-foreground">Basic Information</h2>
+            <h2 className="typography-ui-header font-semibold text-foreground">{t('commands.sections.basicInfo', 'Basic Information')}</h2>
             <p className="typography-meta text-muted-foreground/80">
-              Configure command identity and metadata
+              {t('commands.sections.basicInfoDesc', 'Configure command identity and metadata')}
             </p>
           </div>
 
           <div className="space-y-2">
             <label className="typography-ui-label font-medium text-foreground">
-              Command Name
+              {t('commands.fields.name', 'Command Name')}
             </label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="my-command"
+              placeholder={t('commands.fields.namePlaceholder', 'my-command')}
               disabled={!isNewCommand}
             />
             <p className="typography-meta text-muted-foreground">
-              Used with slash (/) prefix in chat
+              {t('commands.fields.nameHint', 'Used with slash (/) prefix in chat')}
             </p>
           </div>
 
           <div className="space-y-2">
             <label className="typography-ui-label font-medium text-foreground">
-              Description
+              {t('commands.fields.description', 'Description')}
             </label>
             <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="What does this command do?"
+              placeholder={t('commands.fields.descriptionPlaceholder', 'What does this command do?')}
               rows={3}
             />
           </div>
@@ -152,28 +154,28 @@ export const CommandsPage: React.FC = () => {
         {}
         <div className="space-y-4">
           <div className="space-y-1">
-            <h2 className="typography-h2 font-semibold text-foreground">Model & Agent Configuration</h2>
+            <h2 className="typography-h2 font-semibold text-foreground">{t('commands.sections.modelAgent', 'Model & Agent Configuration')}</h2>
             <p className="typography-meta text-muted-foreground/80">
-              Configure model and agent for command execution
+              {t('commands.sections.modelAgentDesc', 'Configure model and agent for command execution')}
             </p>
           </div>
 
           <div className="space-y-2">
             <label className="typography-ui-label font-medium text-foreground">
-              Agent
+              {t('commands.fields.agent', 'Agent')}
             </label>
             <AgentSelector
               agentName={agent}
               onChange={(agentName: string) => setAgent(agentName)}
             />
             <p className="typography-meta text-muted-foreground">
-              Agent to execute this command (optional)
+              {t('commands.fields.agentHint', 'Agent to execute this command (optional)')}
             </p>
           </div>
 
           <div className="space-y-2">
             <label className="typography-ui-label font-medium text-foreground">
-              Model
+              {t('commands.fields.model', 'Model')}
             </label>
             <ModelSelector
               providerId={model ? model.split('/')[0] : ''}
@@ -187,7 +189,7 @@ export const CommandsPage: React.FC = () => {
               }}
             />
             <p className="typography-meta text-muted-foreground">
-              Default model for this command (optional)
+              {t('commands.fields.modelHint', 'Default model for this command (optional)')}
             </p>
           </div>
 
@@ -209,20 +211,18 @@ export const CommandsPage: React.FC = () => {
                   {subtask && <RiCheckLine className="w-3 h-3 text-primary-foreground" />}
                 </div>
               </div>
-              Force Subagent Invocation
+              {t('commands.fields.forceSubagent', 'Force Subagent Invocation')}
             </label>
             <div className="flex items-center gap-2">
               <p className="typography-meta text-muted-foreground">
-                Force command to run in a subagent context
+                {t('commands.fields.forceSubagentHint', 'Force command to run in a subagent context')}
               </p>
               <Tooltip delayDuration={1000}>
                 <TooltipTrigger asChild>
                   <RiInformationLine className="h-3.5 w-3.5 text-muted-foreground/60 cursor-help" />
                 </TooltipTrigger>
                   <TooltipContent sideOffset={8} className="max-w-xs">
-                    When enabled, this command will always execute in a subagent context,<br/>
-                    even if triggered from main agent.<br/>
-                    Useful for isolating command logic and maintaining clean separation of concerns.
+                    {t('commands.tooltips.forceSubagent', 'When enabled, this command will always execute in a subagent context, even if triggered from main agent. Useful for isolating command logic and maintaining clean separation of concerns.')}
                   </TooltipContent>
               </Tooltip>
             </div>
@@ -232,61 +232,54 @@ export const CommandsPage: React.FC = () => {
         {}
         <div className="space-y-4">
           <div className="space-y-1">
-            <h2 className="typography-h2 font-semibold text-foreground">Command Template</h2>
+            <h2 className="typography-h2 font-semibold text-foreground">{t('commands.sections.template', 'Command Template')}</h2>
             <p className="typography-meta text-muted-foreground/80">
-              Define the prompt template for this command. Use $ARGUMENTS for user input.
+              {t('commands.sections.templateDesc', 'Define the prompt template for this command. Use $ARGUMENTS for user input.')}
             </p>
           </div>
           <Textarea
             value={template}
             onChange={(e) => setTemplate(e.target.value)}
-            placeholder={`Your command template here...
-
-Use $ARGUMENTS to reference user input.
-Use !\`shell command\` to inject shell output.
-Use @filename to include file contents.`}
+            placeholder={t('commands.templatePlaceholder', 'Your command template here...\n\nUse $ARGUMENTS to reference user input.\nUse !`shell command` to inject shell output.\nUse @filename to include file contents.')}
             rows={12}
             className="font-mono typography-meta"
           />
           <div className="typography-meta text-muted-foreground/80 space-y-1">
-            <p className="font-medium">Template Features:</p>
+            <p className="font-medium">{t('commands.templateFeatures.title', 'Template Features:')}</p>
             <ul className="list-disc list-inside space-y-0.5 ml-2">
               <li className="flex items-center gap-2">
                 <code className="bg-muted px-1 rounded">$ARGUMENTS</code>
-                <span>- User input after command</span>
+                <span>{t('commands.templateFeatures.argumentsLabel', '- User input after command')}</span>
                 <Tooltip delayDuration={1000}>
                   <TooltipTrigger asChild>
                     <RiInformationLine className="h-3 w-3 text-muted-foreground/60 cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent sideOffset={8} className="max-w-xs">
-                    Replaced with everything the user types after the command name.<br/>
-                    Example: "/deploy staging" makes $ARGUMENTS = "staging"
+                    {t('commands.tooltips.arguments', 'Replaced with everything the user types after the command name. Example: "/deploy staging" makes $ARGUMENTS = "staging"')}
                   </TooltipContent>
                 </Tooltip>
               </li>
               <li className="flex items-center gap-2">
                 <code className="bg-muted px-1 rounded">!`command`</code>
-                <span>- Inject shell command output</span>
+                <span>{t('commands.templateFeatures.shellCommandLabel', '- Inject shell command output')}</span>
                 <Tooltip delayDuration={1000}>
                   <TooltipTrigger asChild>
                     <RiInformationLine className="h-3 w-3 text-muted-foreground/60 cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent sideOffset={8} className="max-w-xs">
-                    Executes shell command and replaces this placeholder with its output.<br/>
-                    Example: !`git branch --show-current` gets current branch name
+                    {t('commands.tooltips.shellCommand', 'Executes shell command and replaces this placeholder with its output. Example: !`git branch --show-current` gets current branch name')}
                   </TooltipContent>
                 </Tooltip>
               </li>
               <li className="flex items-center gap-2">
                 <code className="bg-muted px-1 rounded">@filename</code>
-                <span>- Include file contents</span>
+                <span>{t('commands.templateFeatures.fileContentsLabel', '- Include file contents')}</span>
                 <Tooltip delayDuration={1000}>
                   <TooltipTrigger asChild>
                     <RiInformationLine className="h-3 w-3 text-muted-foreground/60 cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent sideOffset={8} className="max-w-xs">
-                    Replaces with the full contents of the specified file.<br/>
-                    Example: @package.json includes the package.json content in the prompt
+                    {t('commands.tooltips.fileContents', 'Replaces with the full contents of the specified file. Example: @package.json includes the package.json content in the prompt')}
                   </TooltipContent>
                 </Tooltip>
               </li>
@@ -303,7 +296,7 @@ Use @filename to include file contents.`}
             className="gap-2 h-6 px-2 text-xs w-fit"
           >
             <RiSaveLine className="h-3 w-3" />
-            {isSaving ? 'Saving...' : 'Save Changes'}
+            {isSaving ? t('common:button.saving', 'Saving...') : t('common:button.saveChanges', 'Save Changes')}
           </Button>
         </div>
       </div>

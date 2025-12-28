@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { RiRestartLine } from '@remixicon/react';
 
 import { useThemeSystem } from '@/contexts/useThemeSystem';
@@ -63,6 +64,7 @@ interface OpenChamberVisualSettingsProps {
 }
 
 export const OpenChamberVisualSettings: React.FC<OpenChamberVisualSettingsProps> = ({ visibleSettings }) => {
+    const { t } = useTranslation('settings');
     const { isMobile } = useDeviceInfo();
     const showReasoningTraces = useUIStore(state => state.showReasoningTraces);
     const setShowReasoningTraces = useUIStore(state => state.setShowReasoningTraces);
@@ -90,7 +92,7 @@ export const OpenChamberVisualSettings: React.FC<OpenChamberVisualSettingsProps>
                 <div className="space-y-4">
                     <div className="space-y-1">
                         <h3 className="typography-ui-header font-semibold text-foreground">
-                            Theme Mode
+                            {t('visual.theme.title', 'Theme Mode')}
                         </h3>
                     </div>
 
@@ -113,7 +115,7 @@ export const OpenChamberVisualSettings: React.FC<OpenChamberVisualSettingsProps>
                 <div className="space-y-4">
                     <div className="space-y-1">
                         <h3 className="typography-ui-header font-semibold text-foreground">
-                            Font Size
+                            {t('visual.fontSize.title', 'Font Size')}
                         </h3>
 
                     </div>
@@ -154,7 +156,7 @@ export const OpenChamberVisualSettings: React.FC<OpenChamberVisualSettingsProps>
                 <div className="space-y-4">
                     <div className="space-y-1">
                         <h3 className="typography-ui-header font-semibold text-foreground">
-                            Spacing
+                            {t('visual.spacing.title', 'Spacing')}
                         </h3>
 
                     </div>
@@ -227,7 +229,7 @@ export const OpenChamberVisualSettings: React.FC<OpenChamberVisualSettingsProps>
                 <div className="space-y-4">
                     <div className="space-y-1">
                         <h3 className="typography-ui-header font-semibold text-foreground">
-                            Default Tool Output
+                            {t('chat.toolOutput.title', 'Default Tool Output')}
                         </h3>
                         <p className="typography-meta text-muted-foreground">
                             {TOOL_EXPANSION_OPTIONS.find(o => o.value === toolCallExpansion)?.description}
@@ -252,10 +254,10 @@ export const OpenChamberVisualSettings: React.FC<OpenChamberVisualSettingsProps>
                 <div className="space-y-4">
                     <div className="space-y-1">
                         <h3 className="typography-ui-header font-semibold text-foreground">
-                            Diff layout (Diff tab)
+                            {t('chat.diffLayout.title', 'Diff layout (Diff tab)')}
                         </h3>
                         <p className="typography-meta text-muted-foreground/80">
-                            Choose the default layout for file diffs. You can still override layout per file from the Diff tab.
+                            {t('chat.diffLayout.description', 'Choose the default layout for file diffs. You can still override layout per file from the Diff tab.')}
                         </p>
                     </div>
 
@@ -288,7 +290,7 @@ export const OpenChamberVisualSettings: React.FC<OpenChamberVisualSettingsProps>
                         onChange={(event) => setShowReasoningTraces(event.target.checked)}
                     />
                     <span className="typography-ui-header font-semibold text-foreground">
-                        Show thinking / reasoning traces
+                        {t('chat.reasoning.title', 'Show thinking / reasoning traces')}
                     </span>
                 </label>
             )}

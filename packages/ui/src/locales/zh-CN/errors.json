@@ -1,0 +1,49 @@
+{
+  "connection": {
+    "failed": "连接服务器失败",
+    "timeout": "连接超时",
+    "retry": "正在重试连接...",
+    "offline": "您似乎处于离线状态",
+    "serverError": "服务器错误"
+  },
+  "api": {
+    "requestFailed": "请求失败",
+    "unauthorized": "未授权",
+    "forbidden": "禁止访问",
+    "notFound": "未找到",
+    "rateLimited": "请求过于频繁，请稍后重试",
+    "serverError": "服务器错误"
+  },
+  "file": {
+    "readFailed": "读取文件失败",
+    "writeFailed": "写入文件失败",
+    "deleteFailed": "删除文件失败",
+    "notFound": "文件未找到",
+    "permissionDenied": "权限被拒绝",
+    "tooLarge": "文件过大"
+  },
+  "session": {
+    "createFailed": "创建会话失败",
+    "loadFailed": "加载会话失败",
+    "deleteFailed": "删除会话失败",
+    "notFound": "会话未找到"
+  },
+  "message": {
+    "sendFailed": "发送消息失败",
+    "streamFailed": "消息流失败",
+    "parseFailed": "解析响应失败"
+  },
+  "generic": {
+    "unknown": "发生意外错误",
+    "tryAgain": "请重试",
+    "contactSupport": "如果问题持续存在，请联系支持"
+  },
+  "validation": {
+    "required": "此字段为必填项",
+    "invalid": "输入无效",
+    "invalidEmail": "邮箱地址无效",
+    "invalidUrl": "URL 无效",
+    "minLength": "至少需要 {{min}} 个字符",
+    "maxLength": "最多 {{max}} 个字符"
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "connection": {
+    "failed": "Error al conectar con el servidor",
+    "timeout": "Tiempo de conexion agotado",
+    "retry": "Reintentando conexion...",
+    "offline": "Parece que estas desconectado",
+    "serverError": "Error del servidor"
+  },
+  "api": {
+    "requestFailed": "Solicitud fallida",
+    "unauthorized": "No autorizado",
+    "forbidden": "Acceso prohibido",
+    "notFound": "No encontrado",
+    "rateLimited": "Limite de velocidad alcanzado, intenta mas tarde",
+    "serverError": "Error del servidor"
+  },
+  "file": {
+    "readFailed": "Error al leer archivo",
+    "writeFailed": "Error al escribir archivo",
+    "deleteFailed": "Error al eliminar archivo",
+    "notFound": "Archivo no encontrado",
+    "permissionDenied": "Permiso denegado",
+    "tooLarge": "Archivo muy grande"
+  },
+  "session": {
+    "createFailed": "Error al crear sesion",
+    "loadFailed": "Error al cargar sesion",
+    "deleteFailed": "Error al eliminar sesion",
+    "notFound": "Sesion no encontrada"
+  },
+  "message": {
+    "sendFailed": "Error al enviar mensaje",
+    "streamFailed": "Error en el flujo de mensajes",
+    "parseFailed": "Error al analizar respuesta"
+  },
+  "generic": {
+    "unknown": "Ocurrio un error inesperado",
+    "tryAgain": "Por favor intenta de nuevo",
+    "contactSupport": "Si el problema persiste, contacta soporte"
+  },
+  "validation": {
+    "required": "Este campo es requerido",
+    "invalid": "Entrada invalida",
+    "invalidEmail": "Direccion de email invalida",
+    "invalidUrl": "URL invalida",
+    "minLength": "Debe tener al menos {{min}} caracteres",
+    "maxLength": "Debe tener como maximo {{max}} caracteres"
+  }
+}

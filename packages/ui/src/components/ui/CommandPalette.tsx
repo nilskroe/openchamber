@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   CommandDialog,
   CommandEmpty,
@@ -18,6 +19,8 @@ import { RiAddLine, RiChatAi3Line, RiCheckLine, RiCodeLine, RiComputerLine, RiGi
 import { reloadOpenCodeConfiguration } from '@/stores/useAgentsStore';
 
 export const CommandPalette: React.FC = () => {
+  const { t } = useTranslation('ui');
+
   const {
     isCommandPaletteOpen,
     setCommandPaletteOpen,
@@ -113,73 +116,73 @@ export const CommandPalette: React.FC = () => {
 
   return (
     <CommandDialog open={isCommandPaletteOpen} onOpenChange={setCommandPaletteOpen}>
-      <CommandInput placeholder="Type a command or search..." />
+      <CommandInput placeholder={t('commandPalette.placeholder', 'Type a command or search...')} />
       <CommandList>
-        <CommandEmpty>No results found.</CommandEmpty>
+        <CommandEmpty>{t('commandPalette.noResults', 'No results found.')}</CommandEmpty>
 
-        <CommandGroup heading="Actions">
+        <CommandGroup heading={t('commandPalette.groups.actions', 'Actions')}>
           <CommandItem onSelect={handleOpenSessionList}>
             <RiLayoutLeftLine className="mr-2 h-4 w-4" />
-            <span>Open Session List</span>
+            <span>{t('commandPalette.actions.openSessionList', 'Open Session List')}</span>
             <CommandShortcut>Ctrl + L</CommandShortcut>
           </CommandItem>
           <CommandItem onSelect={handleCreateSession}>
             <RiAddLine className="mr-2 h-4 w-4" />
-            <span>New Session</span>
+            <span>{t('commandPalette.actions.newSession', 'New Session')}</span>
             <CommandShortcut>Ctrl + N</CommandShortcut>
           </CommandItem>
           <CommandItem onSelect={handleOpenAdvancedSession}>
             <RiGitBranchLine className="mr-2 h-4 w-4" />
-            <span>New Session with Worktree</span>
+            <span>{t('commandPalette.actions.newSessionWorktree', 'New Session with Worktree')}</span>
             <CommandShortcut>Shift + Ctrl + N</CommandShortcut>
           </CommandItem>
           <CommandItem onSelect={handleShowHelp}>
             <RiQuestionLine className="mr-2 h-4 w-4" />
-            <span>Keyboard Shortcuts</span>
+            <span>{t('commandPalette.actions.keyboardShortcuts', 'Keyboard Shortcuts')}</span>
             <CommandShortcut>Ctrl + H</CommandShortcut>
           </CommandItem>
           <CommandItem onSelect={handleOpenDiffPanel}>
             <RiCodeLine className="mr-2 h-4 w-4" />
-            <span>Open Diff Panel</span>
+            <span>{t('commandPalette.actions.openDiffPanel', 'Open Diff Panel')}</span>
             <CommandShortcut>Ctrl + E</CommandShortcut>
           </CommandItem>
           <CommandItem onSelect={handleOpenGitPanel}>
             <RiGitBranchLine className="mr-2 h-4 w-4" />
-            <span>Open Git Panel</span>
+            <span>{t('commandPalette.actions.openGitPanel', 'Open Git Panel')}</span>
             <CommandShortcut>Ctrl + G</CommandShortcut>
           </CommandItem>
           <CommandItem onSelect={handleOpenTerminal}>
             <RiTerminalBoxLine className="mr-2 h-4 w-4" />
-            <span>Open Terminal</span>
+            <span>{t('commandPalette.actions.openTerminal', 'Open Terminal')}</span>
             <CommandShortcut>Ctrl + T</CommandShortcut>
           </CommandItem>
           <CommandItem onSelect={handleOpenSettings}>
             <RiSettings3Line className="mr-2 h-4 w-4" />
-            <span>Open Settings</span>
+            <span>{t('commandPalette.actions.openSettings', 'Open Settings')}</span>
             <CommandShortcut>Ctrl + ,</CommandShortcut>
           </CommandItem>
           <CommandItem onSelect={handleReloadConfiguration}>
             <RiRestartLine className="mr-2 h-4 w-4" />
-            <span>Reload OpenCode Configuration</span>
+            <span>{t('commandPalette.actions.reloadConfig', 'Reload OpenCode Configuration')}</span>
           </CommandItem>
         </CommandGroup>
 
         <CommandSeparator />
 
-        <CommandGroup heading="Theme">
+        <CommandGroup heading={t('commandPalette.groups.theme', 'Theme')}>
           <CommandItem onSelect={() => handleSetThemeMode('light')}>
             <RiSunLine className="mr-2 h-4 w-4" />
-            <span>Light Theme</span>
+            <span>{t('commandPalette.theme.light', 'Light Theme')}</span>
             {themeMode === 'light' && <RiCheckLine className="ml-auto h-4 w-4" />}
           </CommandItem>
           <CommandItem onSelect={() => handleSetThemeMode('dark')}>
             <RiMoonLine className="mr-2 h-4 w-4" />
-            <span>Dark Theme</span>
+            <span>{t('commandPalette.theme.dark', 'Dark Theme')}</span>
             {themeMode === 'dark' && <RiCheckLine className="ml-auto h-4 w-4" />}
           </CommandItem>
           <CommandItem onSelect={() => handleSetThemeMode('system')}>
             <RiComputerLine className="mr-2 h-4 w-4" />
-            <span>System Theme</span>
+            <span>{t('commandPalette.theme.system', 'System Theme')}</span>
             {themeMode === 'system' && <RiCheckLine className="ml-auto h-4 w-4" />}
           </CommandItem>
         </CommandGroup>
@@ -187,7 +190,7 @@ export const CommandPalette: React.FC = () => {
         {currentSessions.length > 0 && (
           <>
             <CommandSeparator />
-            <CommandGroup heading="Recent Sessions">
+            <CommandGroup heading={t('commandPalette.groups.recentSessions', 'Recent Sessions')}>
               {currentSessions.map((session) => (
                 <CommandItem
                   key={session.id}
@@ -195,7 +198,7 @@ export const CommandPalette: React.FC = () => {
                 >
                   <RiChatAi3Line className="mr-2 h-4 w-4" />
                   <span className="truncate">
-                    {session.title || 'Untitled Session'}
+                    {session.title || t('chat:session.untitled', 'Untitled Session')}
                   </span>
                 </CommandItem>
               ))}

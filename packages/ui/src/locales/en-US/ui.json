@@ -1,0 +1,188 @@
+{
+  "help": {
+    "title": "Keyboard Shortcuts",
+    "description": "Use these keyboard shortcuts to navigate and control the application quickly.",
+    "categories": {
+      "navigation": "Navigation & Commands",
+      "sessionManagement": "Session Management",
+      "interface": "Interface"
+    },
+    "shortcuts": {
+      "openCommandPalette": "Open Command Palette",
+      "showKeyboardShortcuts": "Show Keyboard Shortcuts (this dialog)",
+      "toggleSessionSidebar": "Toggle Session Sidebar",
+      "createNewSession": "Create New Session",
+      "openWorktreeCreator": "Open Worktree Creator",
+      "focusChatInput": "Focus Chat Input",
+      "abortActiveRun": "Abort active run (double press)",
+      "deleteCurrentSession": "Delete Current Session",
+      "selectPreviousSession": "Select Previous Session",
+      "selectNextSession": "Select Next Session",
+      "cycleTheme": "Cycle Theme (Light → Dark → System)",
+      "openDiffPanel": "Open Diff Panel",
+      "openGitPanel": "Open Git Panel",
+      "openTerminal": "Open Terminal",
+      "openSettings": "Open Settings"
+    },
+    "proTips": {
+      "title": "Pro Tips:",
+      "commandPalette": "Use Command Palette (Ctrl + X) to quickly access all actions",
+      "recentSessions": "The 5 most recent sessions appear in the Command Palette",
+      "themeCycling": "Theme cycling remembers your preference across sessions",
+      "tabCycle": "Press Tab in the chat input to cycle through agents",
+      "atMention": "Use @ to mention and attach files from your project",
+      "hashMention": "Use # to mention a specific agent inline",
+      "slashCommand": "Type / to access quick commands"
+    }
+  },
+  "commandPalette": {
+    "placeholder": "Type a command or search...",
+    "noResults": "No results found.",
+    "groups": {
+      "actions": "Actions",
+      "theme": "Theme",
+      "recentSessions": "Recent Sessions"
+    },
+    "actions": {
+      "openSessionList": "Open Session List",
+      "newSession": "New Session",
+      "newSessionWorktree": "New Session with Worktree",
+      "keyboardShortcuts": "Keyboard Shortcuts",
+      "openDiffPanel": "Open Diff Panel",
+      "openGitPanel": "Open Git Panel",
+      "openTerminal": "Open Terminal",
+      "openSettings": "Open Settings",
+      "reloadConfig": "Reload OpenCode Configuration"
+    },
+    "theme": {
+      "light": "Light Theme",
+      "dark": "Dark Theme",
+      "system": "System Theme"
+    }
+  },
+  "directory": {
+    "title": "Select project directory",
+    "description": "Choose the working directory for your coding session",
+    "placeholder": "Enter path or select from tree...",
+    "showHidden": "Show hidden",
+    "openButton": "Open Directory",
+    "applying": "Applying...",
+    "errors": {
+      "accessDenied": "Unable to access directory",
+      "accessDeniedDesc": "Desktop denied directory access.",
+      "openFailed": "Failed to open directory",
+      "openFailedDesc": "Desktop could not grant file access.",
+      "selectFailed": "Failed to select directory",
+      "selectFailedDesc": "Unknown error occurred."
+    },
+    "tree": {
+      "locatingHome": "Locating home directory...",
+      "loading": "Loading...",
+      "noDirectoriesFound": "No directories found",
+      "pinned": "Pinned",
+      "browse": "Browse",
+      "createNewDirectory": "Create new directory",
+      "pinDirectory": "Pin directory",
+      "unpinDirectory": "Unpin directory",
+      "createDirectory": "Create directory",
+      "cancel": "Cancel"
+    }
+  },
+  "worktree": {
+    "title": "Worktree",
+    "manager": {
+      "title": "Worktree Manager",
+      "close": "Close"
+    },
+    "create": {
+      "title": "Create worktree",
+      "description": "Branch-specific directory under {{path}}.",
+      "creating": "Creating…",
+      "createButton": "Create"
+    },
+    "fields": {
+      "branchName": "Branch name",
+      "branchNamePlaceholder": "feature/new-branch"
+    },
+    "createDescription": "Creates branch {{branch}} at {{path}}",
+    "existingWorktrees": "Existing worktrees",
+    "loading": "Loading worktrees…",
+    "noWorktreesFound": "No worktrees found under {{path}}.",
+    "detachedHead": "Detached HEAD",
+    "notGitRepo": "Current directory is not a Git repository.",
+    "uncommittedWarning": "Uncommitted changes will be discarded.",
+    "delete": {
+      "title": "Delete worktree",
+      "titleSession": "Delete session",
+      "titleSessions": "Delete sessions",
+      "deleteWorktreeButton": "Delete worktree",
+      "deleteSessionButton": "Delete session",
+      "deleteSessionsButton": "Delete sessions",
+      "deleting": "Deleting…",
+      "sessionOnly": "Delete session only",
+      "sessionOnlyNote": "Worktree directories stay intact. Subsessions linked to the selected sessions will also be removed.",
+      "deleteRemoteBranch": "Delete remote branch",
+      "remoteBranchWillRemove": "Remote branch on origin will also be removed.",
+      "remoteBranchKeep": "Keep the remote branch intact.",
+      "remoteBranchUnavailable": "Remote branch information unavailable for this worktree.",
+      "worktreeDescription": "This removes the selected worktree and {{count}} linked session.",
+      "worktreeDescription_other": "This removes the selected worktree and {{count}} linked sessions.",
+      "sessionDescription": "This action permanently removes {{count}} session.",
+      "sessionDescription_other": "This action permanently removes {{count}} sessions.",
+      "sessionDescriptionWithDate": "This action permanently removes {{count}} session from {{date}}.",
+      "sessionDescriptionWithDate_other": "This action permanently removes {{count}} sessions from {{date}}.",
+      "moreItems": "+{{count}} more",
+      "pathUnavailable": "Worktree path unavailable."
+    },
+    "validation": {
+      "selectDirectory": "Select a project directory first.",
+      "branchRequired": "Provide a branch name for the new worktree.",
+      "invalidBranchName": "Provide a branch name that can be used as a folder.",
+      "branchExists": "Branch already exists",
+      "worktreeExists": "A worktree with this folder already exists."
+    },
+    "success": {
+      "created": "Worktree created",
+      "upstreamConfigured": "Configured upstream for {{branch}}",
+      "sessionDeleted": "Session deleted",
+      "sessionsDeleted": "Deleted {{count}} session",
+      "sessionsDeleted_other": "Deleted {{count}} sessions",
+      "worktreeArchived": "Attached worktree archived.",
+      "worktreeAndRemoteRemoved": "Worktree and remote branch removed.",
+      "worktreesArchived": "Archived worktrees and removed remote branches."
+    },
+    "warnings": {
+      "createdLocally": "Worktree created locally",
+      "upstreamFailed": "Upstream setup failed: {{error}}"
+    },
+    "errors": {
+      "createFailed": "Failed to create worktree",
+      "sessionFailed": "Failed to create session for worktree",
+      "deleteFailed": "Failed to delete session",
+      "deleteFailedMultiple": "Failed to delete {{count}} session",
+      "deleteFailedMultiple_other": "Failed to delete {{count}} sessions",
+      "tryAgain": "Please try again in a moment."
+    },
+    "descriptions": {
+      "removedFromDate": "Removed all sessions from {{date}}.",
+      "someCouldNotDelete": "{{count}} session could not be deleted.",
+      "someCouldNotDelete_other": "{{count}} sessions could not be deleted."
+    }
+  },
+  "common": {
+    "cancel": "Cancel",
+    "close": "Close"
+  },
+  "onboarding": {
+    "welcome": "Welcome to OpenChamber",
+    "cliRequired": "is required to continue.",
+    "copied": "Copied to clipboard",
+    "copyToClipboard": "Copy to clipboard",
+    "viewDocs": "View documentation",
+    "waiting": "Waiting for OpenCode installation...",
+    "hintPath": "Already installed? Make sure",
+    "hintPathEnd": "is in your PATH",
+    "hintEnv": "or set",
+    "hintEnvEnd": "environment variable."
+  }
+}

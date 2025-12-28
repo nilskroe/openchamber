@@ -11,6 +11,7 @@ import { useMenuActions } from '@/hooks/useMenuActions';
 import { useMessageSync } from '@/hooks/useMessageSync';
 import { useSessionStatusBootstrap } from '@/hooks/useSessionStatusBootstrap';
 import { useSessionAutoCleanup } from '@/hooks/useSessionAutoCleanup';
+import { useI18nInitializer } from '@/hooks/useI18nInitializer';
 import { GitPollingProvider } from '@/hooks/useGitPolling';
 import { useConfigStore } from '@/stores/useConfigStore';
 import { useSessionStore } from '@/stores/useSessionStore';
@@ -140,6 +141,8 @@ function App({ apis }: AppProps) {
   }, [currentDirectory, isSwitchingDirectory, loadSessions]);
 
   useEventStream();
+
+  useI18nInitializer();
 
   useKeyboardShortcuts();
 

@@ -332,6 +332,7 @@ export interface SettingsPayload {
   showReasoningTraces?: boolean;
   autoDeleteEnabled?: boolean;
   autoDeleteAfterDays?: number;
+  language?: string; // e.g., 'en-US', 'es-ES'
 
   [key: string]: unknown;
 }

@@ -1,0 +1,135 @@
+{
+  "title": "Parametres",
+  "language": {
+    "title": "Langue",
+    "description": "Choisissez votre langue d'affichage preferee",
+    "selectLabel": "Langue d'affichage"
+  },
+  "visual": {
+    "title": "Visuel",
+    "description": "Personnalisez l'apparence",
+    "theme": {
+      "title": "Theme",
+      "description": "Choisissez votre theme de couleur",
+      "light": "Clair",
+      "dark": "Sombre",
+      "system": "Systeme"
+    },
+    "fontSize": {
+      "title": "Taille de police",
+      "description": "Ajustez la taille du texte",
+      "small": "Petit",
+      "medium": "Moyen",
+      "large": "Grand"
+    },
+    "spacing": {
+      "title": "Espacement",
+      "description": "Ajustez la densite du contenu",
+      "compact": "Compact",
+      "comfortable": "Confortable",
+      "spacious": "Spacieux"
+    }
+  },
+  "chat": {
+    "title": "Chat",
+    "description": "Parametres d'affichage du chat",
+    "toolOutput": {
+      "title": "Sortie des outils",
+      "description": "Comment afficher les resultats des outils",
+      "collapsed": "Reduit",
+      "activity": "Activite",
+      "detailed": "Detaille"
+    },
+    "diffLayout": {
+      "title": "Disposition des differences",
+      "description": "Comment afficher les differences de code",
+      "inline": "En ligne",
+      "sideBySide": "Cote a cote",
+      "dynamic": "Dynamique"
+    },
+    "reasoning": {
+      "title": "Traces de raisonnement",
+      "description": "Afficher le processus de raisonnement du modele",
+      "show": "Afficher",
+      "hide": "Masquer"
+    },
+    "wrapLines": {
+      "title": "Retour a la ligne",
+      "description": "Retour a la ligne dans la vue des differences"
+    }
+  },
+  "sessions": {
+    "title": "Sessions",
+    "description": "Parametres de gestion des sessions",
+    "defaults": {
+      "title": "Par defaut",
+      "description": "Modele et agent par defaut pour les nouvelles sessions",
+      "model": "Modele par defaut",
+      "agent": "Agent par defaut",
+      "noDefault": "Pas de defaut"
+    },
+    "retention": {
+      "title": "Conservation des sessions",
+      "description": "Supprimer automatiquement les anciennes sessions",
+      "enabled": "Suppression automatique activee",
+      "disabled": "Suppression automatique desactivee",
+      "afterDays": "Supprimer apres {{days}} jours",
+      "daysLabel": "Jours a conserver"
+    }
+  },
+  "providers": {
+    "title": "Fournisseurs",
+    "description": "Configuration des fournisseurs IA",
+    "add": "Ajouter un fournisseur",
+    "edit": "Modifier le fournisseur",
+    "delete": "Supprimer le fournisseur",
+    "apiKey": "Cle API",
+    "baseUrl": "URL de base",
+    "models": "Modeles",
+    "enabled": "Active",
+    "disabled": "Desactive"
+  },
+  "agents": {
+    "title": "Agents",
+    "description": "Configuration des agents personnalises",
+    "add": "Ajouter un agent",
+    "edit": "Modifier l'agent",
+    "delete": "Supprimer l'agent",
+    "name": "Nom de l'agent",
+    "systemPrompt": "Invite systeme",
+    "model": "Modele",
+    "tools": "Outils"
+  },
+  "commands": {
+    "title": "Commandes",
+    "description": "Configuration des commandes personnalisees",
+    "add": "Ajouter une commande",
+    "edit": "Modifier la commande",
+    "delete": "Supprimer la commande",
+    "name": "Nom de la commande",
+    "command": "Commande",
+    "description_label": "Description"
+  },
+  "gitIdentities": {
+    "title": "Identites Git",
+    "description": "Gerer les profils utilisateur Git",
+    "add": "Ajouter une identite",
+    "edit": "Modifier l'identite",
+    "delete": "Supprimer l'identite",
+    "name": "Nom du profil",
+    "userName": "Nom d'utilisateur Git",
+    "userEmail": "E-mail Git",
+    "sshKey": "Cle SSH",
+    "setActive": "Definir comme actif",
+    "active": "Actif"
+  },
+  "about": {
+    "title": "A propos",
+    "version": "Version",
+    "checkUpdates": "Verifier les mises a jour",
+    "updateAvailable": "Mise a jour disponible",
+    "upToDate": "Vous etes a jour",
+    "downloadUpdate": "Telecharger la mise a jour",
+    "restartToUpdate": "Redemarrer pour mettre a jour"
+  }
+}

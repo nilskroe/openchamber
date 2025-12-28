@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { ScrollableOverlay } from '@/components/ui/ScrollableOverlay';
 import { ChangeRow } from './ChangeRow';
@@ -27,13 +28,14 @@ export const ChangesSection: React.FC<ChangesSectionProps> = ({
   onViewDiff,
   onRevertFile,
 }) => {
+  const { t } = useTranslation('git');
   const selectedCount = selectedPaths.size;
   const totalCount = changeEntries.length;
 
   return (
     <section className="flex flex-col rounded-xl border border-border/60 bg-background/70">
       <header className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border/40">
-        <h3 className="typography-ui-header font-semibold text-foreground">Changes</h3>
+        <h3 className="typography-ui-header font-semibold text-foreground">{t('changes.title')}</h3>
         <div className="flex items-center gap-2">
           <span className="typography-meta text-muted-foreground">
             {selectedCount}/{totalCount}
@@ -46,7 +48,7 @@ export const ChangesSection: React.FC<ChangesSectionProps> = ({
                 className="h-6 px-2 text-xs"
                 onClick={onSelectAll}
               >
-                All
+                {t('changes.all')}
               </Button>
               <Button
                 variant="ghost"
@@ -55,7 +57,7 @@ export const ChangesSection: React.FC<ChangesSectionProps> = ({
                 onClick={onClearSelection}
                 disabled={selectedCount === 0}
               >
-                None
+                {t('changes.none')}
               </Button>
             </>
           )}

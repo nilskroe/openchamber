@@ -1,0 +1,188 @@
+{
+  "help": {
+    "title": "Atajos de teclado",
+    "description": "Usa estos atajos de teclado para navegar y controlar la aplicación rápidamente.",
+    "categories": {
+      "navigation": "Navegación y Comandos",
+      "sessionManagement": "Gestión de Sesiones",
+      "interface": "Interfaz"
+    },
+    "shortcuts": {
+      "openCommandPalette": "Abrir paleta de comandos",
+      "showKeyboardShortcuts": "Mostrar atajos de teclado (este diálogo)",
+      "toggleSessionSidebar": "Alternar barra lateral de sesiones",
+      "createNewSession": "Crear nueva sesión",
+      "openWorktreeCreator": "Abrir creador de worktree",
+      "focusChatInput": "Enfocar entrada de chat",
+      "abortActiveRun": "Abortar ejecución activa (doble pulsación)",
+      "deleteCurrentSession": "Eliminar sesión actual",
+      "selectPreviousSession": "Seleccionar sesión anterior",
+      "selectNextSession": "Seleccionar siguiente sesión",
+      "cycleTheme": "Cambiar tema (Claro → Oscuro → Sistema)",
+      "openDiffPanel": "Abrir panel de diferencias",
+      "openGitPanel": "Abrir panel de Git",
+      "openTerminal": "Abrir terminal",
+      "openSettings": "Abrir configuración"
+    },
+    "proTips": {
+      "title": "Consejos:",
+      "commandPalette": "Usa la paleta de comandos (Ctrl + X) para acceder rápidamente a todas las acciones",
+      "recentSessions": "Las 5 sesiones más recientes aparecen en la paleta de comandos",
+      "themeCycling": "El cambio de tema recuerda tu preferencia entre sesiones",
+      "tabCycle": "Presiona Tab en la entrada de chat para cambiar entre agentes",
+      "atMention": "Usa @ para mencionar y adjuntar archivos de tu proyecto",
+      "hashMention": "Usa # para mencionar un agente específico en línea",
+      "slashCommand": "Escribe / para acceder a comandos rápidos"
+    }
+  },
+  "commandPalette": {
+    "placeholder": "Escribe un comando o busca...",
+    "noResults": "No se encontraron resultados.",
+    "groups": {
+      "actions": "Acciones",
+      "theme": "Tema",
+      "recentSessions": "Sesiones recientes"
+    },
+    "actions": {
+      "openSessionList": "Abrir lista de sesiones",
+      "newSession": "Nueva sesión",
+      "newSessionWorktree": "Nueva sesión con Worktree",
+      "keyboardShortcuts": "Atajos de teclado",
+      "openDiffPanel": "Abrir panel de diferencias",
+      "openGitPanel": "Abrir panel de Git",
+      "openTerminal": "Abrir terminal",
+      "openSettings": "Abrir configuración",
+      "reloadConfig": "Recargar configuración de OpenCode"
+    },
+    "theme": {
+      "light": "Tema claro",
+      "dark": "Tema oscuro",
+      "system": "Tema del sistema"
+    }
+  },
+  "directory": {
+    "title": "Seleccionar directorio del proyecto",
+    "description": "Elige el directorio de trabajo para tu sesión de codificación",
+    "placeholder": "Introduce la ruta o selecciona del árbol...",
+    "showHidden": "Mostrar ocultos",
+    "openButton": "Abrir directorio",
+    "applying": "Aplicando...",
+    "errors": {
+      "accessDenied": "No se puede acceder al directorio",
+      "accessDeniedDesc": "El escritorio denegó el acceso al directorio.",
+      "openFailed": "Error al abrir el directorio",
+      "openFailedDesc": "El escritorio no pudo conceder acceso a los archivos.",
+      "selectFailed": "Error al seleccionar el directorio",
+      "selectFailedDesc": "Ocurrió un error desconocido."
+    },
+    "tree": {
+      "locatingHome": "Localizando directorio home...",
+      "loading": "Cargando...",
+      "noDirectoriesFound": "No se encontraron directorios",
+      "pinned": "Fijados",
+      "browse": "Explorar",
+      "createNewDirectory": "Crear nuevo directorio",
+      "pinDirectory": "Fijar directorio",
+      "unpinDirectory": "Desfijar directorio",
+      "createDirectory": "Crear directorio",
+      "cancel": "Cancelar"
+    }
+  },
+  "worktree": {
+    "title": "Worktree",
+    "manager": {
+      "title": "Gestor de Worktree",
+      "close": "Cerrar"
+    },
+    "create": {
+      "title": "Crear worktree",
+      "description": "Directorio específico de rama bajo {{path}}.",
+      "creating": "Creando…",
+      "createButton": "Crear"
+    },
+    "fields": {
+      "branchName": "Nombre de rama",
+      "branchNamePlaceholder": "feature/nueva-rama"
+    },
+    "createDescription": "Crea la rama {{branch}} en {{path}}",
+    "existingWorktrees": "Worktrees existentes",
+    "loading": "Cargando worktrees…",
+    "noWorktreesFound": "No se encontraron worktrees bajo {{path}}.",
+    "detachedHead": "HEAD desvinculado",
+    "notGitRepo": "El directorio actual no es un repositorio Git.",
+    "uncommittedWarning": "Los cambios no confirmados se descartarán.",
+    "delete": {
+      "title": "Eliminar worktree",
+      "titleSession": "Eliminar sesión",
+      "titleSessions": "Eliminar sesiones",
+      "deleteWorktreeButton": "Eliminar worktree",
+      "deleteSessionButton": "Eliminar sesión",
+      "deleteSessionsButton": "Eliminar sesiones",
+      "deleting": "Eliminando…",
+      "sessionOnly": "Eliminar solo la sesión",
+      "sessionOnlyNote": "Los directorios de worktree permanecen intactos. Las subsesiones vinculadas también se eliminarán.",
+      "deleteRemoteBranch": "Eliminar rama remota",
+      "remoteBranchWillRemove": "La rama remota en origin también se eliminará.",
+      "remoteBranchKeep": "Mantener la rama remota intacta.",
+      "remoteBranchUnavailable": "Información de rama remota no disponible para este worktree.",
+      "worktreeDescription": "Esto elimina el worktree seleccionado y {{count}} sesión vinculada.",
+      "worktreeDescription_other": "Esto elimina el worktree seleccionado y {{count}} sesiones vinculadas.",
+      "sessionDescription": "Esta acción elimina permanentemente {{count}} sesión.",
+      "sessionDescription_other": "Esta acción elimina permanentemente {{count}} sesiones.",
+      "sessionDescriptionWithDate": "Esta acción elimina permanentemente {{count}} sesión de {{date}}.",
+      "sessionDescriptionWithDate_other": "Esta acción elimina permanentemente {{count}} sesiones de {{date}}.",
+      "moreItems": "+{{count}} más",
+      "pathUnavailable": "Ruta de worktree no disponible."
+    },
+    "validation": {
+      "selectDirectory": "Selecciona primero un directorio de proyecto.",
+      "branchRequired": "Proporciona un nombre de rama para el nuevo worktree.",
+      "invalidBranchName": "Proporciona un nombre de rama que pueda usarse como carpeta.",
+      "branchExists": "La rama ya existe",
+      "worktreeExists": "Ya existe un worktree con esta carpeta."
+    },
+    "success": {
+      "created": "Worktree creado",
+      "upstreamConfigured": "Upstream configurado para {{branch}}",
+      "sessionDeleted": "Sesión eliminada",
+      "sessionsDeleted": "{{count}} sesión eliminada",
+      "sessionsDeleted_other": "{{count}} sesiones eliminadas",
+      "worktreeArchived": "Worktree adjunto archivado.",
+      "worktreeAndRemoteRemoved": "Worktree y rama remota eliminados.",
+      "worktreesArchived": "Worktrees archivados y ramas remotas eliminadas."
+    },
+    "warnings": {
+      "createdLocally": "Worktree creado localmente",
+      "upstreamFailed": "Error en configuración de upstream: {{error}}"
+    },
+    "errors": {
+      "createFailed": "Error al crear worktree",
+      "sessionFailed": "Error al crear sesión para worktree",
+      "deleteFailed": "Error al eliminar sesión",
+      "deleteFailedMultiple": "Error al eliminar {{count}} sesión",
+      "deleteFailedMultiple_other": "Error al eliminar {{count}} sesiones",
+      "tryAgain": "Por favor, inténtalo de nuevo en un momento."
+    },
+    "descriptions": {
+      "removedFromDate": "Eliminadas todas las sesiones de {{date}}.",
+      "someCouldNotDelete": "{{count}} sesión no pudo ser eliminada.",
+      "someCouldNotDelete_other": "{{count}} sesiones no pudieron ser eliminadas."
+    }
+  },
+  "common": {
+    "cancel": "Cancelar",
+    "close": "Cerrar"
+  },
+  "onboarding": {
+    "welcome": "Bienvenido a OpenChamber",
+    "cliRequired": "es necesario para continuar.",
+    "copied": "Copiado al portapapeles",
+    "copyToClipboard": "Copiar al portapapeles",
+    "viewDocs": "Ver documentación",
+    "waiting": "Esperando la instalación de OpenCode...",
+    "hintPath": "¿Ya instalado? Asegúrate de que",
+    "hintPathEnd": "esté en tu PATH",
+    "hintEnv": "o establece la variable de entorno",
+    "hintEnvEnd": "."
+  }
+}

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { ScrollableOverlay } from '@/components/ui/ScrollableOverlay';
 import { ProviderLogo } from '@/components/ui/ProviderLogo';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,7 @@ interface ProvidersSidebarProps {
 }
 
 export const ProvidersSidebar: React.FC<ProvidersSidebarProps> = ({ onItemSelect }) => {
+  const { t } = useTranslation('settings');
   const providers = useConfigStore((state) => state.providers);
   const selectedProviderId = useConfigStore((state) => state.selectedProviderId);
   const setSelectedProvider = useConfigStore((state) => state.setSelectedProvider);
@@ -42,7 +44,7 @@ export const ProvidersSidebar: React.FC<ProvidersSidebarProps> = ({ onItemSelect
     <div className={cn('flex h-full flex-col', bgClass)}>
       <div className={cn('border-b px-3', isMobile ? 'mt-2 py-3' : 'py-3')}>
         <div className="flex items-center justify-between gap-2">
-          <span className="typography-meta text-muted-foreground">Total {providers.length}</span>
+          <span className="typography-meta text-muted-foreground">{t('common:total', 'Total')} {providers.length}</span>
           <Button
             type="button"
             variant="ghost"
@@ -52,8 +54,8 @@ export const ProvidersSidebar: React.FC<ProvidersSidebarProps> = ({ onItemSelect
               setSelectedProvider(ADD_PROVIDER_ID);
               onItemSelect?.();
             }}
-            aria-label="Connect provider"
-            title="Connect provider"
+            aria-label={t('providers.connect')}
+            title={t('providers.connect')}
           >
             <RiAddLine className="size-4" />
           </Button>
@@ -64,8 +66,8 @@ export const ProvidersSidebar: React.FC<ProvidersSidebarProps> = ({ onItemSelect
         {providers.length === 0 ? (
           <div className="py-12 px-4 text-center text-muted-foreground">
             <RiStackLine className="mx-auto mb-3 h-10 w-10 opacity-50" />
-            <p className="typography-ui-label font-medium">No providers found</p>
-            <p className="typography-meta mt-1 opacity-75">Check your OpenCode configuration</p>
+            <p className="typography-ui-label font-medium">{t('providers.noProviders')}</p>
+            <p className="typography-meta mt-1 opacity-75">{t('providers.noProvidersHint')}</p>
           </div>
         ) : (
           providers.map((provider) => {

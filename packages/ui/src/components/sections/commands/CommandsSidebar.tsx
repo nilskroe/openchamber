@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { ButtonLarge } from '@/components/ui/button-large';
 import { Input } from '@/components/ui/input';
@@ -31,6 +32,7 @@ interface CommandsSidebarProps {
 }
 
 export const CommandsSidebar: React.FC<CommandsSidebarProps> = ({ onItemSelect }) => {
+  const { t } = useTranslation('settings');
   const [newCommandName, setNewCommandName] = React.useState('');
   const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false);
 
@@ -69,14 +71,14 @@ export const CommandsSidebar: React.FC<CommandsSidebarProps> = ({ onItemSelect }
 
   const handleCreateCommand = () => {
     if (!newCommandName.trim()) {
-      toast.error('Command name is required');
+      toast.error(t('commands.errors.nameRequired'));
       return;
     }
 
     const sanitizedName = newCommandName.trim().replace(/\s+/g, '-');
 
     if (commands.some((cmd) => cmd.name === sanitizedName)) {
-      toast.error('A command with this name already exists');
+      toast.error(t('commands.errors.alreadyExists', 'A command with this name already exists'));
       return;
     }
 
@@ -90,12 +92,12 @@ export const CommandsSidebar: React.FC<CommandsSidebarProps> = ({ onItemSelect }
   };
 
   const handleDeleteCommand = async (command: Command) => {
-    if (window.confirm(`Are you sure you want to delete command "${command.name}"?`)) {
+    if (window.confirm(t('commands.deleteConfirm', { name: command.name }))) {
       const success = await deleteCommand(command.name);
       if (success) {
-        toast.success(`Command "${command.name}" deleted successfully`);
+        toast.success(t('commands.success.deleted', { name: command.name }));
       } else {
-        toast.error('Failed to delete command');
+        toast.error(t('commands.errors.deleteFailed', 'Failed to delete command'));
       }
     }
   };
@@ -123,7 +125,7 @@ export const CommandsSidebar: React.FC<CommandsSidebarProps> = ({ onItemSelect }
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <div className={cn('border-b px-3', isMobile ? 'mt-2 py-3' : 'py-3')}>
           <div className="flex items-center justify-between gap-2">
-            <span className="typography-meta text-muted-foreground">Total {commands.length}</span>
+            <span className="typography-meta text-muted-foreground">{t('common:total', 'Total')} {commands.length}</span>
             <DialogTrigger asChild>
               <Button type="button" variant="ghost" size="icon" className="h-7 w-7 -my-1 text-muted-foreground">
                 <RiAddLine className="size-4" />
@@ -136,8 +138,8 @@ export const CommandsSidebar: React.FC<CommandsSidebarProps> = ({ onItemSelect }
             {commands.length === 0 ? (
               <div className="py-12 px-4 text-center text-muted-foreground">
                 <RiTerminalBoxLine className="mx-auto mb-3 h-10 w-10 opacity-50" />
-                <p className="typography-ui-label font-medium">No commands configured</p>
-                <p className="typography-meta mt-1 opacity-75">Use the + button above to create one</p>
+                <p className="typography-ui-label font-medium">{t('commands.noCommands', 'No commands configured')}</p>
+                <p className="typography-meta mt-1 opacity-75">{t('commands.noCommandsHint', 'Use the + button above to create one')}</p>
               </div>
             ) : (
               <>
@@ -163,15 +165,15 @@ export const CommandsSidebar: React.FC<CommandsSidebarProps> = ({ onItemSelect }
 
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create New Command</DialogTitle>
+            <DialogTitle>{t('commands.createTitle', 'Create New Command')}</DialogTitle>
             <DialogDescription>
-              Enter a unique name for your new slash command
+              {t('commands.createDescription', 'Enter a unique name for your new slash command')}
             </DialogDescription>
           </DialogHeader>
           <Input
             value={newCommandName}
             onChange={(e) => setNewCommandName(e.target.value)}
-            placeholder="Command name..."
+            placeholder={t('commands.fields.namePlaceholder')}
             className="text-foreground placeholder:text-muted-foreground"
             onKeyDown={(e) => {
               if (e.key === 'Enter') {
@@ -185,10 +187,10 @@ export const CommandsSidebar: React.FC<CommandsSidebarProps> = ({ onItemSelect }
               onClick={() => setIsCreateDialogOpen(false)}
               className="text-foreground hover:bg-muted hover:text-foreground"
             >
-              Cancel
+              {t('common:cancel', 'Cancel')}
             </Button>
             <ButtonLarge onClick={handleCreateCommand}>
-              Create
+              {t('common:create', 'Create')}
             </ButtonLarge>
           </DialogFooter>
         </DialogContent>
@@ -212,6 +214,7 @@ const CommandListItem: React.FC<CommandListItemProps> = ({
   onDelete,
   onDuplicate,
 }) => {
+  const { t } = useTranslation('settings');
   return (
     <div
       className={cn(
@@ -256,7 +259,7 @@ const CommandListItem: React.FC<CommandListItemProps> = ({
               }}
             >
               <RiFileCopyLine className="h-4 w-4 mr-px" />
-              Duplicate
+              {t('common:duplicate', 'Duplicate')}
             </DropdownMenuItem>
 
             <DropdownMenuItem
@@ -267,7 +270,7 @@ const CommandListItem: React.FC<CommandListItemProps> = ({
               className="text-destructive focus:text-destructive"
             >
               <RiDeleteBinLine className="h-4 w-4 mr-px" />
-              Delete
+              {t('commands.delete')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

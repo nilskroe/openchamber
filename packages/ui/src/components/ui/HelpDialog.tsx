@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -55,34 +56,35 @@ type ShortcutSection = {
 };
 
 export const HelpDialog: React.FC = () => {
+  const { t } = useTranslation('ui');
   const { isHelpDialogOpen, setHelpDialogOpen } = useUIStore();
 
   const shortcuts: ShortcutSection[] = [
     {
-      category: "Navigation & Commands",
+      category: t('help.categories.navigation', 'Navigation & Commands'),
       items: [
-        { keys: ["Ctrl + X"], description: "Open Command Palette", icon: RiCommandLine },
-        { keys: ["Ctrl + H"], description: "Show Keyboard Shortcuts (this dialog)", icon: RiQuestionLine },
-        { keys: ["Ctrl + L"], description: "Toggle Session Sidebar", icon: RiLayoutLeftLine },
+        { keys: ["Ctrl + X"], description: t('help.shortcuts.openCommandPalette', 'Open Command Palette'), icon: RiCommandLine },
+        { keys: ["Ctrl + H"], description: t('help.shortcuts.showKeyboardShortcuts', 'Show Keyboard Shortcuts (this dialog)'), icon: RiQuestionLine },
+        { keys: ["Ctrl + L"], description: t('help.shortcuts.toggleSessionSidebar', 'Toggle Session Sidebar'), icon: RiLayoutLeftLine },
       ]
     },
     {
-      category: "Session Management",
+      category: t('help.categories.sessionManagement', 'Session Management'),
       items: [
-        { keys: ["Ctrl + N"], description: "Create New Session", icon: RiAddLine },
-        { keys: ["Shift + Ctrl + N"], description: "Open Worktree Creator", icon: RiGitBranchLine },
-        { keys: ["Ctrl + I"], description: "Focus Chat Input", icon: RiText },
-        { keys: ["Esc + Esc"], description: "Abort active run (double press)", icon: RiCloseCircleLine },
+        { keys: ["Ctrl + N"], description: t('help.shortcuts.createNewSession', 'Create New Session'), icon: RiAddLine },
+        { keys: ["Shift + Ctrl + N"], description: t('help.shortcuts.openWorktreeCreator', 'Open Worktree Creator'), icon: RiGitBranchLine },
+        { keys: ["Ctrl + I"], description: t('help.shortcuts.focusChatInput', 'Focus Chat Input'), icon: RiText },
+        { keys: ["Esc + Esc"], description: t('help.shortcuts.abortActiveRun', 'Abort active run (double press)'), icon: RiCloseCircleLine },
       ]
     },
     {
-      category: "Interface",
+      category: t('help.categories.interface', 'Interface'),
       items: [
-        { keys: ["⌘ + /", "Ctrl + /"], description: "Cycle Theme (Light → Dark → System)", icon: RiPaletteLine },
-        { keys: ["Ctrl + E"], description: "Open Diff Panel", icon: RiCodeLine },
-        { keys: ["Ctrl + G"], description: "Open Git Panel", icon: RiGitBranchLine },
-        { keys: ["Ctrl + T"], description: "Open Terminal", icon: RiTerminalBoxLine },
-        { keys: ["Ctrl + ,"], description: "Open Settings", icon: RiSettings3Line },
+        { keys: ["⌘ + /", "Ctrl + /"], description: t('help.shortcuts.cycleTheme', 'Cycle Theme (Light → Dark → System)'), icon: RiPaletteLine },
+        { keys: ["Ctrl + E"], description: t('help.shortcuts.openDiffPanel', 'Open Diff Panel'), icon: RiCodeLine },
+        { keys: ["Ctrl + G"], description: t('help.shortcuts.openGitPanel', 'Open Git Panel'), icon: RiGitBranchLine },
+        { keys: ["Ctrl + T"], description: t('help.shortcuts.openTerminal', 'Open Terminal'), icon: RiTerminalBoxLine },
+        { keys: ["Ctrl + ,"], description: t('help.shortcuts.openSettings', 'Open Settings'), icon: RiSettings3Line },
       ]
     }
   ];
@@ -93,10 +95,10 @@ export const HelpDialog: React.FC = () => {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <RiSettings3Line className="h-5 w-5" />
-            Keyboard Shortcuts
+            {t('help.title', 'Keyboard Shortcuts')}
           </DialogTitle>
           <DialogDescription>
-            Use these keyboard shortcuts to navigate OpenChamber efficiently
+            {t('help.description', 'Use these keyboard shortcuts to navigate and control the application quickly.')}
           </DialogDescription>
         </DialogHeader>
 
@@ -139,11 +141,11 @@ export const HelpDialog: React.FC = () => {
           <div className="flex items-start gap-2">
             <RiQuestionLine className="h-3.5 w-3.5 text-muted-foreground mt-0.5" />
             <div className="typography-meta text-muted-foreground">
-              <p className="font-medium mb-1">Pro Tips:</p>
+              <p className="font-medium mb-1">{t('help.proTips.title', 'Pro Tips:')}</p>
                <ul className="space-y-0.5 typography-meta">
-                 <li>• Use Command Palette (Ctrl + X) to quickly access all actions</li>
-                 <li>• The 5 most recent sessions appear in the Command Palette</li>
-                 <li>• Theme cycling remembers your preference across sessions</li>
+                 <li>• {t('help.proTips.commandPalette', 'Use Command Palette (Ctrl + X) to quickly access all actions')}</li>
+                 <li>• {t('help.proTips.recentSessions', 'The 5 most recent sessions appear in the Command Palette')}</li>
+                 <li>• {t('help.proTips.themeCycling', 'Theme cycling remembers your preference across sessions')}</li>
                </ul>
             </div>
           </div>

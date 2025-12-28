@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,6 +46,7 @@ export const ServerFilePicker: React.FC<ServerFilePickerProps> = ({
   onOpenChange,
   presentation = 'dropdown',
 }) => {
+  const { t } = useTranslation('chat');
   const { isMobile } = useDeviceInfo();
   const isVSCodeRuntime = useIsVSCodeRuntime();
   const isCompact = isMobile || isVSCodeRuntime;
@@ -446,7 +448,7 @@ export const ServerFilePicker: React.FC<ServerFilePickerProps> = ({
             className="px-2 py-1.5 typography-ui-label text-muted-foreground"
             style={{ paddingLeft: `${(level + 1) * 12}px` }}
           >
-            Loading…
+            {t('filePicker.loadingChildren', 'Loading...')}
           </div>
         )}
       </div>
@@ -454,8 +456,8 @@ export const ServerFilePicker: React.FC<ServerFilePickerProps> = ({
   };
 
   const summaryLabel = selectedFiles.size > 0
-    ? `${selectedFiles.size} file${selectedFiles.size !== 1 ? 's' : ''} selected`
-    : 'No files selected';
+    ? t('filePicker.filesSelected', '{{count}} file selected', { count: selectedFiles.size })
+    : t('filePicker.noFilesSelected', 'No files selected');
 
   const summarySection = (
     <div className="flex items-center justify-between px-3 py-2 shrink-0">
@@ -466,7 +468,7 @@ export const ServerFilePicker: React.FC<ServerFilePickerProps> = ({
         disabled={selectedFiles.size === 0 || attaching}
         className="h-6 typography-meta"
       >
-        {attaching ? 'Attaching...' : 'Attach Files'}
+        {attaching ? t('filePicker.attaching', 'Attaching...') : t('filePicker.attachFiles', 'Attach Files')}
       </Button>
     </div>
   );
@@ -476,7 +478,7 @@ export const ServerFilePicker: React.FC<ServerFilePickerProps> = ({
   const pickerBody = (
     <>
       <div className="px-3 py-2 border-b shrink-0">
-        <div className="font-medium typography-ui-label text-foreground">Select Project Files</div>
+        <div className="font-medium typography-ui-label text-foreground">{t('filePicker.title', 'Select Project Files')}</div>
       </div>
       <div className="px-3 py-2 border-b shrink-0">
         <div className="relative">
@@ -484,7 +486,7 @@ export const ServerFilePicker: React.FC<ServerFilePickerProps> = ({
           <Input
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search files..."
+            placeholder={t('filePicker.searchPlaceholder', 'Search files...')}
             className="pl-7 h-6 typography-ui-label"
             onClick={(e) => e.stopPropagation()}
           />
@@ -504,7 +506,7 @@ export const ServerFilePicker: React.FC<ServerFilePickerProps> = ({
       <ScrollArea className={scrollAreaClass}>
         {loading && (
           <div className="flex items-center justify-center py-8">
-            <div className="typography-ui-label text-muted-foreground">Loading files...</div>
+            <div className="typography-ui-label text-muted-foreground">{t('filePicker.loading', 'Loading files...')}</div>
           </div>
         )}
 
@@ -519,7 +521,7 @@ export const ServerFilePicker: React.FC<ServerFilePickerProps> = ({
             {isSearchActive ? (
               searching ? (
                 <div className="px-3 py-4 typography-ui-label text-muted-foreground text-center">
-                  Searching files…
+                  {t('filePicker.searching', 'Searching files...')}
                 </div>
               ) : (
                 searchResults.map((file) => renderFileItem(file, 0))
@@ -530,13 +532,13 @@ export const ServerFilePicker: React.FC<ServerFilePickerProps> = ({
 
             {!isSearchActive && rootItems.length === 0 && (
               <div className="px-3 py-4 typography-ui-label text-muted-foreground text-center">
-                No files in this directory
+                {t('filePicker.noFilesInDirectory', 'No files in this directory')}
               </div>
             )}
 
             {isSearchActive && !searching && searchResults.length === 0 && (
               <div className="px-3 py-4 typography-ui-label text-muted-foreground text-center">
-                No files found
+                {t('filePicker.noFilesFound', 'No files found')}
               </div>
             )}
           </div>
@@ -577,7 +579,7 @@ export const ServerFilePicker: React.FC<ServerFilePickerProps> = ({
         <MobileOverlayPanel
           open={open}
           onClose={() => setOpen(false)}
-          title="Select Project Files"
+          title={t('filePicker.title', 'Select Project Files')}
           footer={summarySection}
         >
           <div className="flex flex-col gap-0">{pickerBody}</div>
@@ -593,7 +595,7 @@ export const ServerFilePicker: React.FC<ServerFilePickerProps> = ({
         <MobileOverlayPanel
           open={mobileOpen}
           onClose={() => setMobileOpen(false)}
-          title="Select Project Files"
+          title={t('filePicker.title', 'Select Project Files')}
           footer={summarySection}
         >
           <div className="flex flex-col gap-0">{pickerBody}</div>

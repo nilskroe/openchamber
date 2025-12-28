@@ -17,6 +17,7 @@ export type EventStreamStatus =
 interface UIStore {
 
   theme: 'light' | 'dark' | 'system';
+  language: string;
   isSidebarOpen: boolean;
   sidebarWidth: number;
   hasManuallyResizedLeftSidebar: boolean;
@@ -84,6 +85,7 @@ interface UIStore {
   setDiffLayoutPreference: (mode: 'dynamic' | 'inline' | 'side-by-side') => void;
   setDiffFileLayout: (filePath: string, mode: 'inline' | 'side-by-side') => void;
   setDiffWrapLines: (wrap: boolean) => void;
+  setLanguage: (lang: string) => void;
 }
 
 export const useUIStore = create<UIStore>()(
@@ -92,6 +94,7 @@ export const useUIStore = create<UIStore>()(
       (set, get) => ({
 
         theme: 'system',
+        language: 'en-US',
         isSidebarOpen: true,
         sidebarWidth: 264,
         hasManuallyResizedLeftSidebar: false,
@@ -336,6 +339,12 @@ export const useUIStore = create<UIStore>()(
           set({ diffWrapLines: wrap });
         },
 
+        setLanguage: (lang) => {
+          set({ language: lang });
+          // i18next.changeLanguage is called by the hook/component
+          // Runtime persistence is handled by storage adapter
+        },
+
         toggleFavoriteModel: (providerID, modelID) => {
           set((state) => {
             const exists = state.favoriteModels.some(
@@ -413,6 +422,7 @@ export const useUIStore = create<UIStore>()(
         storage: createJSONStorage(() => getSafeStorage()),
         partialize: (state) => ({
           theme: state.theme,
+          language: state.language,
           isSidebarOpen: state.isSidebarOpen,
           sidebarWidth: state.sidebarWidth,
           isSessionSwitcherOpen: state.isSessionSwitcherOpen,

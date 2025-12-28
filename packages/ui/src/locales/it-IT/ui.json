@@ -1,0 +1,188 @@
+{
+  "help": {
+    "title": "Scorciatoie da tastiera",
+    "description": "Usa queste scorciatoie da tastiera per navigare e controllare l'applicazione rapidamente.",
+    "categories": {
+      "navigation": "Navigazione e Comandi",
+      "sessionManagement": "Gestione Sessioni",
+      "interface": "Interfaccia"
+    },
+    "shortcuts": {
+      "openCommandPalette": "Apri palette comandi",
+      "showKeyboardShortcuts": "Mostra scorciatoie da tastiera (questa finestra)",
+      "toggleSessionSidebar": "Attiva/disattiva barra laterale sessioni",
+      "createNewSession": "Crea nuova sessione",
+      "openWorktreeCreator": "Apri creatore worktree",
+      "focusChatInput": "Focus su input chat",
+      "abortActiveRun": "Annulla esecuzione attiva (doppio clic)",
+      "deleteCurrentSession": "Elimina sessione corrente",
+      "selectPreviousSession": "Seleziona sessione precedente",
+      "selectNextSession": "Seleziona sessione successiva",
+      "cycleTheme": "Cambia tema (Chiaro → Scuro → Sistema)",
+      "openDiffPanel": "Apri pannello differenze",
+      "openGitPanel": "Apri pannello Git",
+      "openTerminal": "Apri terminale",
+      "openSettings": "Apri impostazioni"
+    },
+    "proTips": {
+      "title": "Suggerimenti:",
+      "commandPalette": "Usa la palette comandi (Ctrl + X) per accedere rapidamente a tutte le azioni",
+      "recentSessions": "Le 5 sessioni più recenti appaiono nella palette comandi",
+      "themeCycling": "Il cambio tema ricorda la tua preferenza tra le sessioni",
+      "tabCycle": "Premi Tab nell'input chat per passare tra gli agenti",
+      "atMention": "Usa @ per menzionare e allegare file dal tuo progetto",
+      "hashMention": "Usa # per menzionare un agente specifico inline",
+      "slashCommand": "Digita / per accedere ai comandi rapidi"
+    }
+  },
+  "commandPalette": {
+    "placeholder": "Digita un comando o cerca...",
+    "noResults": "Nessun risultato trovato.",
+    "groups": {
+      "actions": "Azioni",
+      "theme": "Tema",
+      "recentSessions": "Sessioni recenti"
+    },
+    "actions": {
+      "openSessionList": "Apri lista sessioni",
+      "newSession": "Nuova sessione",
+      "newSessionWorktree": "Nuova sessione con Worktree",
+      "keyboardShortcuts": "Scorciatoie da tastiera",
+      "openDiffPanel": "Apri pannello differenze",
+      "openGitPanel": "Apri pannello Git",
+      "openTerminal": "Apri terminale",
+      "openSettings": "Apri impostazioni",
+      "reloadConfig": "Ricarica configurazione OpenCode"
+    },
+    "theme": {
+      "light": "Tema chiaro",
+      "dark": "Tema scuro",
+      "system": "Tema di sistema"
+    }
+  },
+  "directory": {
+    "title": "Seleziona directory del progetto",
+    "description": "Scegli la directory di lavoro per la tua sessione di codifica",
+    "placeholder": "Inserisci il percorso o seleziona dall'albero...",
+    "showHidden": "Mostra nascosti",
+    "openButton": "Apri directory",
+    "applying": "Applicazione...",
+    "errors": {
+      "accessDenied": "Impossibile accedere alla directory",
+      "accessDeniedDesc": "Accesso alla directory negato.",
+      "openFailed": "Impossibile aprire la directory",
+      "openFailedDesc": "Impossibile concedere l'accesso ai file.",
+      "selectFailed": "Impossibile selezionare la directory",
+      "selectFailedDesc": "Si è verificato un errore sconosciuto."
+    },
+    "tree": {
+      "locatingHome": "Ricerca directory home...",
+      "loading": "Caricamento...",
+      "noDirectoriesFound": "Nessuna directory trovata",
+      "pinned": "Fissate",
+      "browse": "Sfoglia",
+      "createNewDirectory": "Crea nuova directory",
+      "pinDirectory": "Fissa directory",
+      "unpinDirectory": "Rimuovi dalla lista fissate",
+      "createDirectory": "Crea directory",
+      "cancel": "Annulla"
+    }
+  },
+  "worktree": {
+    "title": "Worktree",
+    "manager": {
+      "title": "Gestore Worktree",
+      "close": "Chiudi"
+    },
+    "create": {
+      "title": "Crea worktree",
+      "description": "Directory specifica per branch sotto {{path}}.",
+      "creating": "Creazione…",
+      "createButton": "Crea"
+    },
+    "fields": {
+      "branchName": "Nome branch",
+      "branchNamePlaceholder": "feature/nuovo-branch"
+    },
+    "createDescription": "Crea il branch {{branch}} in {{path}}",
+    "existingWorktrees": "Worktree esistenti",
+    "loading": "Caricamento worktree…",
+    "noWorktreesFound": "Nessun worktree trovato sotto {{path}}.",
+    "detachedHead": "HEAD staccato",
+    "notGitRepo": "La directory corrente non è un repository Git.",
+    "uncommittedWarning": "Le modifiche non salvate verranno perse.",
+    "delete": {
+      "title": "Elimina worktree",
+      "titleSession": "Elimina sessione",
+      "titleSessions": "Elimina sessioni",
+      "deleteWorktreeButton": "Elimina worktree",
+      "deleteSessionButton": "Elimina sessione",
+      "deleteSessionsButton": "Elimina sessioni",
+      "deleting": "Eliminazione…",
+      "sessionOnly": "Elimina solo la sessione",
+      "sessionOnlyNote": "Le directory worktree rimangono intatte. Anche le sottosessioni collegate verranno eliminate.",
+      "deleteRemoteBranch": "Elimina branch remoto",
+      "remoteBranchWillRemove": "Anche il branch remoto su origin verrà eliminato.",
+      "remoteBranchKeep": "Mantieni il branch remoto intatto.",
+      "remoteBranchUnavailable": "Informazioni sul branch remoto non disponibili per questo worktree.",
+      "worktreeDescription": "Questo elimina il worktree selezionato e {{count}} sessione collegata.",
+      "worktreeDescription_other": "Questo elimina il worktree selezionato e {{count}} sessioni collegate.",
+      "sessionDescription": "Questa azione elimina definitivamente {{count}} sessione.",
+      "sessionDescription_other": "Questa azione elimina definitivamente {{count}} sessioni.",
+      "sessionDescriptionWithDate": "Questa azione elimina definitivamente {{count}} sessione da {{date}}.",
+      "sessionDescriptionWithDate_other": "Questa azione elimina definitivamente {{count}} sessioni da {{date}}.",
+      "moreItems": "+{{count}} altri",
+      "pathUnavailable": "Percorso worktree non disponibile."
+    },
+    "validation": {
+      "selectDirectory": "Seleziona prima una directory del progetto.",
+      "branchRequired": "Fornisci un nome branch per il nuovo worktree.",
+      "invalidBranchName": "Fornisci un nome branch che possa essere usato come cartella.",
+      "branchExists": "Il branch esiste già",
+      "worktreeExists": "Un worktree con questa cartella esiste già."
+    },
+    "success": {
+      "created": "Worktree creato",
+      "upstreamConfigured": "Upstream configurato per {{branch}}",
+      "sessionDeleted": "Sessione eliminata",
+      "sessionsDeleted": "{{count}} sessione eliminata",
+      "sessionsDeleted_other": "{{count}} sessioni eliminate",
+      "worktreeArchived": "Worktree allegato archiviato.",
+      "worktreeAndRemoteRemoved": "Worktree e branch remoto rimossi.",
+      "worktreesArchived": "Worktree archiviati e branch remoti rimossi."
+    },
+    "warnings": {
+      "createdLocally": "Worktree creato localmente",
+      "upstreamFailed": "Configurazione upstream fallita: {{error}}"
+    },
+    "errors": {
+      "createFailed": "Impossibile creare worktree",
+      "sessionFailed": "Impossibile creare sessione per worktree",
+      "deleteFailed": "Impossibile eliminare la sessione",
+      "deleteFailedMultiple": "Impossibile eliminare {{count}} sessione",
+      "deleteFailedMultiple_other": "Impossibile eliminare {{count}} sessioni",
+      "tryAgain": "Per favore riprova tra un momento."
+    },
+    "descriptions": {
+      "removedFromDate": "Rimosse tutte le sessioni da {{date}}.",
+      "someCouldNotDelete": "{{count}} sessione non ha potuto essere eliminata.",
+      "someCouldNotDelete_other": "{{count}} sessioni non hanno potuto essere eliminate."
+    }
+  },
+  "common": {
+    "cancel": "Annulla",
+    "close": "Chiudi"
+  },
+  "onboarding": {
+    "welcome": "Benvenuto in OpenChamber",
+    "cliRequired": "è necessario per continuare.",
+    "copied": "Copiato negli appunti",
+    "copyToClipboard": "Copia negli appunti",
+    "viewDocs": "Visualizza documentazione",
+    "waiting": "In attesa dell'installazione di OpenCode...",
+    "hintPath": "Già installato? Assicurati che",
+    "hintPathEnd": "sia nel tuo PATH",
+    "hintEnv": "o imposta la variabile d'ambiente",
+    "hintEnvEnd": "."
+  }
+}

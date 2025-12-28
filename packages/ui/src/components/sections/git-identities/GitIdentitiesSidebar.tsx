@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import {
@@ -48,6 +49,7 @@ interface GitIdentitiesSidebarProps {
 }
 
 export const GitIdentitiesSidebar: React.FC<GitIdentitiesSidebarProps> = ({ onItemSelect }) => {
+  const { t } = useTranslation('settings');
   const {
     selectedProfileId,
     profiles,
@@ -93,12 +95,12 @@ export const GitIdentitiesSidebar: React.FC<GitIdentitiesSidebarProps> = ({ onIt
   };
 
   const handleDeleteProfile = async (profile: GitIdentityProfile) => {
-    if (window.confirm(`Are you sure you want to delete profile "${profile.name}"?`)) {
+    if (window.confirm(t('gitIdentities.deleteConfirm'))) {
       const success = await deleteProfile(profile.id);
       if (success) {
-        toast.success(`Profile "${profile.name}" deleted successfully`);
+        toast.success(t('gitIdentities.success.deleted'));
       } else {
-        toast.error('Failed to delete profile');
+        toast.error(t('gitIdentities.errors.deleteProfileFailed'));
       }
     }
   };
@@ -107,7 +109,7 @@ export const GitIdentitiesSidebar: React.FC<GitIdentitiesSidebarProps> = ({ onIt
     <div className={cn('flex h-full flex-col', bgClass)}>
       <div className={cn('border-b px-3', isMobile ? 'mt-2 py-3' : 'py-3')}>
         <div className="flex items-center justify-between gap-2">
-          <span className="typography-meta text-muted-foreground">Total {profiles.length}</span>
+          <span className="typography-meta text-muted-foreground">{t('common:total', 'Total')} {profiles.length}</span>
           <Button
             type="button"
             variant="ghost"
@@ -125,7 +127,7 @@ export const GitIdentitiesSidebar: React.FC<GitIdentitiesSidebarProps> = ({ onIt
           {globalIdentity && (
             <>
               <div className="px-2 pb-1.5 pt-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                System Default
+                {t('gitIdentities.systemDefault', 'System Default')}
               </div>
               <ProfileListItem
                 profile={globalIdentity}
@@ -146,15 +148,15 @@ export const GitIdentitiesSidebar: React.FC<GitIdentitiesSidebarProps> = ({ onIt
           {}
           {profiles.length > 0 && (
             <div className="px-2 pb-1.5 pt-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Custom Profiles
+              {t('gitIdentities.customProfiles', 'Custom Profiles')}
             </div>
           )}
 
            {profiles.length === 0 && !globalIdentity ? (
              <div className="py-12 px-4 text-center text-muted-foreground">
                <RiGitBranchLine className="mx-auto mb-3 h-10 w-10 opacity-50" />
-               <p className="typography-ui-label font-medium">No profiles configured</p>
-               <p className="typography-meta mt-1 opacity-75">Use the + button above to create one</p>
+               <p className="typography-ui-label font-medium">{t('gitIdentities.noProfiles', 'No profiles configured')}</p>
+               <p className="typography-meta mt-1 opacity-75">{t('gitIdentities.noProfilesHint', 'Use the + button above to create one')}</p>
              </div>
           ) : (
             <>
@@ -195,6 +197,7 @@ const ProfileListItem: React.FC<ProfileListItemProps> = ({
   onDelete,
   isReadOnly = false,
 }) => {
+  const { t } = useTranslation('settings');
   const IconComponent = ICON_MAP[profile.icon || 'branch'] || RiGitBranchLine;
   const iconColor = COLOR_MAP[profile.color || ''];
 
@@ -246,7 +249,7 @@ const ProfileListItem: React.FC<ProfileListItemProps> = ({
                 className="text-destructive focus:text-destructive"
               >
                 <RiDeleteBinLine className="h-4 w-4 mr-px" />
-                Delete
+                {t('gitIdentities.delete')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

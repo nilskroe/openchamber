@@ -1,0 +1,49 @@
+{
+  "connection": {
+    "failed": "Connessione al server fallita",
+    "timeout": "Timeout connessione",
+    "retry": "Tentativo di riconnessione...",
+    "offline": "Sembra che tu sia offline",
+    "serverError": "Si è verificato un errore del server"
+  },
+  "api": {
+    "requestFailed": "Richiesta fallita",
+    "unauthorized": "Non autorizzato",
+    "forbidden": "Accesso negato",
+    "notFound": "Non trovato",
+    "rateLimited": "Limite di richieste raggiunto, riprova più tardi",
+    "serverError": "Errore del server"
+  },
+  "file": {
+    "readFailed": "Impossibile leggere il file",
+    "writeFailed": "Impossibile scrivere il file",
+    "deleteFailed": "Impossibile eliminare il file",
+    "notFound": "File non trovato",
+    "permissionDenied": "Permesso negato",
+    "tooLarge": "File troppo grande"
+  },
+  "session": {
+    "createFailed": "Impossibile creare la sessione",
+    "loadFailed": "Impossibile caricare la sessione",
+    "deleteFailed": "Impossibile eliminare la sessione",
+    "notFound": "Sessione non trovata"
+  },
+  "message": {
+    "sendFailed": "Impossibile inviare il messaggio",
+    "streamFailed": "Flusso messaggi fallito",
+    "parseFailed": "Impossibile analizzare la risposta"
+  },
+  "generic": {
+    "unknown": "Si è verificato un errore imprevisto",
+    "tryAgain": "Riprova",
+    "contactSupport": "Se il problema persiste, contatta il supporto"
+  },
+  "validation": {
+    "required": "Questo campo è obbligatorio",
+    "invalid": "Input non valido",
+    "invalidEmail": "Indirizzo email non valido",
+    "invalidUrl": "URL non valido",
+    "minLength": "Deve contenere almeno {{min}} caratteri",
+    "maxLength": "Deve contenere al massimo {{max}} caratteri"
+  }
+}

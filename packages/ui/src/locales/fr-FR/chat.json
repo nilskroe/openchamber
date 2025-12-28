@@ -1,0 +1,98 @@
+{
+  "input": {
+    "placeholder": "# pour agents; @ pour fichiers; / pour commandes",
+    "placeholderWithModel": "Demander a {{model}}...",
+    "send": "Envoyer le message",
+    "stop": "Arreter la generation",
+    "attachFile": "Joindre un fichier",
+    "attachedFiles_one": "{{count}} fichier joint",
+    "attachedFiles_other": "{{count}} fichiers joints"
+  },
+  "message": {
+    "empty": "Pas encore de messages",
+    "emptyDescription": "Commencez une conversation en tapant un message ci-dessous",
+    "count_one": "{{count}} message",
+    "count_other": "{{count}} messages",
+    "thinking": "Reflexion...",
+    "generating": "Generation...",
+    "copied": "Message copie",
+    "copyFailed": "Echec de la copie du message",
+    "regenerate": "Regenerer la reponse",
+    "edit": "Modifier le message"
+  },
+  "session": {
+    "new": "Nouvelle session",
+    "newDescription": "Demarrer une nouvelle conversation",
+    "rename": "Renommer la session",
+    "delete": "Supprimer la session",
+    "deleteConfirm": "Supprimer cette session?",
+    "noSessions": "Pas de sessions",
+    "switchTo": "Passer a la session",
+    "current": "Session actuelle",
+    "count_one": "{{count}} session",
+    "count_other": "{{count}} sessions",
+    "selectOrCreate": "Selectionnez ou creez une session pour commencer a discuter"
+  },
+  "tool": {
+    "output": "Sortie de l'outil",
+    "collapsed": "Reduit",
+    "activity": "Activite",
+    "detailed": "Detaille",
+    "running": "En cours...",
+    "completed": "Termine",
+    "failed": "Echoue"
+  },
+  "model": {
+    "select": "Selectionner le modele",
+    "noModels": "Aucun modele disponible",
+    "favorites": "Favoris",
+    "recent": "Recents",
+    "all": "Tous les modeles",
+    "addFavorite": "Ajouter aux favoris",
+    "removeFavorite": "Retirer des favoris"
+  },
+  "agent": {
+    "select": "Selectionner l'agent",
+    "noAgents": "Aucun agent disponible",
+    "default": "Agent par defaut"
+  },
+  "file": {
+    "tooLarge": "Le fichier est trop volumineux (max {{size}})",
+    "invalidType": "Type de fichier invalide",
+    "uploadFailed": "Echec du telechargement du fichier",
+    "count_one": "{{count}} fichier",
+    "count_other": "{{count}} fichiers",
+    "dropToAttach": "Deposez les fichiers ici pour les joindre",
+    "attachFiles": "Joindre des fichiers",
+    "attachFromProject": "Joindre depuis le projet"
+  },
+  "filePicker": {
+    "title": "Sélectionner des fichiers du projet",
+    "searchPlaceholder": "Rechercher des fichiers...",
+    "loading": "Chargement des fichiers...",
+    "loadingChildren": "Chargement...",
+    "searching": "Recherche de fichiers...",
+    "noFilesInDirectory": "Aucun fichier dans ce répertoire",
+    "noFilesFound": "Aucun fichier trouvé",
+    "filesSelected_one": "{{count}} fichier sélectionné",
+    "filesSelected_other": "{{count}} fichiers sélectionnés",
+    "noFilesSelected": "Aucun fichier sélectionné",
+    "attachFiles": "Joindre des fichiers",
+    "attaching": "Ajout en cours..."
+  },
+  "diff": {
+    "inline": "En ligne",
+    "sideBySide": "Cote a cote",
+    "dynamic": "Dynamique",
+    "noChanges": "Aucun changement",
+    "additions_one": "{{count}} ajout",
+    "additions_other": "{{count}} ajouts",
+    "deletions_one": "{{count}} suppression",
+    "deletions_other": "{{count}} suppressions"
+  },
+  "reasoning": {
+    "show": "Afficher le raisonnement",
+    "hide": "Masquer le raisonnement",
+    "traces": "Traces de raisonnement"
+  }
+}

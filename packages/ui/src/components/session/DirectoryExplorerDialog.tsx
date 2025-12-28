@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Dialog,
   DialogContent,
@@ -33,6 +34,7 @@ export const DirectoryExplorerDialog: React.FC<DirectoryExplorerDialogProps> = (
   open,
   onOpenChange,
 }) => {
+  const { t } = useTranslation('ui');
   const { currentDirectory, homeDirectory, setDirectory, isHomeReady } = useDirectoryStore();
   const [pendingPath, setPendingPath] = React.useState<string | null>(null);
   const [pathInputValue, setPathInputValue] = React.useState('');
@@ -115,8 +117,8 @@ export const DirectoryExplorerDialog: React.FC<DirectoryExplorerDialogProps> = (
       if (isDesktop) {
         const accessResult = await requestAccess(targetPath);
         if (!accessResult.success) {
-          toast.error('Unable to access directory', {
-            description: accessResult.error || 'Desktop denied directory access.',
+          toast.error(t('directory.errors.accessDenied'), {
+            description: accessResult.error || t('directory.errors.accessDeniedDesc'),
           });
           return;
         }
@@ -124,8 +126,8 @@ export const DirectoryExplorerDialog: React.FC<DirectoryExplorerDialogProps> = (
 
         const startResult = await startAccessing(resolvedPath);
         if (!startResult.success) {
-          toast.error('Failed to open directory', {
-            description: startResult.error || 'Desktop could not grant file access.',
+          toast.error(t('directory.errors.openFailed'), {
+            description: startResult.error || t('directory.errors.openFailedDesc'),
           });
           return;
         }
@@ -134,8 +136,8 @@ export const DirectoryExplorerDialog: React.FC<DirectoryExplorerDialogProps> = (
       setDirectory(resolvedPath);
       handleClose();
     } catch (error) {
-      toast.error('Failed to select directory', {
-        description: error instanceof Error ? error.message : 'Unknown error occurred.',
+      toast.error(t('directory.errors.selectFailed'), {
+        description: error instanceof Error ? error.message : t('directory.errors.selectFailedDesc'),
       });
     } finally {
       setIsConfirming(false);
@@ -148,6 +150,7 @@ export const DirectoryExplorerDialog: React.FC<DirectoryExplorerDialogProps> = (
     setDirectory,
     startAccessing,
     isConfirming,
+    t,
   ]);
 
   const handleConfirm = React.useCallback(async () => {
@@ -200,9 +203,9 @@ export const DirectoryExplorerDialog: React.FC<DirectoryExplorerDialogProps> = (
 
   const dialogHeader = (
     <DialogHeader className="flex-shrink-0 px-4 pb-2 pt-[calc(var(--oc-safe-area-top,0px)+0.5rem)] sm:px-0 sm:pb-3 sm:pt-0">
-      <DialogTitle>Select project directory</DialogTitle>
+      <DialogTitle>{t('directory.title')}</DialogTitle>
       <DialogDescription className="hidden sm:block">
-        Choose the working directory for sessions and OpenCode operations.
+        {t('directory.description')}
       </DialogDescription>
     </DialogHeader>
   );
@@ -212,7 +215,7 @@ export const DirectoryExplorerDialog: React.FC<DirectoryExplorerDialogProps> = (
       value={pathInputValue}
       onChange={handlePathInputChange}
       onKeyDown={handlePathInputKeyDown}
-      placeholder="Enter path or select from tree..."
+      placeholder={t('directory.placeholder')}
       className="font-mono typography-meta"
       spellCheck={false}
       autoComplete="off"
@@ -248,7 +251,7 @@ export const DirectoryExplorerDialog: React.FC<DirectoryExplorerDialogProps> = (
       ) : (
         <RiCheckboxBlankLine className="h-4 w-4" />
       )}
-      Show hidden
+      {t('directory.showHidden')}
     </button>
   );
 
@@ -297,14 +300,14 @@ export const DirectoryExplorerDialog: React.FC<DirectoryExplorerDialogProps> = (
         disabled={isConfirming}
         className="flex-1 sm:flex-none sm:w-auto"
       >
-        Cancel
+        {t('common.cancel')}
       </Button>
       <Button
         onClick={handleConfirm}
         disabled={isConfirming || !hasUserSelection || (!pendingPath && !pathInputValue.trim())}
         className="flex-1 sm:flex-none sm:w-auto sm:min-w-[140px]"
       >
-        {isConfirming ? 'Applying...' : 'Open Directory'}
+        {isConfirming ? t('directory.applying') : t('directory.openButton')}
       </Button>
     </>
   );
@@ -314,7 +317,7 @@ export const DirectoryExplorerDialog: React.FC<DirectoryExplorerDialogProps> = (
       <MobileOverlayPanel
         open={open}
         onClose={() => onOpenChange(false)}
-        title="Select project directory"
+        title={t('directory.title')}
         className="max-w-full"
         contentMaxHeightClassName="max-h-[min(70vh,520px)] h-[min(70vh,520px)]"
         footer={<div className="flex flex-row gap-2">{renderActionButtons()}</div>}

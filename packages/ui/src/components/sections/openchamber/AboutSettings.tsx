@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { RiDiscordFill, RiDownloadLine, RiGithubFill, RiLoaderLine, RiTwitterXFill } from '@remixicon/react';
 import { useUpdateStore } from '@/stores/useUpdateStore';
 import { UpdateDialog } from '@/components/ui/UpdateDialog';
@@ -11,6 +12,7 @@ const GITHUB_URL = 'https://github.com/btriapitsyn/openchamber';
 const MIN_CHECKING_DURATION = 800; // ms
 
 export const AboutSettings: React.FC = () => {
+  const { t } = useTranslation('settings');
   const [updateDialogOpen, setUpdateDialogOpen] = React.useState(false);
   const [showChecking, setShowChecking] = React.useState(false);
   const updateStore = useUpdateStore();
@@ -31,13 +33,13 @@ export const AboutSettings: React.FC = () => {
         setShowChecking(false);
         // Show toast if check completed with no update available
         if (didInitiateCheck.current && !updateStore.available && !updateStore.error) {
-          toast.success('You are on the latest version');
+          toast.success(t('about.upToDate'));
           didInitiateCheck.current = false;
         }
       }, MIN_CHECKING_DURATION);
       return () => clearTimeout(timer);
     }
-  }, [updateStore.checking, showChecking, updateStore.available, updateStore.error]);
+  }, [updateStore.checking, showChecking, updateStore.available, updateStore.error, t]);
 
   const isChecking = updateStore.checking || showChecking;
 
@@ -60,7 +62,7 @@ export const AboutSettings: React.FC = () => {
                 isChecking && 'animate-pulse [animation-duration:1s]'
               )}
             >
-              Check updates
+              {t('about.checkUpdates')}
             </button>
           )}
 
@@ -70,7 +72,7 @@ export const AboutSettings: React.FC = () => {
               className="flex items-center gap-1 typography-meta text-primary hover:underline"
             >
               <RiDownloadLine className="h-3.5 w-3.5" />
-              Update
+              {t('update.updateNowButton', 'Update')}
             </button>
           )}
         </div>
@@ -133,7 +135,7 @@ export const AboutSettings: React.FC = () => {
     <div className="w-full space-y-6">
       <div className="space-y-1">
         <h3 className="typography-ui-header font-semibold text-foreground">
-          About OpenChamber
+          {t('about.title')}
         </h3>
       </div>
 
@@ -141,14 +143,14 @@ export const AboutSettings: React.FC = () => {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="space-y-0.5">
-            <div className="typography-ui-label text-muted-foreground">Version</div>
+            <div className="typography-ui-label text-muted-foreground">{t('about.version')}</div>
             <div className="typography-ui-header font-mono">{currentVersion}</div>
           </div>
 
           {updateStore.checking && (
             <div className="flex items-center gap-2 text-muted-foreground">
               <RiLoaderLine className="h-4 w-4 animate-spin" />
-              <span className="typography-meta">Checking...</span>
+              <span className="typography-meta">{t('about.checking', 'Checking...')}</span>
             </div>
           )}
 
@@ -164,12 +166,12 @@ export const AboutSettings: React.FC = () => {
               )}
             >
               <RiDownloadLine className="h-4 w-4" />
-              Update to {updateStore.info?.version}
+              {t('about.updateTo', { version: updateStore.info?.version })}
             </button>
           )}
 
           {!updateStore.checking && !updateStore.available && !updateStore.error && (
-            <span className="typography-meta text-muted-foreground">Up to date</span>
+            <span className="typography-meta text-muted-foreground">{t('about.upToDate')}</span>
           )}
         </div>
 
@@ -186,7 +188,7 @@ export const AboutSettings: React.FC = () => {
             'disabled:opacity-50 disabled:cursor-not-allowed'
           )}
         >
-          Check for updates
+          {t('about.checkUpdates')}
         </button>
       </div>
 

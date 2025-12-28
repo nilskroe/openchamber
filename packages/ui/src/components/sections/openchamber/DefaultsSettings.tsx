@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { RiInformationLine } from '@remixicon/react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ModelSelector } from '@/components/sections/agents/ModelSelector';
@@ -9,6 +10,7 @@ import { useConfigStore } from '@/stores/useConfigStore';
 import { getRegisteredRuntimeAPIs } from '@/contexts/runtimeAPIRegistry';
 
 export const DefaultsSettings: React.FC = () => {
+  const { t } = useTranslation('settings');
   const setProvider = useConfigStore((state) => state.setProvider);
   const setModel = useConfigStore((state) => state.setModel);
   const setAgent = useConfigStore((state) => state.setAgent);
@@ -134,14 +136,13 @@ export const DefaultsSettings: React.FC = () => {
     <div className="space-y-4">
       <div className="space-y-1">
         <div className="flex items-center gap-2">
-          <h3 className="typography-ui-header font-semibold text-foreground">Default model & agent</h3>
+          <h3 className="typography-ui-header font-semibold text-foreground">{t('sessions.defaults.title')}</h3>
           <Tooltip delayDuration={1000}>
             <TooltipTrigger asChild>
               <RiInformationLine className="h-3.5 w-3.5 text-muted-foreground/60 cursor-help" />
             </TooltipTrigger>
             <TooltipContent sideOffset={8} className="max-w-xs">
-              Set the default model and agent for new sessions.<br />
-              When not set, uses agent&apos;s preferred model or opencode/big-pickle as fallback.
+              {t('sessions.defaults.description')}
             </TooltipContent>
           </Tooltip>
         </div>
@@ -149,7 +150,7 @@ export const DefaultsSettings: React.FC = () => {
 
       <div className="space-y-3">
         <div className="flex flex-col gap-1.5">
-          <label className="typography-ui-label text-muted-foreground">Default model</label>
+          <label className="typography-ui-label text-muted-foreground">{t('sessions.defaults.model')}</label>
           <ModelSelector
             providerId={parsedModel.providerId}
             modelId={parsedModel.modelId}
@@ -158,7 +159,7 @@ export const DefaultsSettings: React.FC = () => {
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label className="typography-ui-label text-muted-foreground">Default agent</label>
+          <label className="typography-ui-label text-muted-foreground">{t('sessions.defaults.agent')}</label>
           <AgentSelector
             agentName={defaultAgent || ''}
             onChange={handleAgentChange}
@@ -168,7 +169,7 @@ export const DefaultsSettings: React.FC = () => {
 
       {(defaultModel || defaultAgent) && (
         <div className="typography-meta text-muted-foreground">
-          New sessions will start with:{' '}
+          {t('sessions.defaults.newSessionsWith', 'New sessions will start with:')}{' '}
           {defaultModel && <span className="text-foreground">{defaultModel}</span>}
           {defaultModel && defaultAgent && ' / '}
           {defaultAgent && <span className="text-foreground">{defaultAgent}</span>}

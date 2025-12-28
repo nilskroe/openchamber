@@ -1,0 +1,188 @@
+{
+  "help": {
+    "title": "键盘快捷键",
+    "description": "使用这些键盘快捷键快速导航和控制应用程序。",
+    "categories": {
+      "navigation": "导航和命令",
+      "sessionManagement": "会话管理",
+      "interface": "界面"
+    },
+    "shortcuts": {
+      "openCommandPalette": "打开命令面板",
+      "showKeyboardShortcuts": "显示键盘快捷键（此对话框）",
+      "toggleSessionSidebar": "切换会话侧边栏",
+      "createNewSession": "创建新会话",
+      "openWorktreeCreator": "打开工作树创建器",
+      "focusChatInput": "聚焦聊天输入",
+      "abortActiveRun": "中止活动运行（双击）",
+      "deleteCurrentSession": "删除当前会话",
+      "selectPreviousSession": "选择上一个会话",
+      "selectNextSession": "选择下一个会话",
+      "cycleTheme": "切换主题（浅色 → 深色 → 系统）",
+      "openDiffPanel": "打开差异面板",
+      "openGitPanel": "打开 Git 面板",
+      "openTerminal": "打开终端",
+      "openSettings": "打开设置"
+    },
+    "proTips": {
+      "title": "专业提示：",
+      "commandPalette": "使用命令面板（Ctrl + X）快速访问所有操作",
+      "recentSessions": "最近的 5 个会话显示在命令面板中",
+      "themeCycling": "主题切换会在会话之间记住您的偏好",
+      "tabCycle": "在聊天输入中按 Tab 键切换代理",
+      "atMention": "使用 @ 提及并附加项目中的文件",
+      "hashMention": "使用 # 在行内提及特定代理",
+      "slashCommand": "输入 / 访问快速命令"
+    }
+  },
+  "commandPalette": {
+    "placeholder": "输入命令或搜索...",
+    "noResults": "未找到结果。",
+    "groups": {
+      "actions": "操作",
+      "theme": "主题",
+      "recentSessions": "最近会话"
+    },
+    "actions": {
+      "openSessionList": "打开会话列表",
+      "newSession": "新建会话",
+      "newSessionWorktree": "使用工作树新建会话",
+      "keyboardShortcuts": "键盘快捷键",
+      "openDiffPanel": "打开差异面板",
+      "openGitPanel": "打开 Git 面板",
+      "openTerminal": "打开终端",
+      "openSettings": "打开设置",
+      "reloadConfig": "重新加载 OpenCode 配置"
+    },
+    "theme": {
+      "light": "浅色主题",
+      "dark": "深色主题",
+      "system": "系统主题"
+    }
+  },
+  "directory": {
+    "title": "选择项目目录",
+    "description": "为您的编码会话选择工作目录",
+    "placeholder": "输入路径或从树中选择...",
+    "showHidden": "显示隐藏文件",
+    "openButton": "打开目录",
+    "applying": "应用中...",
+    "errors": {
+      "accessDenied": "无法访问目录",
+      "accessDeniedDesc": "目录访问被拒绝。",
+      "openFailed": "打开目录失败",
+      "openFailedDesc": "无法授予文件访问权限。",
+      "selectFailed": "选择目录失败",
+      "selectFailedDesc": "发生未知错误。"
+    },
+    "tree": {
+      "locatingHome": "正在定位主目录...",
+      "loading": "加载中...",
+      "noDirectoriesFound": "未找到目录",
+      "pinned": "已固定",
+      "browse": "浏览",
+      "createNewDirectory": "创建新目录",
+      "pinDirectory": "固定目录",
+      "unpinDirectory": "取消固定目录",
+      "createDirectory": "创建目录",
+      "cancel": "取消"
+    }
+  },
+  "worktree": {
+    "title": "工作树",
+    "manager": {
+      "title": "工作树管理器",
+      "close": "关闭"
+    },
+    "create": {
+      "title": "创建工作树",
+      "description": "{{path}} 下的分支特定目录。",
+      "creating": "创建中…",
+      "createButton": "创建"
+    },
+    "fields": {
+      "branchName": "分支名称",
+      "branchNamePlaceholder": "feature/new-branch"
+    },
+    "createDescription": "在 {{path}} 创建分支 {{branch}}",
+    "existingWorktrees": "现有工作树",
+    "loading": "加载工作树中…",
+    "noWorktreesFound": "在 {{path}} 下未找到工作树。",
+    "detachedHead": "分离的 HEAD",
+    "notGitRepo": "当前目录不是 Git 仓库。",
+    "uncommittedWarning": "未提交的更改将被丢弃。",
+    "delete": {
+      "title": "删除工作树",
+      "titleSession": "删除会话",
+      "titleSessions": "删除会话",
+      "deleteWorktreeButton": "删除工作树",
+      "deleteSessionButton": "删除会话",
+      "deleteSessionsButton": "删除会话",
+      "deleting": "删除中…",
+      "sessionOnly": "仅删除会话",
+      "sessionOnlyNote": "工作树目录保持不变。关联的子会话也将被删除。",
+      "deleteRemoteBranch": "删除远程分支",
+      "remoteBranchWillRemove": "origin 上的远程分支也将被删除。",
+      "remoteBranchKeep": "保留远程分支。",
+      "remoteBranchUnavailable": "此工作树的远程分支信息不可用。",
+      "worktreeDescription": "这将删除选定的工作树和 {{count}} 个关联会话。",
+      "worktreeDescription_other": "这将删除选定的工作树和 {{count}} 个关联会话。",
+      "sessionDescription": "此操作将永久删除 {{count}} 个会话。",
+      "sessionDescription_other": "此操作将永久删除 {{count}} 个会话。",
+      "sessionDescriptionWithDate": "此操作将永久删除 {{date}} 的 {{count}} 个会话。",
+      "sessionDescriptionWithDate_other": "此操作将永久删除 {{date}} 的 {{count}} 个会话。",
+      "moreItems": "+{{count}} 更多",
+      "pathUnavailable": "工作树路径不可用。"
+    },
+    "validation": {
+      "selectDirectory": "请先选择项目目录。",
+      "branchRequired": "请为新工作树提供分支名称。",
+      "invalidBranchName": "请提供可用作文件夹的分支名称。",
+      "branchExists": "分支已存在",
+      "worktreeExists": "此文件夹的工作树已存在。"
+    },
+    "success": {
+      "created": "工作树已创建",
+      "upstreamConfigured": "已为 {{branch}} 配置上游",
+      "sessionDeleted": "会话已删除",
+      "sessionsDeleted": "已删除 {{count}} 个会话",
+      "sessionsDeleted_other": "已删除 {{count}} 个会话",
+      "worktreeArchived": "附加的工作树已归档。",
+      "worktreeAndRemoteRemoved": "工作树和远程分支已删除。",
+      "worktreesArchived": "工作树已归档，远程分支已删除。"
+    },
+    "warnings": {
+      "createdLocally": "工作树已在本地创建",
+      "upstreamFailed": "上游设置失败：{{error}}"
+    },
+    "errors": {
+      "createFailed": "创建工作树失败",
+      "sessionFailed": "为工作树创建会话失败",
+      "deleteFailed": "删除会话失败",
+      "deleteFailedMultiple": "删除 {{count}} 个会话失败",
+      "deleteFailedMultiple_other": "删除 {{count}} 个会话失败",
+      "tryAgain": "请稍后重试。"
+    },
+    "descriptions": {
+      "removedFromDate": "已删除 {{date}} 的所有会话。",
+      "someCouldNotDelete": "{{count}} 个会话无法删除。",
+      "someCouldNotDelete_other": "{{count}} 个会话无法删除。"
+    }
+  },
+  "common": {
+    "cancel": "取消",
+    "close": "关闭"
+  },
+  "onboarding": {
+    "welcome": "欢迎使用 OpenChamber",
+    "cliRequired": "需要安装才能继续。",
+    "copied": "已复制到剪贴板",
+    "copyToClipboard": "复制到剪贴板",
+    "viewDocs": "查看文档",
+    "waiting": "等待 OpenCode 安装...",
+    "hintPath": "已安装？请确保",
+    "hintPathEnd": "在您的 PATH 中",
+    "hintEnv": "或设置",
+    "hintEnvEnd": "环境变量。"
+  }
+}

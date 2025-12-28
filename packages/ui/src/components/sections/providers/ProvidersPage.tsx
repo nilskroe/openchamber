@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { ScrollableOverlay } from '@/components/ui/ScrollableOverlay';
 import { ProviderLogo } from '@/components/ui/ProviderLogo';
 import { useConfigStore } from '@/stores/useConfigStore';
@@ -15,13 +16,7 @@ import { RiStackLine, RiToolsLine, RiBrainAi3Line, RiFileImageLine, RiArrowDownS
 import { reloadOpenCodeConfiguration } from '@/stores/useAgentsStore';
 import { cn } from '@/lib/utils';
 import type { ModelMetadata } from '@/types';
-
-const COMPACT_NUMBER_FORMATTER = new Intl.NumberFormat('en-US', {
-  notation: 'compact',
-  compactDisplay: 'short',
-  maximumFractionDigits: 1,
-  minimumFractionDigits: 0,
-});
+import { formatCompactNumber } from '@/lib/i18n';
 
 const formatTokens = (value?: number | null) => {
   if (typeof value !== 'number' || Number.isNaN(value)) {
@@ -30,7 +25,7 @@ const formatTokens = (value?: number | null) => {
   if (value === 0) {
     return '0';
   }
-  const formatted = COMPACT_NUMBER_FORMATTER.format(value);
+  const formatted = formatCompactNumber(value);
   return formatted.endsWith('.0') ? formatted.slice(0, -2) : formatted;
 };
 
@@ -123,6 +118,7 @@ const parseProvidersPayload = (payload: unknown): ProviderOption[] => {
 };
 
 export const ProvidersPage: React.FC = () => {
+  const { t } = useTranslation(['settings', 'common']);
   const providers = useConfigStore((state) => state.providers);
   const selectedProviderId = useConfigStore((state) => state.selectedProviderId);
   const setSelectedProvider = useConfigStore((state) => state.setSelectedProvider);
@@ -171,7 +167,7 @@ export const ProvidersPage: React.FC = () => {
       } catch (error) {
         if (!isMounted) return;
         console.error('Failed to load provider auth methods:', error);
-        toast.error('Failed to load provider authentication methods');
+        toast.error(t('settings:providers.loadAuthFailed'));
       } finally {
         if (isMounted) {
           setAuthLoading(false);
@@ -184,7 +180,7 @@ export const ProvidersPage: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [t]);
 
   React.useEffect(() => {
     let isMounted = true;
@@ -208,7 +204,7 @@ export const ProvidersPage: React.FC = () => {
       } catch (error) {
         if (!isMounted) return;
         console.error('Failed to load available providers:', error);
-        setAvailableError('Unable to load provider list');
+        setAvailableError(t('settings:providers.loadListFailed'));
       } finally {
         if (isMounted) {
           setAvailableLoading(false);
@@ -221,7 +217,7 @@ export const ProvidersPage: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [t]);
 
   const connectedProviderIds = React.useMemo(
     () => new Set(providers.map((provider) => provider.id)),
@@ -253,7 +249,7 @@ export const ProvidersPage: React.FC = () => {
   const handleSaveApiKey = async (providerId: string) => {
     const apiKey = apiKeyInputs[providerId]?.trim() ?? '';
     if (!apiKey) {
-      toast.error('API key is required');
+      toast.error(t('common:validation.required'));
       return;
     }
 
@@ -273,14 +269,14 @@ export const ProvidersPage: React.FC = () => {
         throw new Error(message);
       }
 
-      toast.success('API key saved');
+      toast.success(t('settings:providers.apiKeySaved'));
       setApiKeyInputs((prev) => ({ ...prev, [providerId]: '' }));
       await reloadOpenCodeConfiguration();
       await loadProviders();
       setSelectedProvider(providerId);
     } catch (error) {
       console.error('Failed to save API key:', error);
-      toast.error('Failed to save API key');
+      toast.error(t('settings:providers.apiKeySaveFailed'));
     } finally {
       setAuthBusyKey(null);
     }
@@ -338,10 +334,10 @@ export const ProvidersPage: React.FC = () => {
         window.open(urlCandidate, '_blank', 'noopener,noreferrer');
       }
       setPendingOAuth({ providerId, methodIndex });
-      toast.message('Complete the OAuth flow in your browser');
+      toast.message(t('settings:providers.oauth.completeInBrowser'));
     } catch (error) {
       console.error('Failed to start OAuth flow:', error);
-      toast.error('Failed to start OAuth flow');
+      toast.error(t('settings:providers.oauth.startFailed'));
     } finally {
       setAuthBusyKey(null);
     }
@@ -372,7 +368,7 @@ export const ProvidersPage: React.FC = () => {
         throw new Error(message);
       }
 
-      toast.success('OAuth connection completed');
+      toast.success(t('settings:providers.oauth.success'));
       setOauthCodes((prev) => ({ ...prev, [codeKey]: '' }));
       setPendingOAuth(null);
       await reloadOpenCodeConfiguration();
@@ -380,7 +376,7 @@ export const ProvidersPage: React.FC = () => {
       setSelectedProvider(providerId);
     } catch (error) {
       console.error('Failed to complete OAuth flow:', error);
-      toast.error('Failed to complete OAuth flow');
+      toast.error(t('settings:providers.oauth.completeFailed'));
     } finally {
       setAuthBusyKey(null);
     }
@@ -389,20 +385,20 @@ export const ProvidersPage: React.FC = () => {
   const handleCopyOAuthLink = async (url: string) => {
     try {
       await navigator.clipboard.writeText(url);
-      toast.success('OAuth link copied');
+      toast.success(t('settings:providers.oauth.linkCopied'));
     } catch (error) {
       console.error('Failed to copy OAuth link:', error);
-      toast.error('Failed to copy OAuth link');
+      toast.error(t('settings:providers.oauth.copyLinkFailed'));
     }
   };
 
   const handleCopyOAuthCode = async (code: string) => {
     try {
       await navigator.clipboard.writeText(code);
-      toast.success('Device code copied');
+      toast.success(t('settings:providers.oauth.codeCopied'));
     } catch (error) {
       console.error('Failed to copy device code:', error);
-      toast.error('Failed to copy device code');
+      toast.error(t('settings:providers.oauth.copyCodeFailed'));
     }
   };
 
@@ -422,12 +418,12 @@ export const ProvidersPage: React.FC = () => {
         throw new Error(message);
       }
 
-      toast.success('Provider disconnected');
+      toast.success(t('settings:providers.disconnect.success'));
       await reloadOpenCodeConfiguration();
       await loadProviders();
     } catch (error) {
       console.error('Failed to disconnect provider:', error);
-      toast.error('Failed to disconnect provider');
+      toast.error(t('settings:providers.disconnectFailed'));
     } finally {
       setAuthBusyKey(null);
     }
@@ -440,8 +436,8 @@ export const ProvidersPage: React.FC = () => {
       <div className="flex h-full items-center justify-center">
         <div className="text-center text-muted-foreground">
           <RiStackLine className="mx-auto mb-3 h-12 w-12 opacity-50" />
-          <p className="typography-body">No providers detected</p>
-          <p className="typography-meta mt-1 opacity-75">Check your OpenCode configuration</p>
+          <p className="typography-body">{t('settings:providers.noProviders')}</p>
+          <p className="typography-meta mt-1 opacity-75">{t('settings:providers.noProvidersHint')}</p>
         </div>
       </div>
     );
@@ -451,26 +447,26 @@ export const ProvidersPage: React.FC = () => {
     return (
       <ScrollableOverlay outerClassName="h-full" className="mx-auto max-w-3xl space-y-6 p-6">
         <div className="space-y-1">
-          <h1 className="typography-ui-header font-semibold text-lg">Connect provider</h1>
+          <h1 className="typography-ui-header font-semibold text-lg">{t('settings:providers.connect')}</h1>
           <p className="typography-body text-muted-foreground">
-            Choose a provider to connect and set up its authentication.
+            {t('settings:providers.connectDescription')}
           </p>
         </div>
 
         <div className="space-y-4">
           <div className="space-y-1">
-            <h2 className="typography-ui-header font-semibold text-foreground">Provider</h2>
+            <h2 className="typography-ui-header font-semibold text-foreground">{t('common:label.provider')}</h2>
             <p className="typography-meta text-muted-foreground/80">
-              Select a provider that is not connected yet.
+              {t('settings:providers.selectProvider')}
             </p>
           </div>
 
           {availableLoading ? (
-            <p className="typography-meta text-muted-foreground">Loading providers…</p>
+            <p className="typography-meta text-muted-foreground">{t('settings:providers.loading')}</p>
           ) : availableError ? (
             <p className="typography-meta text-muted-foreground">{availableError}</p>
           ) : unconnectedProviders.length === 0 ? (
-            <p className="typography-meta text-muted-foreground">All available providers are already connected.</p>
+            <p className="typography-meta text-muted-foreground">{t('settings:providers.allConnected')}</p>
           ) : (
             <DropdownMenu open={providerDropdownOpen} onOpenChange={(open) => {
               setProviderDropdownOpen(open);
@@ -487,7 +483,7 @@ export const ProvidersPage: React.FC = () => {
                   <span className={candidateProviderId ? "text-foreground" : "text-muted-foreground"}>
                     {candidateProviderId
                       ? (unconnectedProviders.find(p => p.id === candidateProviderId)?.name || candidateProviderId)
-                      : "Select provider"}
+                      : t('settings:providers.selectProvider')}
                   </span>
                   <RiArrowDownSLine className="h-4 w-4 text-muted-foreground" />
                 </button>
@@ -507,7 +503,7 @@ export const ProvidersPage: React.FC = () => {
                     value={providerSearchQuery}
                     onChange={(e) => setProviderSearchQuery(e.target.value)}
                     onKeyDown={(e) => e.stopPropagation()}
-                    placeholder="Search providers..."
+                    placeholder={t('settings:providers.searchPlaceholder')}
                     className="flex-1 bg-transparent typography-meta outline-none placeholder:text-muted-foreground"
                     autoFocus
                   />
@@ -519,7 +515,7 @@ export const ProvidersPage: React.FC = () => {
                       return (p.name || p.id).toLowerCase().includes(query) || p.id.toLowerCase().includes(query);
                     });
                     if (filtered.length === 0) {
-                      return <p className="py-4 text-center typography-meta text-muted-foreground">No providers found</p>;
+                      return <p className="py-4 text-center typography-meta text-muted-foreground">{t('settings:providers.noProvidersFound')}</p>;
                     }
                     return filtered.map((provider) => (
                       <DropdownMenuItem
@@ -546,14 +542,14 @@ export const ProvidersPage: React.FC = () => {
 
         {candidateProviderId && (
           <div className="space-y-4">
-            <h2 className="typography-ui-header font-semibold text-foreground">Authentication</h2>
+            <h2 className="typography-ui-header font-semibold text-foreground">{t('settings:providers.authentication')}</h2>
 
             {authLoading ? (
-              <p className="typography-meta text-muted-foreground">Loading authentication methods…</p>
+              <p className="typography-meta text-muted-foreground">{t('settings:providers.loadingAuth')}</p>
             ) : (
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="typography-ui-label font-medium text-foreground">API key</label>
+                  <label className="typography-ui-label font-medium text-foreground">{t('settings:providers.apiKey')}</label>
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                     <Input
                       type="password"
@@ -564,7 +560,7 @@ export const ProvidersPage: React.FC = () => {
                           [candidateProviderId]: event.target.value,
                         }))
                       }
-                      placeholder="sk-..."
+                      placeholder={t('settings:providers.apiKeyPlaceholder')}
                     />
                     <Button
                       size="sm"
@@ -572,11 +568,11 @@ export const ProvidersPage: React.FC = () => {
                       disabled={authBusyKey === `api:${candidateProviderId}`}
                       className="h-8"
                     >
-                      {authBusyKey === `api:${candidateProviderId}` ? 'Saving…' : 'Save key'}
+                      {authBusyKey === `api:${candidateProviderId}` ? t('common:button.saving') : t('settings:providers.saveKey')}
                     </Button>
                   </div>
                   <p className="typography-meta text-muted-foreground">
-                    Keys are sent directly to OpenCode and never stored by OpenChamber.
+                    {t('settings:providers.apiKeyHint')}
                   </p>
                 </div>
 
@@ -609,15 +605,15 @@ export const ProvidersPage: React.FC = () => {
                                   </div>
                                 )}
                               </div>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleOAuthStart(candidateProviderId, index)}
-                                disabled={authBusyKey === `oauth:${candidateProviderId}:${index}`}
-                                className="h-8"
-                              >
-                                Connect
-                              </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleOAuthStart(candidateProviderId, index)}
+                          disabled={authBusyKey === `oauth:${candidateProviderId}:${index}`}
+                          className="h-8"
+                        >
+                          {t('settings:providers.oauth.connect')}
+                        </Button>
                             </div>
 
                             {oauthDetails[codeKey]?.instructions && (
@@ -635,7 +631,7 @@ export const ProvidersPage: React.FC = () => {
                                   onClick={() => handleCopyOAuthCode(oauthDetails[codeKey]?.userCode ?? '')}
                                   className="h-8"
                                 >
-                                  Copy code
+                                  {t('settings:providers.oauth.copyCode')}
                                 </Button>
                               </div>
                             )}
@@ -651,7 +647,7 @@ export const ProvidersPage: React.FC = () => {
                                     asChild
                                   >
                                     <a href={oauthDetails[codeKey]?.url} target="_blank" rel="noopener noreferrer">
-                                      Open link
+                                      {t('settings:providers.oauth.openLink')}
                                     </a>
                                   </Button>
                                   <Button
@@ -660,7 +656,7 @@ export const ProvidersPage: React.FC = () => {
                                     onClick={() => handleCopyOAuthLink(oauthDetails[codeKey]?.url ?? '')}
                                     className="h-8"
                                   >
-                                    Copy link
+                                    {t('settings:providers.oauth.copyLink')}
                                   </Button>
                                 </div>
                               </div>
@@ -676,7 +672,7 @@ export const ProvidersPage: React.FC = () => {
                                       [codeKey]: event.target.value,
                                     }))
                                   }
-                                  placeholder="Authorization code (if required)"
+                                  placeholder={t('settings:providers.oauth.authCodePlaceholder')}
                                 />
                                 <Button
                                   size="sm"
@@ -685,8 +681,8 @@ export const ProvidersPage: React.FC = () => {
                                   className="h-8"
                                 >
                                   {authBusyKey === `oauth-complete:${candidateProviderId}:${index}`
-                                    ? 'Saving…'
-                                    : 'Complete'}
+                                    ? t('common:button.saving')
+                                    : t('settings:providers.oauth.complete')}
                                 </Button>
                               </div>
                             )}
@@ -709,8 +705,8 @@ export const ProvidersPage: React.FC = () => {
       <div className="flex h-full items-center justify-center">
         <div className="text-center text-muted-foreground">
           <RiStackLine className="mx-auto mb-3 h-12 w-12 opacity-50" />
-          <p className="typography-body">Select a provider from the sidebar</p>
-          <p className="typography-meta mt-1 opacity-75">Review details and configure auth</p>
+          <p className="typography-body">{t('settings:providers.selectFromSidebar')}</p>
+          <p className="typography-meta mt-1 opacity-75">{t('settings:providers.reviewDetails')}</p>
         </div>
       </div>
     );
@@ -739,19 +735,19 @@ export const ProvidersPage: React.FC = () => {
           </h1>
         </div>
         <p className="typography-body text-muted-foreground">
-          Provider ID: {selectedProvider.id}
+          {t('settings:providers.providerId')} {selectedProvider.id}
         </p>
       </div>
 
       <div className="space-y-4">
-        <h2 className="typography-ui-header font-semibold text-foreground">Authentication</h2>
+        <h2 className="typography-ui-header font-semibold text-foreground">{t('settings:providers.authentication')}</h2>
 
         {authLoading ? (
-          <p className="typography-meta text-muted-foreground">Loading authentication methods…</p>
+          <p className="typography-meta text-muted-foreground">{t('settings:providers.loadingAuth')}</p>
         ) : (
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="typography-ui-label font-medium text-foreground">API key</label>
+              <label className="typography-ui-label font-medium text-foreground">{t('settings:providers.apiKey')}</label>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <Input
                   type="password"
@@ -762,7 +758,7 @@ export const ProvidersPage: React.FC = () => {
                       [selectedProvider.id]: event.target.value,
                     }))
                   }
-                  placeholder="sk-..."
+                  placeholder={t('settings:providers.apiKeyPlaceholder')}
                 />
                 <Button
                   size="sm"
@@ -770,11 +766,11 @@ export const ProvidersPage: React.FC = () => {
                   disabled={authBusyKey === `api:${selectedProvider.id}`}
                   className="h-8"
                 >
-                  {authBusyKey === `api:${selectedProvider.id}` ? 'Saving…' : 'Save key'}
+                  {authBusyKey === `api:${selectedProvider.id}` ? t('common:button.saving') : t('settings:providers.saveKey')}
                 </Button>
               </div>
               <p className="typography-meta text-muted-foreground">
-                Keys are sent directly to OpenCode and never stored by OpenChamber.
+                {t('settings:providers.apiKeyHint')}
               </p>
             </div>
 
@@ -786,7 +782,7 @@ export const ProvidersPage: React.FC = () => {
                 disabled={authBusyKey === `disconnect:${selectedProvider.id}`}
                 className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
               >
-                {authBusyKey === `disconnect:${selectedProvider.id}` ? 'Disconnecting…' : 'Disconnect provider'}
+                {authBusyKey === `disconnect:${selectedProvider.id}` ? t('common:button.disconnecting') : t('settings:providers.disconnect.button')}
               </Button>
             </div>
 
@@ -816,7 +812,7 @@ export const ProvidersPage: React.FC = () => {
                           disabled={authBusyKey === `oauth:${selectedProvider.id}:${index}`}
                           className="h-8"
                         >
-                          Connect
+                          {t('settings:providers.oauth.connect')}
                         </Button>
                       </div>
 
@@ -835,7 +831,7 @@ export const ProvidersPage: React.FC = () => {
                             onClick={() => handleCopyOAuthCode(oauthDetails[codeKey]?.userCode ?? '')}
                             className="h-8"
                           >
-                            Copy code
+                            {t('settings:providers.oauth.copyCode')}
                           </Button>
                         </div>
                       )}
@@ -851,7 +847,7 @@ export const ProvidersPage: React.FC = () => {
                               asChild
                             >
                               <a href={oauthDetails[codeKey]?.url} target="_blank" rel="noopener noreferrer">
-                                Open link
+                                {t('settings:providers.oauth.openLink')}
                               </a>
                             </Button>
                             <Button
@@ -860,7 +856,7 @@ export const ProvidersPage: React.FC = () => {
                               onClick={() => handleCopyOAuthLink(oauthDetails[codeKey]?.url ?? '')}
                               className="h-8"
                             >
-                              Copy link
+                              {t('settings:providers.oauth.copyLink')}
                             </Button>
                           </div>
                         </div>
@@ -877,7 +873,7 @@ export const ProvidersPage: React.FC = () => {
                                 [codeKey]: event.target.value,
                               }))
                             }
-                            placeholder="Paste authorization code"
+                            placeholder={t('settings:providers.oauth.authCodePlaceholder')}
                           />
                           <Button
                             size="sm"
@@ -886,8 +882,8 @@ export const ProvidersPage: React.FC = () => {
                             className="h-8"
                           >
                             {authBusyKey === `oauth-complete:${selectedProvider.id}:${index}`
-                              ? 'Saving…'
-                              : 'Complete'}
+                              ? t('common:button.saving')
+                              : t('settings:providers.oauth.complete')}
                           </Button>
                         </div>
                       )}
@@ -904,21 +900,21 @@ export const ProvidersPage: React.FC = () => {
 
       <div className="space-y-4">
         <div className="space-y-1">
-          <h2 className="typography-ui-header font-semibold text-foreground">Models</h2>
+          <h2 className="typography-ui-header font-semibold text-foreground">{t('settings:providers.models')}</h2>
           <p className="typography-meta text-muted-foreground/80">
-            Browse and filter models exposed by this provider.
+            {t('settings:providers.modelsDescription')}
           </p>
         </div>
 
         <Input
           value={modelQuery}
           onChange={(event) => setModelQuery(event.target.value)}
-          placeholder="Filter models..."
+          placeholder={t('settings:providers.modelsFilterPlaceholder')}
         />
 
         <div className="border-t border-border/40">
           {filteredModels.length === 0 ? (
-            <p className="typography-meta text-muted-foreground py-3 px-2">No models match this filter.</p>
+            <p className="typography-meta text-muted-foreground py-3 px-2">{t('settings:providers.noModelsFound')}</p>
           ) : (
             filteredModels.map((model) => {
               const modelId = typeof model?.id === 'string' ? model.id : '';
@@ -929,9 +925,9 @@ export const ProvidersPage: React.FC = () => {
               const outputTokens = formatTokens(metadata?.limit?.output);
 
               const capabilityIcons: Array<{ key: string; icon: typeof RiToolsLine; label: string }> = [];
-              if (metadata?.tool_call) capabilityIcons.push({ key: 'tools', icon: RiToolsLine, label: 'Tool calling' });
-              if (metadata?.reasoning) capabilityIcons.push({ key: 'reasoning', icon: RiBrainAi3Line, label: 'Reasoning' });
-              if (metadata?.attachment) capabilityIcons.push({ key: 'image', icon: RiFileImageLine, label: 'Image input' });
+              if (metadata?.tool_call) capabilityIcons.push({ key: 'tools', icon: RiToolsLine, label: t('settings:providers.capabilities.toolCalling') });
+              if (metadata?.reasoning) capabilityIcons.push({ key: 'reasoning', icon: RiBrainAi3Line, label: t('settings:providers.capabilities.reasoning') });
+              if (metadata?.attachment) capabilityIcons.push({ key: 'image', icon: RiFileImageLine, label: t('settings:providers.capabilities.imageInput') });
 
               return (
                 <div

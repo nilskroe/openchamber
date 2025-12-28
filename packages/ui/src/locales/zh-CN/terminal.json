@@ -1,0 +1,26 @@
+{
+  "title": "终端",
+  "new": "新建终端",
+  "close": "关闭终端",
+  "restart": "重启终端",
+  "clear": "清空终端",
+  "copy": "复制选中内容",
+  "paste": "粘贴",
+  "selectAll": "全选",
+  "find": "查找",
+  "split": "分割终端",
+  "connecting": "连接中...",
+  "connected": "已连接",
+  "disconnected": "已断开",
+  "reconnecting": "重新连接中...",
+  "error": {
+    "connectionFailed": "连接终端失败",
+    "sessionClosed": "终端会话已关闭",
+    "timeout": "终端连接超时"
+  },
+  "status": {
+    "running": "运行中",
+    "exited": "已退出",
+    "exitCode": "退出码：{{code}}"
+  }
+}

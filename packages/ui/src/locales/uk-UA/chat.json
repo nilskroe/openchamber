@@ -1,0 +1,112 @@
+{
+  "input": {
+    "placeholder": "# для агентів; @ для файлів; / для команд",
+    "placeholderWithModel": "Запитайте {{model}}...",
+    "send": "Надіслати повідомлення",
+    "stop": "Зупинити генерацію",
+    "attachFile": "Прикріпити файл",
+    "attachedFiles_one": "{{count}} файл прикріплено",
+    "attachedFiles_few": "{{count}} файли прикріплено",
+    "attachedFiles_many": "{{count}} файлів прикріплено",
+    "attachedFiles_other": "{{count}} файлів прикріплено"
+  },
+  "message": {
+    "empty": "Повідомлень ще немає",
+    "emptyDescription": "Почніть розмову, ввівши повідомлення нижче",
+    "count_one": "{{count}} повідомлення",
+    "count_few": "{{count}} повідомлення",
+    "count_many": "{{count}} повідомлень",
+    "count_other": "{{count}} повідомлень",
+    "thinking": "Думаю...",
+    "generating": "Генерую...",
+    "copied": "Повідомлення скопійовано",
+    "copyFailed": "Не вдалося скопіювати повідомлення",
+    "regenerate": "Згенерувати відповідь знову",
+    "edit": "Редагувати повідомлення"
+  },
+  "session": {
+    "new": "Нова сесія",
+    "newDescription": "Почати нову розмову",
+    "rename": "Перейменувати сесію",
+    "delete": "Видалити сесію",
+    "deleteConfirm": "Видалити цю сесію?",
+    "noSessions": "Немає сесій",
+    "switchTo": "Перейти до сесії",
+    "current": "Поточна сесія",
+    "count_one": "{{count}} сесія",
+    "count_few": "{{count}} сесії",
+    "count_many": "{{count}} сесій",
+    "count_other": "{{count}} сесій",
+    "selectOrCreate": "Виберіть або створіть сесію, щоб почати чат"
+  },
+  "tool": {
+    "output": "Вивід інструменту",
+    "collapsed": "Згорнуто",
+    "activity": "Активність",
+    "detailed": "Детально",
+    "running": "Виконується...",
+    "completed": "Завершено",
+    "failed": "Помилка"
+  },
+  "model": {
+    "select": "Вибрати модель",
+    "noModels": "Немає доступних моделей",
+    "favorites": "Обрані",
+    "recent": "Нещодавні",
+    "all": "Всі моделі",
+    "addFavorite": "Додати до обраних",
+    "removeFavorite": "Видалити з обраних"
+  },
+  "agent": {
+    "select": "Вибрати агента",
+    "noAgents": "Немає доступних агентів",
+    "default": "Агент за замовчуванням"
+  },
+  "file": {
+    "tooLarge": "Файл занадто великий (макс. {{size}})",
+    "invalidType": "Недійсний тип файлу",
+    "uploadFailed": "Не вдалося завантажити файл",
+    "count_one": "{{count}} файл",
+    "count_few": "{{count}} файли",
+    "count_many": "{{count}} файлів",
+    "count_other": "{{count}} файлів",
+    "dropToAttach": "Перетягніть файли сюди для прикріплення",
+    "attachFiles": "Прикріпити файли",
+    "attachFromProject": "Прикріпити з проекту"
+  },
+  "filePicker": {
+    "title": "Вибрати файли проекту",
+    "searchPlaceholder": "Пошук файлів...",
+    "loading": "Завантаження файлів...",
+    "loadingChildren": "Завантаження...",
+    "searching": "Пошук файлів...",
+    "noFilesInDirectory": "У цій директорії немає файлів",
+    "noFilesFound": "Файлів не знайдено",
+    "filesSelected_one": "{{count}} файл вибрано",
+    "filesSelected_few": "{{count}} файли вибрано",
+    "filesSelected_many": "{{count}} файлів вибрано",
+    "filesSelected_other": "{{count}} файлів вибрано",
+    "noFilesSelected": "Файли не вибрано",
+    "attachFiles": "Прикріпити файли",
+    "attaching": "Прикріплення..."
+  },
+  "diff": {
+    "inline": "В рядок",
+    "sideBySide": "Пліч-о-пліч",
+    "dynamic": "Динамічно",
+    "noChanges": "Немає змін",
+    "additions_one": "{{count}} додавання",
+    "additions_few": "{{count}} додавання",
+    "additions_many": "{{count}} додавань",
+    "additions_other": "{{count}} додавань",
+    "deletions_one": "{{count}} видалення",
+    "deletions_few": "{{count}} видалення",
+    "deletions_many": "{{count}} видалень",
+    "deletions_other": "{{count}} видалень"
+  },
+  "reasoning": {
+    "show": "Показати міркування",
+    "hide": "Приховати міркування",
+    "traces": "Хід міркувань"
+  }
+}

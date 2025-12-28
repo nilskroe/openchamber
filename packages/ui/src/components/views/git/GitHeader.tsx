@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   RiArrowUpLine,
   RiArrowDownLine,
@@ -104,6 +105,7 @@ const IdentityDropdown: React.FC<IdentityDropdownProps> = ({
   onSelect,
   isApplying,
 }) => {
+  const { t } = useTranslation('git');
   const isDisabled = isApplying || identities.length === 0;
 
   return (
@@ -128,7 +130,7 @@ const IdentityDropdown: React.FC<IdentityDropdownProps> = ({
                 />
               )}
               <span className="max-w-[120px] truncate hidden sm:inline">
-                {activeProfile?.name || 'No identity'}
+                {activeProfile?.name || t('identity.noIdentity')}
               </span>
               <RiArrowDownSLine className="size-4 opacity-60" />
             </Button>
@@ -136,10 +138,10 @@ const IdentityDropdown: React.FC<IdentityDropdownProps> = ({
         </TooltipTrigger>
         <TooltipContent sideOffset={8} className="space-y-1">
           <p className="typography-ui-label text-foreground">
-            {activeProfile?.userName || 'Unknown user'}
+            {activeProfile?.userName || t('identity.unknownUser')}
           </p>
           <p className="typography-meta text-muted-foreground">
-            {activeProfile?.userEmail || 'No email configured'}
+            {activeProfile?.userEmail || t('identity.noEmailConfigured')}
           </p>
         </TooltipContent>
       </Tooltip>
@@ -147,7 +149,7 @@ const IdentityDropdown: React.FC<IdentityDropdownProps> = ({
         {identities.length === 0 ? (
           <div className="px-2 py-1.5">
             <p className="typography-meta text-muted-foreground">
-              No profiles available to apply.
+              {t('identity.noProfilesAvailable')}
             </p>
           </div>
         ) : (

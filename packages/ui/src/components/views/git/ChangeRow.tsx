@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   RiCheckboxLine,
   RiCheckboxBlankLine,
@@ -11,16 +12,16 @@ import type { GitStatus } from '@/lib/api/types';
 type ChangeDescriptor = {
   code: string;
   color: string;
-  description: string;
+  descriptionKey: string;
 };
 
 const CHANGE_DESCRIPTORS: Record<string, ChangeDescriptor> = {
-  '?': { code: '?', color: 'var(--status-info)', description: 'Untracked file' },
-  A: { code: 'A', color: 'var(--status-success)', description: 'New file' },
-  D: { code: 'D', color: 'var(--status-error)', description: 'Deleted file' },
-  R: { code: 'R', color: 'var(--status-info)', description: 'Renamed file' },
-  C: { code: 'C', color: 'var(--status-info)', description: 'Copied file' },
-  M: { code: 'M', color: 'var(--status-warning)', description: 'Modified file' },
+  '?': { code: '?', color: 'var(--status-info)', descriptionKey: 'changes.untrackedFile' },
+  A: { code: 'A', color: 'var(--status-success)', descriptionKey: 'changes.newFile' },
+  D: { code: 'D', color: 'var(--status-error)', descriptionKey: 'changes.deletedFile' },
+  R: { code: 'R', color: 'var(--status-info)', descriptionKey: 'changes.renamedFile' },
+  C: { code: 'C', color: 'var(--status-info)', descriptionKey: 'changes.copiedFile' },
+  M: { code: 'M', color: 'var(--status-warning)', descriptionKey: 'changes.modifiedFile' },
 };
 
 const DEFAULT_DESCRIPTOR = CHANGE_DESCRIPTORS.M;
@@ -59,8 +60,9 @@ export const ChangeRow = React.memo<ChangeRowProps>(function ChangeRow({
   isReverting,
   stats,
 }) {
+  const { t } = useTranslation('git');
   const descriptor = useMemo(() => describeChange(file), [file]);
-  const indicatorLabel = descriptor.description;
+  const indicatorLabel = t(descriptor.descriptionKey);
   const insertions = stats?.insertions ?? 0;
   const deletions = stats?.deletions ?? 0;
 
@@ -108,7 +110,7 @@ export const ChangeRow = React.memo<ChangeRowProps>(function ChangeRow({
           type="button"
           onClick={handleToggleClick}
           aria-pressed={checked}
-          aria-label={`Select ${file.path}`}
+          aria-label={t('changes.selectFile', { path: file.path })}
           className="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           {checked ? (
@@ -144,7 +146,7 @@ export const ChangeRow = React.memo<ChangeRowProps>(function ChangeRow({
               onClick={handleRevertClick}
               disabled={isReverting}
               className="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:cursor-not-allowed disabled:opacity-50"
-              aria-label={`Revert changes for ${file.path}`}
+              aria-label={t('changes.revertFile', { path: file.path })}
             >
               {isReverting ? (
                 <RiLoader4Line className="size-3.5 animate-spin" />
@@ -153,7 +155,7 @@ export const ChangeRow = React.memo<ChangeRowProps>(function ChangeRow({
               )}
             </button>
           </TooltipTrigger>
-          <TooltipContent sideOffset={8}>Revert changes</TooltipContent>
+          <TooltipContent sideOffset={8}>{t('diff.revert')}</TooltipContent>
         </Tooltip>
       </div>
     </li>

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Textarea } from '@/components/ui/textarea';
 import {
     RiAddCircleLine,
@@ -44,6 +45,7 @@ interface ChatInputProps {
 const isPrimaryMode = (mode?: string) => mode === 'primary' || mode === 'all' || mode === undefined || mode === null;
 
 export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBottom }) => {
+    const { t } = useTranslation('chat');
     const [message, setMessage] = React.useState('');
     const [isDragging, setIsDragging] = React.useState(false);
     const [showFileMention, setShowFileMention] = React.useState(false);
@@ -300,7 +302,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBo
                 if (attachmentsToSend.length > 0) {
                     useFileStore.setState({ attachedFiles: attachmentsToSend });
                 }
-                toast.error(rawMessage || 'Message failed to send. Attachments restored.');
+                toast.error(rawMessage || t('input.sendFailed'));
             });
 
         if (!isMobile) {
@@ -566,14 +568,14 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBo
                 }
             } catch (error) {
                 console.error('Clipboard image attach failed', error);
-                toast.error(error instanceof Error ? error.message : 'Failed to attach image from clipboard');
+                toast.error(error instanceof Error ? error.message : t('file.attachImageFailed'));
             }
         }
 
         if (attachedCount > 0) {
-            toast.success(`Attached ${attachedCount} image${attachedCount > 1 ? 's' : ''} from clipboard`);
+            toast.success(t('file.attachedFromClipboard', { count: attachedCount }));
         }
-    }, [addAttachedFile, currentSessionId, newSessionDraftOpen, insertTextAtSelection]);
+    }, [addAttachedFile, currentSessionId, newSessionDraftOpen, insertTextAtSelection, t]);
 
     const handleFileSelect = (file: { name: string; path: string }) => {
 
@@ -694,12 +696,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBo
                 }
             } catch (error) {
                 console.error('File attach failed', error);
-                toast.error(error instanceof Error ? error.message : 'Failed to attach file');
+                toast.error(error instanceof Error ? error.message : t('file.attachFailed'));
             }
         }
 
         if (attachedCount > 0) {
-            toast.success(`Attached ${attachedCount} file${attachedCount > 1 ? 's' : ''}`);
+            toast.success(t('file.attached', { count: attachedCount }));
         }
     };
 
@@ -716,14 +718,14 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBo
                 }
             } catch (error) {
                 console.error('Server file attach failed', error);
-                toast.error(error instanceof Error ? error.message : 'Failed to attach file');
+                toast.error(error instanceof Error ? error.message : t('file.attachFailed'));
             }
         }
 
         if (attachedCount > 0) {
-            toast.success(`Attached ${attachedCount} file${attachedCount > 1 ? 's' : ''}`);
+            toast.success(t('file.attached', { count: attachedCount }));
         }
-    }, [addServerFile]);
+    }, [addServerFile, t]);
 
     const fileInputRef = React.useRef<HTMLInputElement>(null);
     const [projectFilePickerOpen, setProjectFilePickerOpen] = React.useState(false);
@@ -742,14 +744,14 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBo
                 }
             } catch (error) {
                 console.error('File attach failed', error);
-                toast.error(error instanceof Error ? error.message : 'Failed to attach file');
+                toast.error(error instanceof Error ? error.message : t('file.attachFailed'));
             }
         }
 
         if (attachedCount > 0) {
-            toast.success(`Attached ${attachedCount} file${attachedCount > 1 ? 's' : ''}`);
+            toast.success(t('file.attached', { count: attachedCount }));
         }
-    }, [addAttachedFile]);
+    }, [addAttachedFile, t]);
 
     const handleVSCodePickFiles = React.useCallback(async () => {
         try {
@@ -762,7 +764,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBo
                 const summary = skipped
                     .map((s: { name?: string; reason?: string }) => `${s?.name || 'file'}: ${s?.reason || 'skipped'}`)
                     .join('\n');
-                toast.error(`Some files were skipped:\n${summary}`);
+                toast.error(t('file.someFilesSkipped', { summary }));
             }
 
             const asFiles = picked
@@ -791,9 +793,9 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBo
             }
         } catch (error) {
             console.error('VS Code file pick failed', error);
-            toast.error(error instanceof Error ? error.message : 'Failed to pick files in VS Code');
+            toast.error(error instanceof Error ? error.message : t('file.vsCodePickFailed'));
         }
-    }, [attachFiles]);
+    }, [attachFiles, t]);
 
     const handlePickLocalFiles = React.useCallback(() => {
         if (isVSCodeRuntime()) {
@@ -913,8 +915,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBo
                         <button
                             type="button"
                             className={iconButtonBaseClass}
-                            title="Add attachment"
-                            aria-label="Add attachment"
+                            title={t('input.addAttachment')}
+                            aria-label={t('input.addAttachment')}
                         >
                             <RiAddCircleLine className={cn(iconSizeClass, 'text-current')} />
                         </button>
@@ -926,7 +928,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBo
                             }}
                         >
                             <RiAttachment2 />
-                            Attach files
+                            {t('file.attachFiles', 'Attach files')}
                         </DropdownMenuItem>
                         <DropdownMenuItem
                             onSelect={() => {
@@ -936,7 +938,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBo
                             }}
                         >
                             <RiFileUploadLine />
-                            Attach from project
+                            {t('file.attachFromProject', 'Attach from project')}
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
@@ -949,8 +951,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBo
             type='button'
             onClick={onOpenSettings}
             className={iconButtonBaseClass}
-            title='Model and agent settings'
-            aria-label='Model and agent settings'
+            title={t('input.modelAndAgentSettings')}
+            aria-label={t('input.modelAndAgentSettings')}
         >
             <RiAiAgentLine className={cn(iconSizeClass, 'text-current')} />
         </button>
@@ -1029,13 +1031,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBo
                                     type="button"
                                     className={iconButtonBaseClass}
                                     onClick={() => handlePickLocalFiles()}
-                                    title="Attach files"
-                                    aria-label="Attach files"
+                                    title={t('file.attachFiles')}
+                                    aria-label={t('file.attachFiles')}
                                 >
                                     <RiAttachment2 className={cn(iconSizeClass, 'text-current')} />
                                 </button>
                             </div>
-                            <p className="mt-2 typography-ui-label text-muted-foreground">Drop files here to attach</p>
+                            <p className="mt-2 typography-ui-label text-muted-foreground">{t('file.dropToAttach', 'Drop files here to attach')}</p>
                         </div>
                     </div>
                 )}
@@ -1083,8 +1085,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBo
                             onPaste={handlePaste}
                             onPointerDownCapture={handleTextareaPointerDownCapture}
                             placeholder={currentSessionId || newSessionDraftOpen
-                                ? "# for agents; @ for files; / for commands"
-                                : "Select or create a session to start chatting"}
+                                ? t('input.placeholder', '# for agents; @ for files; / for commands')
+                                : t('session.selectOrCreate', 'Select or create a session to start chatting')}
                             disabled={!currentSessionId && !newSessionDraftOpen}
 
                         className={cn(

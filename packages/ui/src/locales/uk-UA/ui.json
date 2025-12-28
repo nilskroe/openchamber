@@ -1,0 +1,188 @@
+{
+  "help": {
+    "title": "Комбінації клавіш",
+    "description": "Використовуйте ці комбінації клавіш для швидкої навігації та керування застосунком.",
+    "categories": {
+      "navigation": "Навігація та команди",
+      "sessionManagement": "Керування сесіями",
+      "interface": "Інтерфейс"
+    },
+    "shortcuts": {
+      "openCommandPalette": "Відкрити палітру команд",
+      "showKeyboardShortcuts": "Показати комбінації клавіш (це вікно)",
+      "toggleSessionSidebar": "Перемкнути бічну панель сесій",
+      "createNewSession": "Створити нову сесію",
+      "openWorktreeCreator": "Відкрити створення worktree",
+      "focusChatInput": "Фокус на введенні чату",
+      "abortActiveRun": "Перервати активне виконання (подвійне натискання)",
+      "deleteCurrentSession": "Видалити поточну сесію",
+      "selectPreviousSession": "Вибрати попередню сесію",
+      "selectNextSession": "Вибрати наступну сесію",
+      "cycleTheme": "Змінити тему (Світла → Темна → Системна)",
+      "openDiffPanel": "Відкрити панель відмінностей",
+      "openGitPanel": "Відкрити панель Git",
+      "openTerminal": "Відкрити термінал",
+      "openSettings": "Відкрити налаштування"
+    },
+    "proTips": {
+      "title": "Поради:",
+      "commandPalette": "Використовуйте палітру команд (Ctrl + X) для швидкого доступу до всіх дій",
+      "recentSessions": "5 останніх сесій відображаються в палітрі команд",
+      "themeCycling": "Зміна теми запам'ятовує ваш вибір між сесіями",
+      "tabCycle": "Натисніть Tab у полі введення чату для переключення між агентами",
+      "atMention": "Використовуйте @ для згадування та прикріплення файлів з вашого проекту",
+      "hashMention": "Використовуйте # для згадування конкретного агента inline",
+      "slashCommand": "Введіть / для доступу до швидких команд"
+    }
+  },
+  "commandPalette": {
+    "placeholder": "Введіть команду або шукайте...",
+    "noResults": "Результатів не знайдено.",
+    "groups": {
+      "actions": "Дії",
+      "theme": "Тема",
+      "recentSessions": "Останні сесії"
+    },
+    "actions": {
+      "openSessionList": "Відкрити список сесій",
+      "newSession": "Нова сесія",
+      "newSessionWorktree": "Нова сесія з Worktree",
+      "keyboardShortcuts": "Комбінації клавіш",
+      "openDiffPanel": "Відкрити панель відмінностей",
+      "openGitPanel": "Відкрити панель Git",
+      "openTerminal": "Відкрити термінал",
+      "openSettings": "Відкрити налаштування",
+      "reloadConfig": "Перезавантажити конфігурацію OpenCode"
+    },
+    "theme": {
+      "light": "Світла тема",
+      "dark": "Темна тема",
+      "system": "Системна тема"
+    }
+  },
+  "directory": {
+    "title": "Вибрати директорію проекту",
+    "description": "Виберіть робочу директорію для вашої сесії кодування",
+    "placeholder": "Введіть шлях або виберіть з дерева...",
+    "showHidden": "Показати приховані",
+    "openButton": "Відкрити директорію",
+    "applying": "Застосування...",
+    "errors": {
+      "accessDenied": "Не вдалося отримати доступ до директорії",
+      "accessDeniedDesc": "Доступ до директорії відхилено.",
+      "openFailed": "Не вдалося відкрити директорію",
+      "openFailedDesc": "Не вдалося надати доступ до файлів.",
+      "selectFailed": "Не вдалося вибрати директорію",
+      "selectFailedDesc": "Сталася невідома помилка."
+    },
+    "tree": {
+      "locatingHome": "Пошук домашньої директорії...",
+      "loading": "Завантаження...",
+      "noDirectoriesFound": "Директорії не знайдено",
+      "pinned": "Закріплені",
+      "browse": "Переглянути",
+      "createNewDirectory": "Створити нову директорію",
+      "pinDirectory": "Закріпити директорію",
+      "unpinDirectory": "Відкріпити директорію",
+      "createDirectory": "Створити директорію",
+      "cancel": "Скасувати"
+    }
+  },
+  "worktree": {
+    "title": "Worktree",
+    "manager": {
+      "title": "Менеджер Worktree",
+      "close": "Закрити"
+    },
+    "create": {
+      "title": "Створити worktree",
+      "description": "Директорія для гілки під {{path}}.",
+      "creating": "Створення…",
+      "createButton": "Створити"
+    },
+    "fields": {
+      "branchName": "Назва гілки",
+      "branchNamePlaceholder": "feature/nova-gilka"
+    },
+    "createDescription": "Створює гілку {{branch}} у {{path}}",
+    "existingWorktrees": "Існуючі worktrees",
+    "loading": "Завантаження worktrees…",
+    "noWorktreesFound": "Worktrees не знайдено під {{path}}.",
+    "detachedHead": "Відокремлений HEAD",
+    "notGitRepo": "Поточна директорія не є Git репозиторієм.",
+    "uncommittedWarning": "Незакомічені зміни будуть втрачені.",
+    "delete": {
+      "title": "Видалити worktree",
+      "titleSession": "Видалити сесію",
+      "titleSessions": "Видалити сесії",
+      "deleteWorktreeButton": "Видалити worktree",
+      "deleteSessionButton": "Видалити сесію",
+      "deleteSessionsButton": "Видалити сесії",
+      "deleting": "Видалення…",
+      "sessionOnly": "Видалити лише сесію",
+      "sessionOnlyNote": "Директорії worktree залишаться. Пов'язані підсесії також будуть видалені.",
+      "deleteRemoteBranch": "Видалити віддалену гілку",
+      "remoteBranchWillRemove": "Віддалена гілка на origin також буде видалена.",
+      "remoteBranchKeep": "Залишити віддалену гілку.",
+      "remoteBranchUnavailable": "Інформація про віддалену гілку недоступна для цього worktree.",
+      "worktreeDescription": "Це видалить вибраний worktree та {{count}} пов'язану сесію.",
+      "worktreeDescription_other": "Це видалить вибраний worktree та {{count}} пов'язаних сесій.",
+      "sessionDescription": "Ця дія назавжди видалить {{count}} сесію.",
+      "sessionDescription_other": "Ця дія назавжди видалить {{count}} сесій.",
+      "sessionDescriptionWithDate": "Ця дія назавжди видалить {{count}} сесію з {{date}}.",
+      "sessionDescriptionWithDate_other": "Ця дія назавжди видалить {{count}} сесій з {{date}}.",
+      "moreItems": "+{{count}} ще",
+      "pathUnavailable": "Шлях worktree недоступний."
+    },
+    "validation": {
+      "selectDirectory": "Спочатку виберіть директорію проекту.",
+      "branchRequired": "Вкажіть назву гілки для нового worktree.",
+      "invalidBranchName": "Вкажіть назву гілки, яка може використовуватися як папка.",
+      "branchExists": "Гілка вже існує",
+      "worktreeExists": "Worktree з такою папкою вже існує."
+    },
+    "success": {
+      "created": "Worktree створено",
+      "upstreamConfigured": "Налаштовано upstream для {{branch}}",
+      "sessionDeleted": "Сесію видалено",
+      "sessionsDeleted": "Видалено {{count}} сесію",
+      "sessionsDeleted_other": "Видалено {{count}} сесій",
+      "worktreeArchived": "Прикріплений worktree заархівовано.",
+      "worktreeAndRemoteRemoved": "Worktree та віддалену гілку видалено.",
+      "worktreesArchived": "Worktrees заархівовано, віддалені гілки видалено."
+    },
+    "warnings": {
+      "createdLocally": "Worktree створено локально",
+      "upstreamFailed": "Налаштування upstream не вдалося: {{error}}"
+    },
+    "errors": {
+      "createFailed": "Не вдалося створити worktree",
+      "sessionFailed": "Не вдалося створити сесію для worktree",
+      "deleteFailed": "Не вдалося видалити сесію",
+      "deleteFailedMultiple": "Не вдалося видалити {{count}} сесію",
+      "deleteFailedMultiple_other": "Не вдалося видалити {{count}} сесій",
+      "tryAgain": "Будь ласка, спробуйте знову пізніше."
+    },
+    "descriptions": {
+      "removedFromDate": "Видалено всі сесії з {{date}}.",
+      "someCouldNotDelete": "{{count}} сесію не вдалося видалити.",
+      "someCouldNotDelete_other": "{{count}} сесій не вдалося видалити."
+    }
+  },
+  "common": {
+    "cancel": "Скасувати",
+    "close": "Закрити"
+  },
+  "onboarding": {
+    "welcome": "Ласкаво просимо до OpenChamber",
+    "cliRequired": "потрібен для продовження.",
+    "copied": "Скопійовано в буфер обміну",
+    "copyToClipboard": "Скопіювати в буфер обміну",
+    "viewDocs": "Переглянути документацію",
+    "waiting": "Очікування встановлення OpenCode...",
+    "hintPath": "Вже встановлено? Переконайтеся, що",
+    "hintPathEnd": "знаходиться у вашому PATH",
+    "hintEnv": "або встановіть змінну середовища",
+    "hintEnvEnd": "."
+  }
+}

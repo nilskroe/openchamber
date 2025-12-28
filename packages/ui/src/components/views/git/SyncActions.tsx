@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   RiRefreshLine,
   RiArrowDownLine,
@@ -25,6 +26,7 @@ export const SyncActions: React.FC<SyncActionsProps> = ({
   onPush,
   disabled,
 }) => {
+  const { t } = useTranslation('git');
   const isDisabled = disabled || syncAction !== null;
 
   return (
@@ -43,10 +45,10 @@ export const SyncActions: React.FC<SyncActionsProps> = ({
             ) : (
               <RiRefreshLine className="size-4" />
             )}
-            <span className="hidden sm:inline">Fetch</span>
+            <span className="hidden sm:inline">{t('remote.fetch')}</span>
           </Button>
         </TooltipTrigger>
-        <TooltipContent sideOffset={8}>Fetch from remote</TooltipContent>
+        <TooltipContent sideOffset={8}>{t('remote.fetchFromRemote')}</TooltipContent>
       </Tooltip>
 
       <Tooltip delayDuration={1000}>
@@ -63,10 +65,10 @@ export const SyncActions: React.FC<SyncActionsProps> = ({
             ) : (
               <RiArrowDownLine className="size-4" />
             )}
-            <span className="hidden sm:inline">Pull</span>
+            <span className="hidden sm:inline">{t('remote.pull')}</span>
           </Button>
         </TooltipTrigger>
-        <TooltipContent sideOffset={8}>Pull changes</TooltipContent>
+        <TooltipContent sideOffset={8}>{t('remote.pullChanges')}</TooltipContent>
       </Tooltip>
 
       <Tooltip delayDuration={1000}>
@@ -83,10 +85,10 @@ export const SyncActions: React.FC<SyncActionsProps> = ({
             ) : (
               <RiArrowUpLine className="size-4" />
             )}
-            <span className="hidden sm:inline">Push</span>
+            <span className="hidden sm:inline">{t('remote.push')}</span>
           </Button>
         </TooltipTrigger>
-        <TooltipContent sideOffset={8}>Push changes</TooltipContent>
+        <TooltipContent sideOffset={8}>{t('remote.pushChanges')}</TooltipContent>
       </Tooltip>
     </div>
   );

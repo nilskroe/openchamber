@@ -1,0 +1,98 @@
+{
+  "input": {
+    "placeholder": "# para agentes; @ para archivos; / para comandos",
+    "placeholderWithModel": "Pregunta a {{model}}...",
+    "send": "Enviar mensaje",
+    "stop": "Detener generacion",
+    "attachFile": "Adjuntar archivo",
+    "attachedFiles_one": "{{count}} archivo adjunto",
+    "attachedFiles_other": "{{count}} archivos adjuntos"
+  },
+  "message": {
+    "empty": "Aun no hay mensajes",
+    "emptyDescription": "Inicia una conversacion escribiendo un mensaje abajo",
+    "count_one": "{{count}} mensaje",
+    "count_other": "{{count}} mensajes",
+    "thinking": "Pensando...",
+    "generating": "Generando...",
+    "copied": "Mensaje copiado",
+    "copyFailed": "Error al copiar mensaje",
+    "regenerate": "Regenerar respuesta",
+    "edit": "Editar mensaje"
+  },
+  "session": {
+    "new": "Nueva sesion",
+    "newDescription": "Iniciar una nueva conversacion",
+    "rename": "Renombrar sesion",
+    "delete": "Eliminar sesion",
+    "deleteConfirm": "Eliminar esta sesion?",
+    "noSessions": "Sin sesiones",
+    "switchTo": "Cambiar a sesion",
+    "current": "Sesion actual",
+    "count_one": "{{count}} sesion",
+    "count_other": "{{count}} sesiones",
+    "selectOrCreate": "Selecciona o crea una sesion para empezar a chatear"
+  },
+  "tool": {
+    "output": "Salida de herramienta",
+    "collapsed": "Colapsado",
+    "activity": "Actividad",
+    "detailed": "Detallado",
+    "running": "Ejecutando...",
+    "completed": "Completado",
+    "failed": "Fallido"
+  },
+  "model": {
+    "select": "Seleccionar modelo",
+    "noModels": "No hay modelos disponibles",
+    "favorites": "Favoritos",
+    "recent": "Recientes",
+    "all": "Todos los modelos",
+    "addFavorite": "Agregar a favoritos",
+    "removeFavorite": "Quitar de favoritos"
+  },
+  "agent": {
+    "select": "Seleccionar agente",
+    "noAgents": "No hay agentes disponibles",
+    "default": "Agente predeterminado"
+  },
+  "file": {
+    "tooLarge": "El archivo es muy grande (max {{size}})",
+    "invalidType": "Tipo de archivo invalido",
+    "uploadFailed": "Error al subir archivo",
+    "count_one": "{{count}} archivo",
+    "count_other": "{{count}} archivos",
+    "dropToAttach": "Suelta archivos aqui para adjuntar",
+    "attachFiles": "Adjuntar archivos",
+    "attachFromProject": "Adjuntar del proyecto"
+  },
+  "filePicker": {
+    "title": "Seleccionar archivos del proyecto",
+    "searchPlaceholder": "Buscar archivos...",
+    "loading": "Cargando archivos...",
+    "loadingChildren": "Cargando...",
+    "searching": "Buscando archivos...",
+    "noFilesInDirectory": "No hay archivos en este directorio",
+    "noFilesFound": "No se encontraron archivos",
+    "filesSelected_one": "{{count}} archivo seleccionado",
+    "filesSelected_other": "{{count}} archivos seleccionados",
+    "noFilesSelected": "Ningún archivo seleccionado",
+    "attachFiles": "Adjuntar archivos",
+    "attaching": "Adjuntando..."
+  },
+  "diff": {
+    "inline": "En linea",
+    "sideBySide": "Lado a lado",
+    "dynamic": "Dinamico",
+    "noChanges": "Sin cambios",
+    "additions_one": "{{count}} adicion",
+    "additions_other": "{{count}} adiciones",
+    "deletions_one": "{{count}} eliminacion",
+    "deletions_other": "{{count}} eliminaciones"
+  },
+  "reasoning": {
+    "show": "Mostrar razonamiento",
+    "hide": "Ocultar razonamiento",
+    "traces": "Trazas de razonamiento"
+  }
+}

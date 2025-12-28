@@ -1,0 +1,135 @@
+{
+  "title": "设置",
+  "language": {
+    "title": "语言",
+    "description": "选择您偏好的显示语言",
+    "selectLabel": "显示语言"
+  },
+  "visual": {
+    "title": "外观",
+    "description": "自定义外观和风格",
+    "theme": {
+      "title": "主题",
+      "description": "选择颜色主题",
+      "light": "浅色",
+      "dark": "深色",
+      "system": "跟随系统"
+    },
+    "fontSize": {
+      "title": "字体大小",
+      "description": "调整文字大小",
+      "small": "小",
+      "medium": "中",
+      "large": "大"
+    },
+    "spacing": {
+      "title": "间距",
+      "description": "调整内容密度",
+      "compact": "紧凑",
+      "comfortable": "舒适",
+      "spacious": "宽松"
+    }
+  },
+  "chat": {
+    "title": "聊天",
+    "description": "聊天显示设置",
+    "toolOutput": {
+      "title": "工具输出",
+      "description": "工具调用结果的显示方式",
+      "collapsed": "折叠",
+      "activity": "活动",
+      "detailed": "详细"
+    },
+    "diffLayout": {
+      "title": "差异布局",
+      "description": "代码差异的显示方式",
+      "inline": "内联",
+      "sideBySide": "并排",
+      "dynamic": "动态"
+    },
+    "reasoning": {
+      "title": "推理过程",
+      "description": "显示模型推理过程",
+      "show": "显示",
+      "hide": "隐藏"
+    },
+    "wrapLines": {
+      "title": "换行",
+      "description": "在差异视图中换行显示长行"
+    }
+  },
+  "sessions": {
+    "title": "会话",
+    "description": "会话管理设置",
+    "defaults": {
+      "title": "默认值",
+      "description": "新会话的默认模型和代理",
+      "model": "默认模型",
+      "agent": "默认代理",
+      "noDefault": "无默认值"
+    },
+    "retention": {
+      "title": "会话保留",
+      "description": "自动删除旧会话",
+      "enabled": "自动删除已启用",
+      "disabled": "自动删除已禁用",
+      "afterDays": "{{days}} 天后删除",
+      "daysLabel": "保留天数"
+    }
+  },
+  "providers": {
+    "title": "提供商",
+    "description": "AI 提供商配置",
+    "add": "添加提供商",
+    "edit": "编辑提供商",
+    "delete": "删除提供商",
+    "apiKey": "API 密钥",
+    "baseUrl": "基础 URL",
+    "models": "模型",
+    "enabled": "已启用",
+    "disabled": "已禁用"
+  },
+  "agents": {
+    "title": "代理",
+    "description": "自定义代理配置",
+    "add": "添加代理",
+    "edit": "编辑代理",
+    "delete": "删除代理",
+    "name": "代理名称",
+    "systemPrompt": "系统提示词",
+    "model": "模型",
+    "tools": "工具"
+  },
+  "commands": {
+    "title": "命令",
+    "description": "自定义命令配置",
+    "add": "添加命令",
+    "edit": "编辑命令",
+    "delete": "删除命令",
+    "name": "命令名称",
+    "command": "命令",
+    "description_label": "描述"
+  },
+  "gitIdentities": {
+    "title": "Git 身份",
+    "description": "管理 Git 用户配置文件",
+    "add": "添加身份",
+    "edit": "编辑身份",
+    "delete": "删除身份",
+    "name": "配置文件名称",
+    "userName": "Git 用户名",
+    "userEmail": "Git 邮箱",
+    "sshKey": "SSH 密钥",
+    "setActive": "设为当前",
+    "active": "当前"
+  },
+  "about": {
+    "title": "关于",
+    "version": "版本",
+    "checkUpdates": "检查更新",
+    "updateAvailable": "有可用更新",
+    "upToDate": "已是最新版本",
+    "downloadUpdate": "下载更新",
+    "restartToUpdate": "重启以更新"
+  }
+}

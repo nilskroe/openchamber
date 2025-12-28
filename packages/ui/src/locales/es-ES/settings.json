@@ -1,0 +1,135 @@
+{
+  "title": "Configuracion",
+  "language": {
+    "title": "Idioma",
+    "description": "Elige tu idioma de visualizacion preferido",
+    "selectLabel": "Idioma de visualizacion"
+  },
+  "visual": {
+    "title": "Visual",
+    "description": "Personaliza la apariencia",
+    "theme": {
+      "title": "Tema",
+      "description": "Elige tu tema de color",
+      "light": "Claro",
+      "dark": "Oscuro",
+      "system": "Sistema"
+    },
+    "fontSize": {
+      "title": "Tamano de fuente",
+      "description": "Ajusta el tamano del texto",
+      "small": "Pequeno",
+      "medium": "Mediano",
+      "large": "Grande"
+    },
+    "spacing": {
+      "title": "Espaciado",
+      "description": "Ajusta la densidad del contenido",
+      "compact": "Compacto",
+      "comfortable": "Comodo",
+      "spacious": "Espacioso"
+    }
+  },
+  "chat": {
+    "title": "Chat",
+    "description": "Configuracion de visualizacion del chat",
+    "toolOutput": {
+      "title": "Salida de herramientas",
+      "description": "Como mostrar los resultados de las herramientas",
+      "collapsed": "Colapsado",
+      "activity": "Actividad",
+      "detailed": "Detallado"
+    },
+    "diffLayout": {
+      "title": "Diseno de diferencias",
+      "description": "Como mostrar las diferencias de codigo",
+      "inline": "En linea",
+      "sideBySide": "Lado a lado",
+      "dynamic": "Dinamico"
+    },
+    "reasoning": {
+      "title": "Trazas de razonamiento",
+      "description": "Mostrar proceso de razonamiento del modelo",
+      "show": "Mostrar",
+      "hide": "Ocultar"
+    },
+    "wrapLines": {
+      "title": "Ajustar lineas",
+      "description": "Ajustar lineas largas en vista de diferencias"
+    }
+  },
+  "sessions": {
+    "title": "Sesiones",
+    "description": "Configuracion de gestion de sesiones",
+    "defaults": {
+      "title": "Predeterminados",
+      "description": "Modelo y agente predeterminados para nuevas sesiones",
+      "model": "Modelo predeterminado",
+      "agent": "Agente predeterminado",
+      "noDefault": "Sin predeterminado"
+    },
+    "retention": {
+      "title": "Retencion de sesiones",
+      "description": "Eliminar automaticamente sesiones antiguas",
+      "enabled": "Auto-eliminacion habilitada",
+      "disabled": "Auto-eliminacion deshabilitada",
+      "afterDays": "Eliminar despues de {{days}} dias",
+      "daysLabel": "Dias a conservar"
+    }
+  },
+  "providers": {
+    "title": "Proveedores",
+    "description": "Configuracion de proveedores de IA",
+    "add": "Agregar proveedor",
+    "edit": "Editar proveedor",
+    "delete": "Eliminar proveedor",
+    "apiKey": "Clave API",
+    "baseUrl": "URL base",
+    "models": "Modelos",
+    "enabled": "Habilitado",
+    "disabled": "Deshabilitado"
+  },
+  "agents": {
+    "title": "Agentes",
+    "description": "Configuracion de agentes personalizados",
+    "add": "Agregar agente",
+    "edit": "Editar agente",
+    "delete": "Eliminar agente",
+    "name": "Nombre del agente",
+    "systemPrompt": "Prompt del sistema",
+    "model": "Modelo",
+    "tools": "Herramientas"
+  },
+  "commands": {
+    "title": "Comandos",
+    "description": "Configuracion de comandos personalizados",
+    "add": "Agregar comando",
+    "edit": "Editar comando",
+    "delete": "Eliminar comando",
+    "name": "Nombre del comando",
+    "command": "Comando",
+    "description_label": "Descripcion"
+  },
+  "gitIdentities": {
+    "title": "Identidades de Git",
+    "description": "Gestionar perfiles de usuario de Git",
+    "add": "Agregar identidad",
+    "edit": "Editar identidad",
+    "delete": "Eliminar identidad",
+    "name": "Nombre del perfil",
+    "userName": "Nombre de usuario de Git",
+    "userEmail": "Email de Git",
+    "sshKey": "Clave SSH",
+    "setActive": "Establecer como activo",
+    "active": "Activo"
+  },
+  "about": {
+    "title": "Acerca de",
+    "version": "Version",
+    "checkUpdates": "Buscar actualizaciones",
+    "updateAvailable": "Actualizacion disponible",
+    "upToDate": "Estas actualizado",
+    "downloadUpdate": "Descargar actualizacion",
+    "restartToUpdate": "Reiniciar para actualizar"
+  }
+}

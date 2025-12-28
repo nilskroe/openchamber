@@ -1,0 +1,491 @@
+{
+  "title": "Settings",
+  "close": "Close Settings",
+  "resizeSidebar": "Resize settings sidebar",
+  "language": {
+    "title": "Language",
+    "description": "Choose your preferred display language",
+    "selectLabel": "Display language"
+  },
+  "visual": {
+    "title": "Visual",
+    "description": "Customize the look and feel",
+    "theme": {
+      "title": "Theme Mode",
+      "description": "Choose your color theme",
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    },
+    "fontSize": {
+      "title": "Font Size",
+      "description": "Adjust the text size",
+      "small": "Small",
+      "medium": "Medium",
+      "large": "Large"
+    },
+    "spacing": {
+      "title": "Spacing",
+      "description": "Adjust the content density",
+      "compact": "Compact",
+      "comfortable": "Comfortable",
+      "spacious": "Spacious"
+    }
+  },
+  "chat": {
+    "title": "Chat",
+    "description": "Chat display settings",
+    "toolOutput": {
+      "title": "Default Tool Output",
+      "description": "How to display tool call results",
+      "collapsed": "Collapsed",
+      "collapsedDesc": "Activity and tools start collapsed",
+      "activity": "Summary",
+      "activityDesc": "Activity expanded, tools collapsed",
+      "detailed": "Detailed",
+      "detailedDesc": "Activity expanded, key tools expanded"
+    },
+    "diffLayout": {
+      "title": "Diff layout (Diff tab)",
+      "description": "Choose the default layout for file diffs. You can still override layout per file from the Diff tab.",
+      "inline": "Inline",
+      "sideBySide": "Side by side",
+      "dynamic": "Dynamic",
+      "dynamicDesc": "New files inline, modified files side-by-side. Responsive inline fallback only in Dynamic mode.",
+      "inlineDesc": "Show all file diffs as a single unified view.",
+      "sideBySideDesc": "Compare original and modified files next to each other."
+    },
+    "reasoning": {
+      "title": "Show thinking / reasoning traces",
+      "description": "Show model reasoning process",
+      "show": "Show",
+      "hide": "Hide"
+    },
+    "wrapLines": {
+      "title": "Wrap lines",
+      "description": "Wrap long lines in diff view"
+    }
+  },
+  "sessions": {
+    "title": "Sessions",
+    "description": "Session management settings",
+    "defaults": {
+      "title": "Defaults",
+      "description": "Default model and agent for new sessions",
+      "model": "Default model",
+      "agent": "Default agent",
+      "noDefault": "No default"
+    },
+    "retention": {
+      "title": "Session retention",
+      "description": "Automatically delete inactive sessions based on their last activity. You can also run a one-time cleanup without enabling auto-cleanup. Keeps the most recent 5 sessions, and never deletes shared sessions.",
+      "enabled": "Auto-delete enabled",
+      "disabled": "Auto-delete disabled",
+      "afterDays": "Delete after {{days}} days",
+      "daysLabel": "days since last activity",
+      "enableAutoCleanup": "Enable auto-cleanup",
+      "runCleanup": "Run cleanup now",
+      "cleaningUp": "Cleaning up...",
+      "noEligible": "No sessions eligible for deletion",
+      "deleted": "Deleted {{count}} session",
+      "deleted_other": "Deleted {{count}} sessions",
+      "deleteFailed": "Failed to delete {{count}} session",
+      "deleteFailed_other": "Failed to delete {{count}} sessions",
+      "eligibleCount": "Eligible for deletion right now: {{count}}"
+    },
+    "defaults": {
+      "title": "Default model & agent",
+      "description": "Set the default model and agent for new sessions. When not set, uses agent's preferred model or opencode/big-pickle as fallback.",
+      "model": "Default model",
+      "agent": "Default agent",
+      "noDefault": "No default",
+      "newSessionsWith": "New sessions will start with:"
+    }
+  },
+  "providers": {
+    "title": "Providers",
+    "description": "AI provider configuration",
+    "add": "Add provider",
+    "connect": "Connect provider",
+    "connectDescription": "Choose a provider to connect...",
+    "edit": "Edit provider",
+    "delete": "Delete provider",
+    "selectProvider": "Select provider",
+    "searchPlaceholder": "Search providers...",
+    "noProvidersFound": "No providers found",
+    "allConnected": "All available providers are already connected.",
+    "loading": "Loading providers...",
+    "loadingAuth": "Loading authentication methods...",
+    "noProviders": "No providers detected",
+    "noProvidersHint": "Check your OpenCode configuration",
+    "selectFromSidebar": "Select a provider from the sidebar",
+    "reviewDetails": "Review details and configure auth",
+    "providerId": "Provider ID:",
+    "apiKey": "API key",
+    "apiKeyPlaceholder": "sk-...",
+    "apiKeyHint": "Keys are sent directly to OpenCode and never stored by OpenChamber.",
+    "apiKeySaved": "API key saved",
+    "apiKeySaveFailed": "Failed to save API key",
+    "saveKey": "Save key",
+    "baseUrl": "Base URL",
+    "models": "Models",
+    "modelsDescription": "Browse and filter models...",
+    "modelsFilterPlaceholder": "Filter models...",
+    "noModelsFound": "No models match this filter.",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "authentication": "Authentication",
+    "loadAuthFailed": "Failed to load provider authentication methods",
+    "loadListFailed": "Unable to load provider list",
+    "disconnect": {
+      "button": "Disconnect provider",
+      "success": "Provider disconnected"
+    },
+    "disconnectFailed": "Failed to disconnect provider",
+    "oauth": {
+      "connect": "Connect",
+      "completeInBrowser": "Complete the OAuth flow in your browser",
+      "startFailed": "Failed to start OAuth flow",
+      "success": "OAuth connection completed",
+      "completeFailed": "Failed to complete OAuth flow",
+      "linkCopied": "OAuth link copied",
+      "copyLinkFailed": "Failed to copy OAuth link",
+      "codeCopied": "Device code copied",
+      "copyCodeFailed": "Failed to copy device code",
+      "copyCode": "Copy code",
+      "openLink": "Open link",
+      "copyLink": "Copy link",
+      "authCodePlaceholder": "Authorization code (if required)",
+      "complete": "Complete"
+    },
+    "capabilities": {
+      "toolCalling": "Tool calling",
+      "reasoning": "Reasoning",
+      "imageInput": "Image input"
+    }
+  },
+  "agents": {
+    "title": "Agents",
+    "description": "Custom agent configuration",
+    "add": "Add agent",
+    "newAgent": "New Agent",
+    "edit": "Edit agent",
+    "delete": "Delete agent",
+    "selectFromSidebar": "Select an agent from the sidebar",
+    "orCreateNew": "or create a new one",
+    "sections": {
+      "basicInfo": "Basic Information",
+      "basicInfoDesc": "Configure agent identity and metadata",
+      "modelConfig": "Model Configuration",
+      "modelConfigDesc": "Configure model and generation parameters",
+      "systemPrompt": "System Prompt",
+      "systemPromptDesc": "Override the default system prompt for this agent",
+      "availableTools": "Available Tools",
+      "availableToolsDesc": "Select tools this agent can access",
+      "permissions": "Permissions",
+      "permissionsDesc": "Configure permission levels for different actions"
+    },
+    "fields": {
+      "name": "Agent Name",
+      "namePlaceholder": "my-agent",
+      "description": "Description",
+      "descriptionPlaceholder": "What does this agent do?",
+      "mode": "Mode",
+      "modeDescription": "Primary: main agent, Subagent: helper agent, All: both modes",
+      "model": "Model",
+      "temperature": "Temperature",
+      "topP": "Top P",
+      "systemPromptPlaceholder": "Custom system prompt..."
+    },
+    "modes": {
+      "primary": "Primary",
+      "subagent": "Subagent",
+      "all": "All"
+    },
+    "tooltips": {
+      "temperature": "Controls randomness in responses. Lower values (0.0) make output more focused and deterministic. Higher values (1.0+) make output more creative and varied.",
+      "topP": "Controls diversity via nucleus sampling. Lower values (0.1) focus on most likely tokens. Higher values (0.9) allow more diverse output."
+    },
+    "permissions": {
+      "edit": "Edit Permission",
+      "editDescription": "Controls file editing permissions.",
+      "bash": "Bash Permission",
+      "bashDescription": "Controls shell command execution.",
+      "webfetch": "WebFetch Permission",
+      "webfetchDescription": "Controls web request permissions.",
+      "modes": {
+        "full": "Full",
+        "allow": "Allow",
+        "ask": "Ask",
+        "deny": "Deny"
+      }
+    },
+    "success": {
+      "created": "Agent created successfully",
+      "updated": "Agent updated successfully",
+      "deleted": "Agent \"{{name}}\" deleted successfully"
+    },
+    "errors": {
+      "nameRequired": "Agent name is required",
+      "alreadyExists": "An agent with this name already exists",
+      "builtInDelete": "Built-in agents cannot be deleted",
+      "createFailed": "Failed to create agent",
+      "updateFailed": "Failed to update agent",
+      "deleteFailed": "Failed to delete agent",
+      "saveFailed": "An error occurred while saving"
+    },
+    "deleteConfirm": "Are you sure you want to delete agent \"{{name}}\"?",
+    "createTitle": "Create New Agent",
+    "createDescription": "Enter a unique name for your new agent",
+    "noAgents": "No agents configured",
+    "noAgentsHint": "Use the + button above to create one",
+    "builtIn": "Built-in Agents",
+    "custom": "Custom Agents"
+  },
+  "commands": {
+    "title": "Commands",
+    "description": "Custom command configuration",
+    "add": "Add command",
+    "newCommand": "New Command",
+    "edit": "Edit command",
+    "delete": "Delete command",
+    "selectFromSidebar": "Select a command from the sidebar",
+    "orCreateNew": "or create a new one",
+    "sections": {
+      "basicInfo": "Basic Information",
+      "basicInfoDesc": "Configure command identity and metadata",
+      "modelAgent": "Model & Agent Configuration",
+      "modelAgentDesc": "Override the default model and agent when executing this command",
+      "template": "Command Template",
+      "templateDesc": "Define the prompt template that will be executed"
+    },
+    "fields": {
+      "name": "Command Name",
+      "namePlaceholder": "my-command",
+      "nameHint": "Used with slash (/) prefix in chat",
+      "description": "Description",
+      "descriptionPlaceholder": "What does this command do?",
+      "agent": "Agent",
+      "agentHint": "Agent to execute this command (optional)",
+      "model": "Model",
+      "modelHint": "Default model for this command (optional)",
+      "forceSubagent": "Force Subagent Invocation",
+      "forceSubagentHint": "Force command to run in a subagent context"
+    },
+    "templatePlaceholder": "Enter your command template here...\n\nAvailable variables:\n- $ARGUMENTS - User-provided arguments\n- $SELECTION - Currently selected code (if any)\n- $FILE - Current file path",
+    "templateFeatures": {
+      "title": "Template Features:",
+      "variables": "Variables: $ARGUMENTS, $SELECTION, $FILE",
+      "multiline": "Supports multiline prompts",
+      "markdown": "Markdown formatting supported"
+    },
+    "tooltips": {
+      "forceSubagent": "When enabled, this command will always execute in a subagent context, even if triggered from main agent. Useful for isolating command logic and maintaining clean separation of concerns.",
+      "arguments": "Replaced with everything the user types after the command name. Example: \"/deploy staging\" makes $ARGUMENTS = \"staging\"",
+      "shellCommand": "Executes shell command and replaces this placeholder with its output. Example: !`git branch --show-current` gets current branch name",
+      "fileContents": "Replaces with the full contents of the specified file. Example: @package.json includes the package.json content in the prompt"
+    },
+    "templateFeatures": {
+      "title": "Template Features:",
+      "argumentsLabel": "- User input after command",
+      "shellCommandLabel": "- Inject shell command output",
+      "fileContentsLabel": "- Include file contents"
+    },
+    "success": {
+      "created": "Command created successfully",
+      "updated": "Command updated successfully",
+      "deleted": "Command \"{{name}}\" deleted successfully"
+    },
+    "errors": {
+      "nameRequired": "Command name is required",
+      "alreadyExists": "A command with this name already exists",
+      "templateRequired": "Command template is required",
+      "createFailed": "Failed to create command",
+      "updateFailed": "Failed to update command",
+      "deleteFailed": "Failed to delete command",
+      "saveFailed": "An error occurred while saving"
+    },
+    "deleteConfirm": "Are you sure you want to delete command \"{{name}}\"?",
+    "createTitle": "Create New Command",
+    "createDescription": "Enter a unique name for your new slash command",
+    "noCommands": "No commands configured",
+    "noCommandsHint": "Use the + button above to create one"
+  },
+  "gitIdentities": {
+    "title": "Git Identities",
+    "description": "Manage Git user profiles",
+    "add": "Add identity",
+    "newProfile": "New Git Profile",
+    "globalIdentity": "Global Identity",
+    "edit": "Edit identity",
+    "delete": "Delete identity",
+    "deleteConfirm": "Are you sure you want to delete this profile?",
+    "deleteProfile": "Delete Profile",
+    "saveProfile": "Save Profile",
+    "selectFromSidebar": "Select a profile from the sidebar",
+    "orCreateNew": "or create a new one",
+    "sections": {
+      "profileInfo": "Profile Information",
+      "profileInfoDesc": "Basic profile settings and visual customization",
+      "gitConfig": "Git Configuration",
+      "gitConfigDesc": "Git user settings for commits",
+      "globalDesc": "System-wide Git identity from global configuration (read-only)"
+    },
+    "fields": {
+      "displayName": "Display Name",
+      "displayNamePlaceholder": "Work Profile, Personal, etc.",
+      "displayNameHint": "Friendly name to identify this profile in the sidebar",
+      "color": "Color",
+      "icon": "Icon",
+      "userName": "User Name",
+      "userNameHint": "Git user.name configuration value",
+      "userEmail": "User Email",
+      "userEmailHint": "Git user.email configuration value",
+      "sshKey": "SSH Key Path",
+      "sshKeyHint": "Path to SSH private key for authentication (optional)"
+    },
+    "colors": {
+      "green": "Green",
+      "red": "Red",
+      "blue": "Blue",
+      "yellow": "Yellow",
+      "purple": "Purple"
+    },
+    "icons": {
+      "branch": "Branch",
+      "work": "Work",
+      "personal": "Personal",
+      "globe": "Globe",
+      "star": "Star"
+    },
+    "tooltips": {
+      "userName": "The name that appears in commit author information (git config user.name)",
+      "userEmail": "The email that appears in commit author information (git config user.email)",
+      "sshKey": "Optional path to a specific SSH private key to use with this identity"
+    },
+    "success": {
+      "created": "Profile created successfully",
+      "updated": "Profile updated successfully",
+      "deleted": "Profile deleted successfully"
+    },
+    "errors": {
+      "requiredFields": "User name and email are required",
+      "createFailed": "Failed to create profile",
+      "updateFailed": "Failed to update profile",
+      "saveFailed": "An error occurred while saving",
+      "deleteFailed": "An error occurred while deleting",
+      "deleteProfileFailed": "Failed to delete profile"
+    },
+    "systemDefault": "System Default",
+    "customProfiles": "Custom Profiles",
+    "noProfiles": "No profiles configured",
+    "noProfilesHint": "Use the + button above to create one"
+  },
+  "about": {
+    "title": "About OpenChamber",
+    "version": "Version",
+    "checkUpdates": "Check for updates",
+    "checking": "Checking...",
+    "updateAvailable": "Update available",
+    "upToDate": "You're up to date",
+    "downloadUpdate": "Download update",
+    "restartToUpdate": "Restart to update",
+    "updateTo": "Update to {{version}}"
+  },
+  "update": {
+    "available": "Update Available",
+    "updating": "Updating...",
+    "downloading": "Downloading...",
+    "downloadButton": "Download Update",
+    "restartButton": "Restart to Update",
+    "updateNowButton": "Update Now",
+    "viaTerminal": "Or update via terminal:",
+    "autoReload": "The page will reload automatically when ready.",
+    "status": {
+      "installing": "Installing update...",
+      "restarting": "Server restarting...",
+      "waiting": "Waiting for server..."
+    }
+  },
+  "model": {
+    "notSelected": "Not selected",
+    "selectAgent": "Select Agent",
+    "noAgentSelected": "No agent selected",
+    "selectModel": "Select model",
+    "noModelsMatch": "No providers or models match your search.",
+    "searchPlaceholder": "Search providers or models",
+    "favorites": "Favorites",
+    "recent": "Recent",
+    "current": "Current",
+    "noModels": "No models",
+    "metadataUnavailable": "Model metadata unavailable.",
+    "capabilities": {
+      "title": "Capabilities",
+      "toolCalling": "Tool calling",
+      "reasoning": "Reasoning"
+    },
+    "modalities": {
+      "title": "Modalities",
+      "input": "Input",
+      "output": "Output",
+      "text": "Text",
+      "image": "Image",
+      "video": "Video",
+      "audio": "Audio",
+      "pdf": "PDF"
+    },
+    "cost": {
+      "title": "Cost ($/1M tokens)",
+      "input": "Input",
+      "output": "Output",
+      "cacheRead": "Cache read",
+      "cacheWrite": "Cache write"
+    },
+    "limits": {
+      "title": "Limits",
+      "context": "Context",
+      "output": "Output"
+    },
+    "metadata": {
+      "title": "Metadata",
+      "knowledge": "Knowledge",
+      "release": "Release"
+    },
+    "favorite": {
+      "add": "Add to favorites",
+      "remove": "Remove from favorites"
+    }
+  },
+  "agent": {
+    "selectAgent": "Select agent",
+    "mode": {
+      "title": "Mode",
+      "primary": "Primary",
+      "subagent": "Subagent",
+      "all": "All"
+    },
+    "tools": {
+      "title": "Tools",
+      "allEnabled": "All enabled"
+    },
+    "permissions": {
+      "title": "Permissions",
+      "edit": "Edit",
+      "bash": "Bash",
+      "webfetch": "WebFetch",
+      "full": "Full",
+      "allow": "Allow",
+      "ask": "Ask",
+      "deny": "Deny"
+    },
+    "customPrompt": "Custom Prompt",
+    "temperature": "Temperature",
+    "topP": "Top P"
+  },
+  "editMode": {
+    "askBeforeEdits": "Ask before edits",
+    "approveEditTools": "Approve edit tools",
+    "approveEveryTool": "Approve every tool",
+    "editingDisabled": "Editing disabled"
+  }
+}

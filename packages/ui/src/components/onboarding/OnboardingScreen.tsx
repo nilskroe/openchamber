@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { RiFileCopyLine, RiCheckLine, RiExternalLinkLine } from '@remixicon/react';
 
 const INSTALL_COMMAND = 'curl -fsSL https://opencode.ai/install | bash';
@@ -8,7 +9,7 @@ type OnboardingScreenProps = {
   onCliAvailable?: () => void;
 };
 
-function BashCommand({ onCopy }: { onCopy: () => void }) {
+function BashCommand({ onCopy, copyTitle }: { onCopy: () => void; copyTitle: string }) {
   return (
     <div className="flex items-center justify-center gap-3">
       <code>
@@ -21,7 +22,7 @@ function BashCommand({ onCopy }: { onCopy: () => void }) {
       <button
         onClick={onCopy}
         className="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors"
-        title="Copy to clipboard"
+        title={copyTitle}
       >
         <RiFileCopyLine className="h-4 w-4" />
       </button>
@@ -32,6 +33,7 @@ function BashCommand({ onCopy }: { onCopy: () => void }) {
 const HINT_DELAY_MS = 30000;
 
 export function OnboardingScreen({ onCliAvailable }: OnboardingScreenProps) {
+  const { t } = useTranslation('ui');
   const [copied, setCopied] = React.useState(false);
   const [showHint, setShowHint] = React.useState(false);
   const [isDesktopApp, setIsDesktopApp] = React.useState(false);
@@ -104,7 +106,7 @@ export function OnboardingScreen({ onCliAvailable }: OnboardingScreenProps) {
       <div className="w-full space-y-4 text-center">
         <div className="space-y-4">
           <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-            Welcome to OpenChamber
+            {t('onboarding.welcome', 'Welcome to OpenChamber')}
           </h1>
           <p className="text-muted-foreground">
             <a
@@ -116,7 +118,7 @@ export function OnboardingScreen({ onCliAvailable }: OnboardingScreenProps) {
               OpenCode CLI
               <RiExternalLinkLine className="h-4 w-4" />
             </a>
-            {' '}is required to continue.
+            {' '}{t('onboarding.cliRequired', 'is required to continue.')}
           </p>
         </div>
 
@@ -125,10 +127,10 @@ export function OnboardingScreen({ onCliAvailable }: OnboardingScreenProps) {
             {copied ? (
               <div className="flex items-center justify-center gap-2" style={{ color: 'var(--status-success)' }}>
                 <RiCheckLine className="h-4 w-4" />
-                Copied to clipboard
+                {t('onboarding.copied', 'Copied to clipboard')}
               </div>
             ) : (
-              <BashCommand onCopy={handleCopy} />
+              <BashCommand onCopy={handleCopy} copyTitle={t('onboarding.copyToClipboard', 'Copy to clipboard')} />
             )}
           </div>
         </div>
@@ -139,22 +141,22 @@ export function OnboardingScreen({ onCliAvailable }: OnboardingScreenProps) {
           rel="noopener noreferrer"
           className="text-sm text-muted-foreground hover:text-foreground transition-colors inline-flex items-center gap-1 justify-center"
         >
-          View documentation
+          {t('onboarding.viewDocs', 'View documentation')}
           <RiExternalLinkLine className="h-3 w-3" />
         </a>
 
         <p className="text-sm text-muted-foreground animate-pulse">
-          Waiting for OpenCode installation...
+          {t('onboarding.waiting', 'Waiting for OpenCode installation...')}
         </p>
       </div>
 
       {showHint && (
         <div className="absolute bottom-8 left-0 right-0 text-center space-y-1">
           <p className="text-sm text-muted-foreground/70">
-            Already installed? Make sure <code className="text-foreground/70">opencode</code> is in your PATH
+            {t('onboarding.hintPath', 'Already installed? Make sure')} <code className="text-foreground/70">opencode</code> {t('onboarding.hintPathEnd', 'is in your PATH')}
           </p>
           <p className="text-sm text-muted-foreground/70">
-            or set <code className="text-foreground/70">OPENCODE_BINARY</code> environment variable.
+            {t('onboarding.hintEnv', 'or set')} <code className="text-foreground/70">OPENCODE_BINARY</code> {t('onboarding.hintEnvEnd', 'environment variable.')}
           </p>
         </div>
       )}

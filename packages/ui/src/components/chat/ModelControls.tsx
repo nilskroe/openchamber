@@ -1,5 +1,6 @@
 import React from 'react';
 import type { ComponentType } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
     RiAiAgentLine,
     RiArrowDownSLine,
@@ -20,6 +21,12 @@ import {
     RiTimeLine,
     RiToolsLine,
 } from '@remixicon/react';
+import {
+    formatCompactNumber,
+    formatCurrency as formatCurrencyI18n,
+    formatMonthYear,
+    formatShortDate,
+} from '@/lib/i18n';
 import type { EditPermissionMode } from '@/stores/types/sessionTypes';
 import type { ModelMetadata } from '@/types';
 import {
@@ -124,20 +131,6 @@ const getModalityIcons = (metadata: ModelMetadata | undefined, direction: 'input
         .filter((entry): entry is ModalityIcon => Boolean(entry));
 };
 
-const COMPACT_NUMBER_FORMATTER = new Intl.NumberFormat('en-US', {
-    notation: 'compact',
-    compactDisplay: 'short',
-    maximumFractionDigits: 1,
-    minimumFractionDigits: 0,
-});
-
-const CURRENCY_FORMATTER = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 4,
-    minimumFractionDigits: 2,
-});
-
 const formatTokens = (value?: number | null) => {
     if (typeof value !== 'number' || Number.isNaN(value)) {
         return '—';
@@ -147,7 +140,7 @@ const formatTokens = (value?: number | null) => {
         return '0';
     }
 
-    const formatted = COMPACT_NUMBER_FORMATTER.format(value);
+    const formatted = formatCompactNumber(value);
     return formatted.endsWith('.0') ? formatted.slice(0, -2) : formatted;
 };
 
@@ -156,7 +149,7 @@ const formatCost = (value?: number | null) => {
         return '—';
     }
 
-    return CURRENCY_FORMATTER.format(value);
+    return formatCurrencyI18n(value);
 };
 
 const getCapabilityIcons = (metadata?: ModelMetadata) => {
@@ -178,14 +171,14 @@ const formatKnowledge = (knowledge?: string) => {
         const monthIndex = Number.parseInt(match[2], 10) - 1;
         const knowledgeDate = new Date(Date.UTC(year, monthIndex, 1));
         if (!Number.isNaN(knowledgeDate.getTime())) {
-            return new Intl.DateTimeFormat('en-US', { month: 'short', year: 'numeric' }).format(knowledgeDate);
+            return formatMonthYear(knowledgeDate);
         }
     }
 
     return knowledge;
 };
 
-const formatDate = (value?: string) => {
+const formatDateDisplay = (value?: string) => {
     if (!value) {
         return '—';
     }
@@ -195,11 +188,7 @@ const formatDate = (value?: string) => {
         return value;
     }
 
-    return new Intl.DateTimeFormat('en-US', {
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-    }).format(parsedDate);
+    return formatShortDate(parsedDate);
 };
 
 interface ModelControlsProps {
@@ -207,6 +196,7 @@ interface ModelControlsProps {
 }
 
 export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
+    const { t } = useTranslation('settings');
     const {
         providers,
         currentProviderId,
@@ -318,10 +308,10 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
         : cascadeDefaultMode;
 
     const editModeShortLabels: Record<EditPermissionMode, string> = {
-        ask: 'Ask before edits',
-        allow: 'Approve edit tools',
-        full: 'Approve every tool',
-        deny: 'Editing disabled',
+        ask: t('editMode.askBeforeEdits'),
+        allow: t('editMode.approveEditTools'),
+        full: t('editMode.approveEveryTool'),
+        deny: t('editMode.editingDisabled'),
     };
 
     const isModeDisabled = React.useCallback((mode: EditPermissionMode) => {
@@ -401,15 +391,15 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
     const outputModalityIcons = getModalityIcons(currentMetadata, 'output');
 
     const costRows = [
-        { label: 'Input', value: formatCost(currentMetadata?.cost?.input) },
-        { label: 'Output', value: formatCost(currentMetadata?.cost?.output) },
-        { label: 'Cache read', value: formatCost(currentMetadata?.cost?.cache_read) },
-        { label: 'Cache write', value: formatCost(currentMetadata?.cost?.cache_write) },
+        { label: t('model.cost.input'), value: formatCost(currentMetadata?.cost?.input) },
+        { label: t('model.cost.output'), value: formatCost(currentMetadata?.cost?.output) },
+        { label: t('model.cost.cacheRead'), value: formatCost(currentMetadata?.cost?.cache_read) },
+        { label: t('model.cost.cacheWrite'), value: formatCost(currentMetadata?.cost?.cache_write) },
     ];
 
     const limitRows = [
-        { label: 'Context', value: formatTokens(currentMetadata?.limit?.context) },
-        { label: 'Output', value: formatTokens(currentMetadata?.limit?.output) },
+        { label: t('model.limits.context'), value: formatTokens(currentMetadata?.limit?.context) },
+        { label: t('model.limits.output'), value: formatTokens(currentMetadata?.limit?.output) },
     ];
 
     const prevAgentNameRef = React.useRef<string | undefined>(undefined);
@@ -804,8 +794,8 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
     };
 
     const getCurrentModelDisplayName = () => {
-        if (!currentProviderId || !currentModelId) return 'Not selected';
-        if (models.length === 0) return 'Not selected';
+        if (!currentProviderId || !currentModelId) return t('model.notSelected');
+        if (models.length === 0) return t('model.notSelected');
         const currentModel = models.find((m: ProviderModel) => m.id === currentModelId);
         return getModelDisplayName(currentModel);
     };
@@ -815,7 +805,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
             const primaryAgents = agents.filter(agent => isPrimaryMode(agent.mode));
             const buildAgent = primaryAgents.find(agent => agent.name === 'build');
             const defaultAgent = buildAgent || primaryAgents[0];
-            return defaultAgent ? capitalizeAgentName(defaultAgent.name) : 'Select Agent';
+            return defaultAgent ? capitalizeAgentName(defaultAgent.name) : t('model.selectAgent');
         }
         const agent = agents.find(a => a.name === currentAgentName);
         return agent ? capitalizeAgentName(agent.name) : capitalizeAgentName(currentAgentName);
@@ -884,14 +874,14 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                 <div className="flex flex-col gap-1.5">
                     {}
                     <div className="rounded-xl border border-border/40 bg-sidebar/30 px-2 py-1.5">
-                        <div className="typography-micro text-muted-foreground mb-0.5">Provider</div>
+                        <div className="typography-micro text-muted-foreground mb-0.5">{t('providers.title')}</div>
                         <div className="typography-meta text-foreground font-medium">{getProviderDisplayName()}</div>
                     </div>
 
                     {}
                     {currentCapabilityIcons.length > 0 && (
                         <div className="rounded-xl border border-border/40 bg-sidebar/30 px-2 py-1.5">
-                            <div className="typography-micro text-muted-foreground mb-1">Capabilities</div>
+                            <div className="typography-micro text-muted-foreground mb-1">{t('model.capabilities.title')}</div>
                             <div className="flex flex-wrap gap-1.5">
                                 {currentCapabilityIcons.map(({ key, icon, label }) => (
                                     <div key={key} className="flex items-center gap-1.5">
@@ -906,11 +896,11 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                     {}
                     {(inputModalityIcons.length > 0 || outputModalityIcons.length > 0) && (
                         <div className="rounded-xl border border-border/40 bg-sidebar/30 px-2 py-1.5">
-                            <div className="typography-micro text-muted-foreground mb-1">Modalities</div>
+                            <div className="typography-micro text-muted-foreground mb-1">{t('model.modalities.title')}</div>
                             <div className="flex flex-col gap-1">
                                 {inputModalityIcons.length > 0 && (
                                     <div className="flex items-center gap-2">
-                                        <span className="typography-meta text-muted-foreground/80 w-12">Input</span>
+                                        <span className="typography-meta text-muted-foreground/80 w-12">{t('model.modalities.input')}</span>
                                         <div className="flex gap-1">
                                             {inputModalityIcons.map(({ key, icon, label }) => renderIconBadge(icon, `${label} input`, `input-${key}`))}
                                         </div>
@@ -918,7 +908,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                                 )}
                                 {outputModalityIcons.length > 0 && (
                                     <div className="flex items-center gap-2">
-                                        <span className="typography-meta text-muted-foreground/80 w-12">Output</span>
+                                        <span className="typography-meta text-muted-foreground/80 w-12">{t('model.modalities.output')}</span>
                                         <div className="flex gap-1">
                                             {outputModalityIcons.map(({ key, icon, label }) => renderIconBadge(icon, `${label} output`, `output-${key}`))}
                                         </div>
@@ -930,14 +920,14 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
 
                     {}
                     <div className="rounded-xl border border-border/40 bg-sidebar/30 px-2 py-1.5">
-                        <div className="typography-micro text-muted-foreground mb-1">Limits</div>
+                        <div className="typography-micro text-muted-foreground mb-1">{t('model.limits.title')}</div>
                         <div className="flex flex-col gap-0.5">
                             <div className="flex items-center justify-between">
-                                <span className="typography-meta text-muted-foreground/80">Context</span>
+                                <span className="typography-meta text-muted-foreground/80">{t('model.limits.context')}</span>
                                 <span className="typography-meta font-medium text-foreground">{formatTokens(currentMetadata?.limit?.context)}</span>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span className="typography-meta text-muted-foreground/80">Output</span>
+                                <span className="typography-meta text-muted-foreground/80">{t('model.limits.output')}</span>
                                 <span className="typography-meta font-medium text-foreground">{formatTokens(currentMetadata?.limit?.output)}</span>
                             </div>
                         </div>
@@ -945,15 +935,15 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
 
                     {}
                     <div className="rounded-xl border border-border/40 bg-sidebar/30 px-2 py-1.5">
-                        <div className="typography-micro text-muted-foreground mb-1">Metadata</div>
+                        <div className="typography-micro text-muted-foreground mb-1">{t('model.metadata.title')}</div>
                         <div className="flex flex-col gap-0.5">
                             <div className="flex items-center justify-between">
-                                <span className="typography-meta text-muted-foreground/80">Knowledge</span>
+                                <span className="typography-meta text-muted-foreground/80">{t('model.metadata.knowledge')}</span>
                                 <span className="typography-meta font-medium text-foreground">{formatKnowledge(currentMetadata?.knowledge)}</span>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span className="typography-meta text-muted-foreground/80">Release</span>
-                                <span className="typography-meta font-medium text-foreground">{formatDate(currentMetadata?.release_date)}</span>
+                                <span className="typography-meta text-muted-foreground/80">{t('model.metadata.release')}</span>
+                                <span className="typography-meta font-medium text-foreground">{formatDateDisplay(currentMetadata?.release_date)}</span>
                             </div>
                         </div>
                     </div>
@@ -981,10 +971,10 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
         };
 
         const getPermissionLabel = (permission?: string) => {
-            if (permission === 'full') return 'Full';
-            if (permission === 'allow') return 'Allow';
-            if (permission === 'deny') return 'Deny';
-            return 'Ask';
+            if (permission === 'full') return t('agent.permissions.full');
+            if (permission === 'allow') return t('agent.permissions.allow');
+            if (permission === 'deny') return t('agent.permissions.deny');
+            return t('agent.permissions.ask');
         };
 
         return (
@@ -1003,16 +993,16 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
 
                     {}
                     <div className="rounded-xl border border-border/40 bg-sidebar/30 px-2 py-1.5">
-                        <div className="typography-micro text-muted-foreground mb-0.5">Mode</div>
+                        <div className="typography-micro text-muted-foreground mb-0.5">{t('agent.mode.title')}</div>
                         <div className="typography-meta text-foreground font-medium">
-                            {currentAgent.mode === 'primary' ? 'Primary' : currentAgent.mode === 'subagent' ? 'Subagent' : currentAgent.mode === 'all' ? 'All' : '—'}
+                            {currentAgent.mode === 'primary' ? t('agent.mode.primary') : currentAgent.mode === 'subagent' ? t('agent.mode.subagent') : currentAgent.mode === 'all' ? t('agent.mode.all') : '—'}
                         </div>
                     </div>
 
                     {}
                     {(hasModelConfig || hasTemperatureOrTopP) && (
                         <div className="rounded-xl border border-border/40 bg-sidebar/30 px-2 py-1.5">
-                            <div className="typography-micro text-muted-foreground mb-1">Model</div>
+                            <div className="typography-micro text-muted-foreground mb-1">{t('agents.fields.model')}</div>
                             {hasModelConfig && (
                                 <div className="typography-meta text-foreground font-medium mb-1">
                                     {currentAgent.model!.providerID} / {currentAgent.model!.modelID}
@@ -1022,13 +1012,13 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                                 <div className="flex flex-col gap-0.5">
                                     {currentAgent.temperature !== undefined && (
                                         <div className="flex items-center justify-between">
-                                            <span className="typography-meta text-muted-foreground/80">Temperature</span>
+                                            <span className="typography-meta text-muted-foreground/80">{t('agent.temperature')}</span>
                                             <span className="typography-meta font-medium text-foreground">{currentAgent.temperature}</span>
                                         </div>
                                     )}
                                     {currentAgent.topP !== undefined && (
                                         <div className="flex items-center justify-between">
-                                            <span className="typography-meta text-muted-foreground/80">Top P</span>
+                                            <span className="typography-meta text-muted-foreground/80">{t('agent.topP')}</span>
                                             <span className="typography-meta font-medium text-foreground">{currentAgent.topP}</span>
                                         </div>
                                     )}
@@ -1039,7 +1029,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
 
                     {}
                     <div className="rounded-xl border border-border/40 bg-sidebar/30 px-2 py-1.5">
-                        <div className="typography-micro text-muted-foreground mb-1">Tools</div>
+                        <div className="typography-micro text-muted-foreground mb-1">{t('agent.tools.title')}</div>
                         {enabledTools.length > 0 ? (
                             <div className="flex flex-wrap gap-1 leading-tight">
                                 {enabledTools.map((tool) => (
@@ -1052,16 +1042,16 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                                 ))}
                             </div>
                         ) : (
-                            <div className="typography-meta text-muted-foreground">All enabled</div>
+                            <div className="typography-meta text-muted-foreground">{t('agent.tools.allEnabled')}</div>
                         )}
                     </div>
 
                     {}
                     <div className="rounded-xl border border-border/40 bg-sidebar/30 px-2 py-1.5">
-                        <div className="typography-micro text-muted-foreground mb-1">Permissions</div>
+                        <div className="typography-micro text-muted-foreground mb-1">{t('agent.permissions.title')}</div>
                         <div className="flex flex-col gap-1">
                             <div className="flex items-center justify-between">
-                                <span className="typography-meta text-muted-foreground/80">Edit</span>
+                                <span className="typography-meta text-muted-foreground/80">{t('agent.permissions.edit')}</span>
                                 <div className="flex items-center gap-1.5">
                                     {getPermissionIcon(currentAgent.permission?.edit)}
                                     <span className="typography-meta font-medium text-foreground">
@@ -1070,7 +1060,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                                 </div>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span className="typography-meta text-muted-foreground/80">Bash</span>
+                                <span className="typography-meta text-muted-foreground/80">{t('agent.permissions.bash')}</span>
                                 <div className="flex items-center gap-1.5">
                                     {getPermissionIcon(typeof currentAgent.permission?.bash === 'string' ? currentAgent.permission.bash : undefined)}
                                     <span className="typography-meta font-medium text-foreground">
@@ -1079,7 +1069,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                                 </div>
                             </div>
                             <div className="flex items-center justify-between">
-                                <span className="typography-meta text-muted-foreground/80">WebFetch</span>
+                                <span className="typography-meta text-muted-foreground/80">{t('agent.permissions.webfetch')}</span>
                                 <div className="flex items-center gap-1.5">
                                     {getPermissionIcon(currentAgent.permission?.webfetch)}
                                     <span className="typography-meta font-medium text-foreground">
@@ -1094,7 +1084,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                     {hasCustomPrompt && (
                         <div className="rounded-xl border border-border/40 bg-sidebar/30 px-2 py-1.5">
                             <div className="flex items-center justify-between">
-                                <span className="typography-meta text-muted-foreground/80">Custom Prompt</span>
+                                <span className="typography-meta text-muted-foreground/80">{t('agent.customPrompt')}</span>
                                 <RiCheckboxCircleLine className="h-4 w-4 text-foreground" />
                             </div>
                         </div>
@@ -1129,7 +1119,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
             <MobileOverlayPanel
                 open={activeMobilePanel === 'model'}
                 onClose={closeMobilePanel}
-                title="Select model"
+                title={t('model.selectModel')}
             >
                 <div className="flex flex-col gap-2">
                     <div>
@@ -1138,7 +1128,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                             <Input
                                 value={mobileModelQuery}
                                 onChange={(event) => setMobileModelQuery(event.target.value)}
-                                placeholder="Search providers or models"
+                                placeholder={t('model.searchPlaceholder')}
                                 className="pl-7 h-9 rounded-xl border-border/40 bg-background/95 typography-meta"
                             />
                             {mobileModelQuery && (
@@ -1156,7 +1146,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
 
                     {filteredProviders.length === 0 && (
                         <div className="px-3 py-8 text-center typography-meta text-muted-foreground">
-                            No providers or models match your search.
+                            {t('model.noModelsMatch')}
                         </div>
                     )}
 
@@ -1165,7 +1155,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                         <div className="rounded-xl border border-border/40 bg-background/95 overflow-hidden">
                             <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                                 <RiStarFill className="h-3 w-3 inline-block mr-1.5 text-primary" />
-                                Favorites
+                                {t('model.favorites')}
                             </div>
                             <div className="flex flex-col border-t border-border/30">
                                 {favoriteModelsList.map(({ model, providerID, modelID }) => {
@@ -1211,7 +1201,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                         <div className="rounded-xl border border-border/40 bg-background/95 overflow-hidden">
                             <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                                 <RiTimeLine className="h-3 w-3 inline-block mr-1.5" />
-                                Recent
+                                {t('model.recent')}
                             </div>
                             <div className="flex flex-col border-t border-border/30">
                                 {recentModelsList.map(({ model, providerID, modelID }) => {
@@ -1277,7 +1267,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                                             {provider.name}
                                         </span>
                                         {isActiveProvider && (
-                                            <span className="typography-micro text-primary/80">Current</span>
+                                            <span className="typography-micro text-primary/80">{t('model.current')}</span>
                                         )}
                                     </div>
                                     {isExpanded ? (
@@ -1357,8 +1347,8 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                                                                 ? "text-yellow-500"
                                                                 : "text-muted-foreground"
                                                         )}
-                                                        aria-label={isFavoriteModel(provider.id as string, model.id as string) ? "Unfavorite" : "Favorite"}
-                                                        title={isFavoriteModel(provider.id as string, model.id as string) ? "Remove from favorites" : "Add to favorites"}
+                                                        aria-label={isFavoriteModel(provider.id as string, model.id as string) ? t('model.favorite.remove') : t('model.favorite.add')}
+                                                        title={isFavoriteModel(provider.id as string, model.id as string) ? t('model.favorite.remove') : t('model.favorite.add')}
                                                     >
                                                         {isFavoriteModel(provider.id as string, model.id as string) ? (
                                                             <RiStarFill className="h-4 w-4" />
@@ -1388,7 +1378,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
             <MobileOverlayPanel
                 open={activeMobilePanel === 'agent'}
                 onClose={closeMobilePanel}
-                title="Select agent"
+                title={t('agent.selectAgent')}
             >
                 <div className="flex flex-col gap-1.5">
                     {primaryAgents.map((agent) => {
@@ -1528,7 +1518,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                         <span className="typography-meta text-muted-foreground">{getProviderDisplayName()}</span>
                     </div>
                     <div className="flex flex-col gap-1.5">
-                        <span className="typography-meta font-semibold uppercase tracking-wide text-muted-foreground/90">Capabilities</span>
+                        <span className="typography-meta font-semibold uppercase tracking-wide text-muted-foreground/90">{t('model.capabilities.title')}</span>
                         <div className="flex flex-wrap items-center gap-1.5">
                             {currentCapabilityIcons.length > 0 ? (
                                 currentCapabilityIcons.map(({ key, icon, label }) =>
@@ -1540,10 +1530,10 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                         </div>
                     </div>
                     <div className="flex flex-col gap-1.5">
-                        <span className="typography-meta font-semibold uppercase tracking-wide text-muted-foreground/90">Modalities</span>
+                        <span className="typography-meta font-semibold uppercase tracking-wide text-muted-foreground/90">{t('model.modalities.title')}</span>
                         <div className="flex flex-col gap-1">
                             <div className="flex items-center justify-between gap-3">
-                                <span className="typography-meta font-medium text-muted-foreground/80">Input</span>
+                                <span className="typography-meta font-medium text-muted-foreground/80">{t('model.modalities.input')}</span>
                                 <div className="flex items-center gap-1.5">
                                     {inputModalityIcons.length > 0
                                         ? inputModalityIcons.map(({ key, icon, label }) =>
@@ -1553,7 +1543,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                                 </div>
                             </div>
                             <div className="flex items-center justify-between gap-3">
-                                <span className="typography-meta font-medium text-muted-foreground/80">Output</span>
+                                <span className="typography-meta font-medium text-muted-foreground/80">{t('model.modalities.output')}</span>
                                 <div className="flex items-center gap-1.5">
                                     {outputModalityIcons.length > 0
                                         ? outputModalityIcons.map(({ key, icon, label }) =>
@@ -1565,7 +1555,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                         </div>
                     </div>
                     <div className="flex flex-col gap-1.5">
-                        <span className="typography-meta font-semibold uppercase tracking-wide text-muted-foreground/90">Cost ($/1M tokens)</span>
+                        <span className="typography-meta font-semibold uppercase tracking-wide text-muted-foreground/90">{t('model.cost.title')}</span>
                         {costRows.map((row) => (
                             <div key={row.label} className="flex items-center justify-between gap-3">
                                 <span className="typography-meta font-medium text-muted-foreground/80">{row.label}</span>
@@ -1574,7 +1564,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                         ))}
                     </div>
                     <div className="flex flex-col gap-1.5">
-                        <span className="typography-meta font-semibold uppercase tracking-wide text-muted-foreground/90">Limits</span>
+                        <span className="typography-meta font-semibold uppercase tracking-wide text-muted-foreground/90">{t('model.limits.title')}</span>
                         {limitRows.map((row) => (
                             <div key={row.label} className="flex items-center justify-between gap-3">
                                 <span className="typography-meta font-medium text-muted-foreground/80">{row.label}</span>
@@ -1583,19 +1573,19 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                         ))}
                     </div>
                     <div className="flex flex-col gap-1.5">
-                        <span className="typography-meta font-semibold uppercase tracking-wide text-muted-foreground/90">Metadata</span>
+                        <span className="typography-meta font-semibold uppercase tracking-wide text-muted-foreground/90">{t('model.metadata.title')}</span>
                         <div className="flex items-center justify-between gap-3">
-                            <span className="typography-meta font-medium text-muted-foreground/80">Knowledge</span>
+                            <span className="typography-meta font-medium text-muted-foreground/80">{t('model.metadata.knowledge')}</span>
                             <span className="typography-meta font-medium text-foreground">{formatKnowledge(currentMetadata.knowledge)}</span>
                         </div>
                         <div className="flex items-center justify-between gap-3">
-                            <span className="typography-meta font-medium text-muted-foreground/80">Release</span>
-                            <span className="typography-meta font-medium text-foreground">{formatDate(currentMetadata.release_date)}</span>
+                            <span className="typography-meta font-medium text-muted-foreground/80">{t('model.metadata.release')}</span>
+                            <span className="typography-meta font-medium text-foreground">{formatDateDisplay(currentMetadata.release_date)}</span>
                         </div>
                     </div>
                 </div>
             ) : (
-                <div className="min-w-[200px] typography-meta text-muted-foreground">Model metadata unavailable.</div>
+                <div className="min-w-[200px] typography-meta text-muted-foreground">{t('model.metadataUnavailable')}</div>
             )}
         </TooltipContent>
     );
@@ -1643,7 +1633,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                                 <DropdownMenuSub>
                                     <DropdownMenuSubTrigger className="typography-meta">
                                         <RiStarFill className="h-3 w-3 flex-shrink-0 mr-2 text-primary" />
-                                        Favorites
+                                        {t('model.favorites')}
                                     </DropdownMenuSubTrigger>
                                     <DropdownMenuSubContent
                                         className="max-h-[320px] min-w-[200px]"
@@ -1711,8 +1701,8 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                                                                         toggleFavoriteModel(providerID, modelID);
                                                                     }}
                                                                     className="model-favorite-button flex h-4 w-4 items-center justify-center text-yellow-500 hover:text-yellow-600"
-                                                                    aria-label="Unfavorite"
-                                                                    title="Remove from favorites"
+                                                                    aria-label={t('model.favorite.remove')}
+                                                                    title={t('model.favorite.remove')}
                                                                 >
                                                                     <RiStarFill className="h-3.5 w-3.5" />
                                                                 </button>
@@ -1731,7 +1721,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                                 <DropdownMenuSub>
                                     <DropdownMenuSubTrigger className="typography-meta">
                                         <RiTimeLine className="h-3 w-3 flex-shrink-0 mr-2 text-muted-foreground" />
-                                        Recent
+                                        {t('model.recent')}
                                     </DropdownMenuSubTrigger>
                                     <DropdownMenuSubContent
                                         className="max-h-[320px] min-w-[200px]"
@@ -1799,8 +1789,8 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                                                                         toggleFavoriteModel(providerID, modelID);
                                                                     }}
                                                                     className="model-favorite-button flex h-4 w-4 items-center justify-center text-muted-foreground hover:text-yellow-600"
-                                                                    aria-label="Favorite"
-                                                                    title="Add to favorites"
+                                                                    aria-label={t('model.favorite.add')}
+                                                                    title={t('model.favorite.add')}
                                                                 >
                                                                     <RiStarLine className="h-3.5 w-3.5" />
                                                                 </button>
@@ -1834,7 +1824,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                                                 providerId={provider.id}
                                                 className="h-3 w-3 flex-shrink-0 mr-2"
                                             />
-                                            {provider.name} (No models)
+                                            {provider.name} ({t('model.noModels')})
                                         </DropdownMenuItem>
                                     );
                                 }
@@ -1919,8 +1909,8 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                                                                             ? "text-yellow-500"
                                                                             : "text-muted-foreground"
                                                                     )}
-                                                                    aria-label={isFavoriteModel(provider.id as string, model.id as string) ? "Unfavorite" : "Favorite"}
-                                                                    title={isFavoriteModel(provider.id as string, model.id as string) ? "Remove from favorites" : "Add to favorites"}
+                                                                    aria-label={isFavoriteModel(provider.id as string, model.id as string) ? t('model.favorite.remove') : t('model.favorite.add')}
+                                                                    title={isFavoriteModel(provider.id as string, model.id as string) ? t('model.favorite.remove') : t('model.favorite.add')}
                                                                 >
                                                                     {isFavoriteModel(provider.id as string, model.id as string) ? (
                                                                         <RiStarFill className="h-3.5 w-3.5" />
@@ -1979,7 +1969,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
         if (!currentAgent) {
             return (
                 <TooltipContent align="start" sideOffset={8} className="max-w-[320px]">
-                    <div className="min-w-[200px] typography-meta text-muted-foreground">No agent selected.</div>
+                    <div className="min-w-[200px] typography-meta text-muted-foreground">{t('model.noAgentSelected')}</div>
                 </TooltipContent>
             );
         }
@@ -2000,10 +1990,10 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
         };
 
         const getPermissionLabel = (permission?: string) => {
-            if (permission === 'full') return 'Full';
-            if (permission === 'allow') return 'Allow';
-            if (permission === 'deny') return 'Deny';
-            return 'Ask';
+            if (permission === 'full') return t('agent.permissions.full');
+            if (permission === 'allow') return t('agent.permissions.allow');
+            if (permission === 'deny') return t('agent.permissions.deny');
+            return t('agent.permissions.ask');
         };
 
         return (
@@ -2019,15 +2009,15 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                     </div>
 
                     <div className="flex flex-col gap-1">
-                        <span className="typography-meta font-semibold uppercase tracking-wide text-muted-foreground/90">Mode</span>
+                        <span className="typography-meta font-semibold uppercase tracking-wide text-muted-foreground/90">{t('agent.mode.title')}</span>
                         <span className="typography-meta text-foreground">
-                            {currentAgent.mode === 'primary' ? 'Primary' : currentAgent.mode === 'subagent' ? 'Subagent' : currentAgent.mode === 'all' ? 'All' : '—'}
+                            {currentAgent.mode === 'primary' ? t('agent.mode.primary') : currentAgent.mode === 'subagent' ? t('agent.mode.subagent') : currentAgent.mode === 'all' ? t('agent.mode.all') : '—'}
                         </span>
                     </div>
 
                     {(hasModelConfig || hasTemperatureOrTopP) && (
                         <div className="flex flex-col gap-1">
-                            <span className="typography-meta font-semibold uppercase tracking-wide text-muted-foreground/90">Model</span>
+                            <span className="typography-meta font-semibold uppercase tracking-wide text-muted-foreground/90">{t('agents.fields.model')}</span>
                             {hasModelConfig ? (
                                 <span className="typography-meta text-foreground">
                                     {currentAgent.model!.providerID} / {currentAgent.model!.modelID}
@@ -2039,13 +2029,13 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                                 <div className="flex flex-col gap-0.5 mt-0.5">
                                     {currentAgent.temperature !== undefined && (
                                         <div className="flex items-center justify-between gap-3">
-                                            <span className="typography-meta text-muted-foreground/80">Temperature</span>
+                                            <span className="typography-meta text-muted-foreground/80">{t('agent.temperature')}</span>
                                             <span className="typography-meta font-medium text-foreground">{currentAgent.temperature}</span>
                                         </div>
                                     )}
                                     {currentAgent.topP !== undefined && (
                                         <div className="flex items-center justify-between gap-3">
-                                            <span className="typography-meta text-muted-foreground/80">Top P</span>
+                                            <span className="typography-meta text-muted-foreground/80">{t('agent.topP')}</span>
                                             <span className="typography-meta font-medium text-foreground">{currentAgent.topP}</span>
                                         </div>
                                     )}
@@ -2055,7 +2045,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                     )}
 
                     <div className="flex flex-col gap-1">
-                        <span className="typography-meta font-semibold uppercase tracking-wide text-muted-foreground/90">Tools</span>
+                        <span className="typography-meta font-semibold uppercase tracking-wide text-muted-foreground/90">{t('agent.tools.title')}</span>
                         {enabledTools.length > 0 ? (
                             <div className="flex flex-wrap gap-1 leading-tight">
                                 {enabledTools.map((tool) => (
@@ -2068,14 +2058,14 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                                 ))}
                             </div>
                         ) : (
-                            <span className="typography-meta text-muted-foreground">All enabled</span>
+                            <span className="typography-meta text-muted-foreground">{t('agent.tools.allEnabled')}</span>
                         )}
                     </div>
 
                     <div className="flex flex-col gap-1">
-                        <span className="typography-meta font-semibold uppercase tracking-wide text-muted-foreground/90">Permissions</span>
+                        <span className="typography-meta font-semibold uppercase tracking-wide text-muted-foreground/90">{t('agent.permissions.title')}</span>
                         <div className="flex items-center gap-3">
-                            <span className="typography-meta text-muted-foreground/80 w-16">Edit</span>
+                            <span className="typography-meta text-muted-foreground/80 w-16">{t('agent.permissions.edit')}</span>
                             <div className="flex items-center gap-1.5">
                                 {getPermissionIcon(currentAgent.permission?.edit)}
                                 <span className="typography-meta font-medium text-foreground w-12">
@@ -2084,7 +2074,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
-                            <span className="typography-meta text-muted-foreground/80 w-16">Bash</span>
+                            <span className="typography-meta text-muted-foreground/80 w-16">{t('agent.permissions.bash')}</span>
                             <div className="flex items-center gap-1.5">
                                 {getPermissionIcon(typeof currentAgent.permission?.bash === 'string' ? currentAgent.permission.bash : undefined)}
                                 <span className="typography-meta font-medium text-foreground w-12">
@@ -2093,7 +2083,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                             </div>
                         </div>
                         <div className="flex items-center gap-3">
-                            <span className="typography-meta text-muted-foreground/80 w-16">WebFetch</span>
+                            <span className="typography-meta text-muted-foreground/80 w-16">{t('agent.permissions.webfetch')}</span>
                             <div className="flex items-center gap-1.5">
                                 {getPermissionIcon(currentAgent.permission?.webfetch)}
                                 <span className="typography-meta font-medium text-foreground w-12">
@@ -2105,7 +2095,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
 
                     {hasCustomPrompt && (
                         <div className="flex items-center justify-between gap-3">
-                            <span className="typography-meta text-muted-foreground/80">Custom Prompt</span>
+                            <span className="typography-meta text-muted-foreground/80">{t('agent.customPrompt')}</span>
                             <RiCheckboxCircleLine className="h-4 w-4 text-foreground" />
                         </div>
                     )}

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -19,22 +20,23 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { ScrollableOverlay } from '@/components/ui/ScrollableOverlay';
 
 const PROFILE_COLORS = [
-  { key: 'keyword', label: 'Green', cssVar: 'var(--syntax-keyword)' },
-  { key: 'error', label: 'Red', cssVar: 'var(--status-error)' },
-  { key: 'string', label: 'Cyan', cssVar: 'var(--syntax-string)' },
-  { key: 'function', label: 'Orange', cssVar: 'var(--syntax-function)' },
-  { key: 'type', label: 'Yellow', cssVar: 'var(--syntax-type)' },
+  { key: 'keyword', labelKey: 'green', cssVar: 'var(--syntax-keyword)' },
+  { key: 'error', labelKey: 'red', cssVar: 'var(--status-error)' },
+  { key: 'string', labelKey: 'blue', cssVar: 'var(--syntax-string)' },
+  { key: 'function', labelKey: 'yellow', cssVar: 'var(--syntax-function)' },
+  { key: 'type', labelKey: 'purple', cssVar: 'var(--syntax-type)' },
 ];
 
 const PROFILE_ICONS = [
-  { key: 'branch', Icon: RiGitBranchLine, label: 'Branch' },
-  { key: 'briefcase', Icon: RiBriefcaseLine, label: 'Work' },
-  { key: 'house', Icon: RiHomeLine, label: 'Personal' },
-  { key: 'graduation', Icon: RiGraduationCapLine, label: 'School' },
-  { key: 'code', Icon: RiCodeLine, label: 'Code' },
+  { key: 'branch', Icon: RiGitBranchLine, labelKey: 'branch' },
+  { key: 'briefcase', Icon: RiBriefcaseLine, labelKey: 'work' },
+  { key: 'house', Icon: RiHomeLine, labelKey: 'personal' },
+  { key: 'graduation', Icon: RiGraduationCapLine, labelKey: 'globe' },
+  { key: 'code', Icon: RiCodeLine, labelKey: 'star' },
 ];
 
 export const GitIdentitiesPage: React.FC = () => {
+  const { t } = useTranslation('settings');
   const {
     selectedProfileId,
     getProfileById,
@@ -80,7 +82,7 @@ export const GitIdentitiesPage: React.FC = () => {
 
   const handleSave = async () => {
     if (!userName.trim() || !userEmail.trim()) {
-      toast.error('User name and email are required');
+      toast.error(t('gitIdentities.errors.requiredFields', 'User name and email are required'));
       return;
     }
 
@@ -106,13 +108,13 @@ export const GitIdentitiesPage: React.FC = () => {
       }
 
       if (success) {
-        toast.success(isNewProfile ? 'Profile created successfully' : 'Profile updated successfully');
+        toast.success(isNewProfile ? t('gitIdentities.success.created', 'Profile created successfully') : t('gitIdentities.success.updated', 'Profile updated successfully'));
       } else {
-        toast.error(isNewProfile ? 'Failed to create profile' : 'Failed to update profile');
+        toast.error(isNewProfile ? t('gitIdentities.errors.createFailed', 'Failed to create profile') : t('gitIdentities.errors.updateFailed', 'Failed to update profile'));
       }
     } catch (error) {
       console.error('Error saving profile:', error);
-      toast.error('An error occurred while saving');
+      toast.error(t('gitIdentities.errors.saveFailed', 'An error occurred while saving'));
     } finally {
       setIsSaving(false);
     }
@@ -121,20 +123,20 @@ export const GitIdentitiesPage: React.FC = () => {
   const handleDelete = async () => {
     if (!selectedProfileId || isNewProfile) return;
 
-    if (!confirm('Are you sure you want to delete this profile?')) {
+    if (!confirm(t('gitIdentities.deleteConfirm', 'Are you sure you want to delete this profile?'))) {
       return;
     }
 
     try {
       const success = await deleteProfile(selectedProfileId);
       if (success) {
-        toast.success('Profile deleted successfully');
+        toast.success(t('gitIdentities.success.deleted', 'Profile deleted successfully'));
       } else {
-        toast.error('Failed to delete profile');
+        toast.error(t('gitIdentities.errors.deleteProfileFailed', 'Failed to delete profile'));
       }
     } catch (error) {
       console.error('Error deleting profile:', error);
-      toast.error('An error occurred while deleting');
+      toast.error(t('gitIdentities.errors.deleteFailed', 'An error occurred while deleting'));
     }
   };
 
@@ -148,8 +150,8 @@ export const GitIdentitiesPage: React.FC = () => {
       <div className="flex h-full items-center justify-center">
         <div className="text-center text-muted-foreground">
           <RiUser3Line className="mx-auto mb-3 h-12 w-12 opacity-50" />
-          <p className="typography-body">Select a profile from the sidebar</p>
-          <p className="typography-meta mt-1 opacity-75">or create a new one</p>
+          <p className="typography-body">{t('gitIdentities.selectFromSidebar', 'Select a profile from the sidebar')}</p>
+          <p className="typography-meta mt-1 opacity-75">{t('gitIdentities.orCreateNew', 'or create a new one')}</p>
         </div>
       </div>
     );
@@ -160,14 +162,14 @@ export const GitIdentitiesPage: React.FC = () => {
         {}
         <div className="space-y-1">
           <h1 className="typography-ui-header font-semibold text-lg">
-            {isNewProfile ? 'New Git Profile' : isGlobalProfile ? 'Global Identity' : name || 'Edit Profile'}
+            {isNewProfile ? t('gitIdentities.newProfile', 'New Git Profile') : isGlobalProfile ? t('gitIdentities.globalIdentity', 'Global Identity') : name || t('gitIdentities.edit', 'Edit identity')}
           </h1>
           <p className="typography-body text-muted-foreground mt-1">
             {isNewProfile
-              ? 'Create a new Git identity profile for your repositories'
+              ? t('gitIdentities.description', 'Manage Git user profiles')
               : isGlobalProfile
-              ? 'System-wide Git identity from global configuration (read-only)'
-              : 'Configure Git identity settings for this profile'}
+              ? t('gitIdentities.sections.globalDesc', 'System-wide Git identity from global configuration (read-only)')
+              : t('gitIdentities.sections.gitConfigDesc', 'Git user settings for commits')}
           </p>
         </div>
 
@@ -175,30 +177,30 @@ export const GitIdentitiesPage: React.FC = () => {
         {!isGlobalProfile && (
         <div className="space-y-4">
           <div className="space-y-1">
-            <h2 className="typography-ui-header font-semibold text-foreground">Profile Information</h2>
+            <h2 className="typography-ui-header font-semibold text-foreground">{t('gitIdentities.sections.profileInfo', 'Profile Information')}</h2>
             <p className="typography-meta text-muted-foreground/80">
-              Basic profile settings and display name
+              {t('gitIdentities.sections.profileInfoDesc', 'Basic profile settings and visual customization')}
             </p>
           </div>
 
           <div className="space-y-2">
             <label className="typography-ui-label font-medium text-foreground">
-              Display Name
+              {t('gitIdentities.fields.displayName', 'Display Name')}
             </label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Work Profile, Personal, etc."
+              placeholder={t('gitIdentities.fields.displayNamePlaceholder', 'Work Profile, Personal, etc.')}
             />
             <p className="typography-meta text-muted-foreground">
-              Friendly name to identify this profile (optional, defaults to user name)
+              {t('gitIdentities.fields.displayNameHint', 'Friendly name to identify this profile in the sidebar')}
             </p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <label className="typography-ui-label font-medium text-foreground">
-                Color
+                {t('gitIdentities.fields.color', 'Color')}
               </label>
               <div className="flex gap-2 flex-wrap">
                 {PROFILE_COLORS.map((c) => (
@@ -212,7 +214,7 @@ export const GitIdentitiesPage: React.FC = () => {
                         : 'border-transparent hover:border-border'
                     )}
                     style={{ backgroundColor: c.cssVar }}
-                    title={c.label}
+                    title={t(`gitIdentities.colors.${c.labelKey}`, c.labelKey)}
                   />
                 ))}
               </div>
@@ -220,7 +222,7 @@ export const GitIdentitiesPage: React.FC = () => {
 
             <div className="space-y-2">
               <label className="typography-ui-label font-medium text-foreground">
-                Icon
+                {t('gitIdentities.fields.icon', 'Icon')}
               </label>
               <div className="flex gap-2 flex-wrap">
                 {PROFILE_ICONS.map((i) => {
@@ -235,7 +237,7 @@ export const GitIdentitiesPage: React.FC = () => {
                           ? 'border-primary bg-accent scale-110'
                           : 'border-border hover:border-primary/50'
                       )}
-                      title={i.label}
+                      title={t(`gitIdentities.icons.${i.labelKey}`, i.labelKey)}
                     >
                       <IconComponent
                         className="w-4 h-4"
@@ -254,22 +256,21 @@ export const GitIdentitiesPage: React.FC = () => {
         {}
         <div className="space-y-4">
           <div className="space-y-1">
-            <h2 className="typography-h2 font-semibold text-foreground">Git Configuration</h2>
+            <h2 className="typography-h2 font-semibold text-foreground">{t('gitIdentities.sections.gitConfig', 'Git Configuration')}</h2>
             <p className="typography-meta text-muted-foreground/80">
-              Git user settings that will be applied to repositories
+              {t('gitIdentities.sections.gitConfigDesc', 'Git user settings for commits')}
             </p>
           </div>
 
             <div className="space-y-2">
               <label className="typography-ui-label font-medium text-foreground flex items-center gap-2">
-                User Name {!isGlobalProfile && <span className="text-destructive">*</span>}
+                {t('gitIdentities.fields.userName', 'User Name')} {!isGlobalProfile && <span className="text-destructive">*</span>}
                 <Tooltip delayDuration={1000}>
                   <TooltipTrigger asChild>
                     <RiInformationLine className="h-3.5 w-3.5 text-muted-foreground/60 cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent sideOffset={8} className="max-w-xs">
-                    The name that will appear in Git commit messages.<br/>
-                    This is the author name shown in git log and GitHub/GitLab interfaces.
+                    {t('gitIdentities.tooltips.userName', 'The name that appears in commit author information (git config user.name)')}
                   </TooltipContent>
                 </Tooltip>
               </label>
@@ -282,21 +283,19 @@ export const GitIdentitiesPage: React.FC = () => {
               disabled={isGlobalProfile}
             />
             <p className="typography-meta text-muted-foreground">
-              Git user.name configuration value
+              {t('gitIdentities.fields.userNameHint', 'Git user.name configuration value')}
             </p>
           </div>
 
             <div className="space-y-2">
               <label className="typography-ui-label font-medium text-foreground flex items-center gap-2">
-                User Email {!isGlobalProfile && <span className="text-destructive">*</span>}
+                {t('gitIdentities.fields.userEmail', 'User Email')} {!isGlobalProfile && <span className="text-destructive">*</span>}
                 <Tooltip delayDuration={1000}>
                   <TooltipTrigger asChild>
                     <RiInformationLine className="h-3.5 w-3.5 text-muted-foreground/60 cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent sideOffset={8} className="max-w-xs">
-                    The email address for Git commits.<br/>
-                    This should match your email in GitHub/GitLab<br/>
-                    to ensure proper attribution of commits.
+                    {t('gitIdentities.tooltips.userEmail', 'The email that appears in commit author information (git config user.email)')}
                   </TooltipContent>
                 </Tooltip>
               </label>
@@ -310,21 +309,19 @@ export const GitIdentitiesPage: React.FC = () => {
               disabled={isGlobalProfile}
             />
             <p className="typography-meta text-muted-foreground">
-              Git user.email configuration value
+              {t('gitIdentities.fields.userEmailHint', 'Git user.email configuration value')}
             </p>
           </div>
 
             <div className="space-y-2">
               <label className="typography-ui-label font-medium text-foreground flex items-center gap-2">
-                SSH Key Path
+                {t('gitIdentities.fields.sshKey', 'SSH Key Path')}
                 <Tooltip delayDuration={1000}>
                   <TooltipTrigger asChild>
                     <RiInformationLine className="h-3.5 w-3.5 text-muted-foreground/60 cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent sideOffset={8} className="max-w-xs">
-                    Path to SSH private key used for Git authentication.<br/>
-                    This key will be used for HTTPS and SSH Git operations.<br/>
-                    Common paths: ~/.ssh/id_rsa, ~/.ssh/id_ed25519
+                    {t('gitIdentities.tooltips.sshKey', 'Optional path to a specific SSH private key to use with this identity')}
                   </TooltipContent>
                 </Tooltip>
               </label>
@@ -336,7 +333,7 @@ export const GitIdentitiesPage: React.FC = () => {
               disabled={isGlobalProfile}
             />
             <p className="typography-meta text-muted-foreground">
-              Path to SSH private key for authentication (optional)
+              {t('gitIdentities.fields.sshKeyHint', 'Path to SSH private key for authentication (optional)')}
             </p>
           </div>
 
@@ -351,7 +348,7 @@ export const GitIdentitiesPage: React.FC = () => {
               className="gap-2 h-6 px-2 text-xs"
             >
               <RiDeleteBinLine className="h-3 w-3" />
-              Delete Profile
+              {t('gitIdentities.deleteProfile', 'Delete Profile')}
             </Button>
           )}
           <div className={cn('flex gap-2', isNewProfile && 'ml-auto')}>
@@ -363,7 +360,7 @@ export const GitIdentitiesPage: React.FC = () => {
               className="gap-2 h-6 px-2 text-xs"
             >
               <RiSaveLine className="h-3 w-3" />
-              {isSaving ? 'Saving...' : 'Save Profile'}
+              {isSaving ? t('common:button.saving', 'Saving...') : t('gitIdentities.saveProfile', 'Save Profile')}
             </Button>
           </div>
         </div>

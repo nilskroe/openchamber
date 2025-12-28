@@ -1,0 +1,98 @@
+{
+  "input": {
+    "placeholder": "# per agenti; @ per file; / per comandi",
+    "placeholderWithModel": "Chiedi a {{model}}...",
+    "send": "Invia messaggio",
+    "stop": "Interrompi generazione",
+    "attachFile": "Allega file",
+    "attachedFiles_one": "{{count}} file allegato",
+    "attachedFiles_other": "{{count}} file allegati"
+  },
+  "message": {
+    "empty": "Nessun messaggio",
+    "emptyDescription": "Inizia una conversazione digitando un messaggio qui sotto",
+    "count_one": "{{count}} messaggio",
+    "count_other": "{{count}} messaggi",
+    "thinking": "Sto pensando...",
+    "generating": "Generazione in corso...",
+    "copied": "Messaggio copiato",
+    "copyFailed": "Impossibile copiare il messaggio",
+    "regenerate": "Rigenera risposta",
+    "edit": "Modifica messaggio"
+  },
+  "session": {
+    "new": "Nuova sessione",
+    "newDescription": "Inizia una nuova conversazione",
+    "rename": "Rinomina sessione",
+    "delete": "Elimina sessione",
+    "deleteConfirm": "Eliminare questa sessione?",
+    "noSessions": "Nessuna sessione",
+    "switchTo": "Passa alla sessione",
+    "current": "Sessione corrente",
+    "count_one": "{{count}} sessione",
+    "count_other": "{{count}} sessioni",
+    "selectOrCreate": "Seleziona o crea una sessione per iniziare a chattare"
+  },
+  "tool": {
+    "output": "Output strumento",
+    "collapsed": "Compresso",
+    "activity": "Attività",
+    "detailed": "Dettagliato",
+    "running": "In esecuzione...",
+    "completed": "Completato",
+    "failed": "Fallito"
+  },
+  "model": {
+    "select": "Seleziona modello",
+    "noModels": "Nessun modello disponibile",
+    "favorites": "Preferiti",
+    "recent": "Recenti",
+    "all": "Tutti i modelli",
+    "addFavorite": "Aggiungi ai preferiti",
+    "removeFavorite": "Rimuovi dai preferiti"
+  },
+  "agent": {
+    "select": "Seleziona agente",
+    "noAgents": "Nessun agente disponibile",
+    "default": "Agente predefinito"
+  },
+  "file": {
+    "tooLarge": "File troppo grande (max {{size}})",
+    "invalidType": "Tipo di file non valido",
+    "uploadFailed": "Caricamento file fallito",
+    "count_one": "{{count}} file",
+    "count_other": "{{count}} file",
+    "dropToAttach": "Trascina qui i file per allegarli",
+    "attachFiles": "Allega file",
+    "attachFromProject": "Allega dal progetto"
+  },
+  "filePicker": {
+    "title": "Seleziona file del progetto",
+    "searchPlaceholder": "Cerca file...",
+    "loading": "Caricamento file...",
+    "loadingChildren": "Caricamento...",
+    "searching": "Ricerca file...",
+    "noFilesInDirectory": "Nessun file in questa directory",
+    "noFilesFound": "Nessun file trovato",
+    "filesSelected_one": "{{count}} file selezionato",
+    "filesSelected_other": "{{count}} file selezionati",
+    "noFilesSelected": "Nessun file selezionato",
+    "attachFiles": "Allega file",
+    "attaching": "Allegando..."
+  },
+  "diff": {
+    "inline": "In linea",
+    "sideBySide": "Affiancato",
+    "dynamic": "Dinamico",
+    "noChanges": "Nessuna modifica",
+    "additions_one": "{{count}} aggiunta",
+    "additions_other": "{{count}} aggiunte",
+    "deletions_one": "{{count}} eliminazione",
+    "deletions_other": "{{count}} eliminazioni"
+  },
+  "reasoning": {
+    "show": "Mostra ragionamento",
+    "hide": "Nascondi ragionamento",
+    "traces": "Tracce di ragionamento"
+  }
+}

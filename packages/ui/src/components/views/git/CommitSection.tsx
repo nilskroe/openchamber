@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   RiGitCommitLine,
   RiArrowUpLine,
@@ -46,6 +47,7 @@ export const CommitSection: React.FC<CommitSectionProps> = ({
   commitAction,
   isBusy,
 }) => {
+  const { t } = useTranslation('git');
   const hasSelectedFiles = selectedCount > 0;
   const canCommit = commitMessage.trim() && hasSelectedFiles && commitAction === null;
 
@@ -55,11 +57,11 @@ export const CommitSection: React.FC<CommitSectionProps> = ({
       className="rounded-xl border border-border/60 bg-background/70 overflow-hidden"
     >
       <div className="flex w-full items-center justify-between px-3 py-2">
-        <h3 className="typography-ui-header font-semibold text-foreground">Commit</h3>
+        <h3 className="typography-ui-header font-semibold text-foreground">{t('commit.title')}</h3>
         <span className="typography-meta text-muted-foreground">
           {hasSelectedFiles
-            ? `${selectedCount} file${selectedCount === 1 ? '' : 's'} selected`
-            : 'No files selected'}
+            ? t('commit.filesSelected', { count: selectedCount })
+            : t('commit.noFilesSelected')}
         </span>
       </div>
 
@@ -74,7 +76,7 @@ export const CommitSection: React.FC<CommitSectionProps> = ({
           <CommitInput
             value={commitMessage}
             onChange={onCommitMessageChange}
-            placeholder="Commit message"
+            placeholder={t('commit.messagePlaceholder')}
             disabled={commitAction !== null}
           />
 
@@ -92,7 +94,7 @@ export const CommitSection: React.FC<CommitSectionProps> = ({
                     selectedCount === 0 ||
                     isBusy
                   }
-                  aria-label="Generate commit message"
+                  aria-label={t('commit.generateMessage')}
                 >
                   {isGeneratingMessage ? (
                     <RiLoader4Line className="size-4 animate-spin" />
@@ -102,7 +104,7 @@ export const CommitSection: React.FC<CommitSectionProps> = ({
                 </Button>
               </TooltipTrigger>
               <TooltipContent sideOffset={8}>
-                Generate commit message with AI
+                {t('commit.generateMessageWithAI')}
               </TooltipContent>
             </Tooltip>
 
@@ -116,12 +118,12 @@ export const CommitSection: React.FC<CommitSectionProps> = ({
               {commitAction === 'commit' ? (
                 <>
                   <RiLoader4Line className="size-4 animate-spin" />
-                  Committing...
+                  {t('commit.committing')}
                 </>
               ) : (
                 <>
                   <RiGitCommitLine className="size-4" />
-                  Commit
+                  {t('commit.title')}
                 </>
               )}
             </ButtonLarge>
@@ -134,12 +136,12 @@ export const CommitSection: React.FC<CommitSectionProps> = ({
               {commitAction === 'commitAndPush' ? (
                 <>
                   <RiLoader4Line className="size-4 animate-spin" />
-                  Pushing...
+                  {t('commit.pushing')}
                 </>
               ) : (
                 <>
                   <RiArrowUpLine className="size-4" />
-                  Commit &amp; Push
+                  {t('commit.commitAndPush')}
                 </>
               )}
             </ButtonLarge>

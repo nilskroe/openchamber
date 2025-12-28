@@ -3,6 +3,7 @@ import { OpenChamberVisualSettings } from './OpenChamberVisualSettings';
 import { AboutSettings } from './AboutSettings';
 import { SessionRetentionSettings } from './SessionRetentionSettings';
 import { DefaultsSettings } from './DefaultsSettings';
+import { LanguageSettings } from './LanguageSettings';
 import { ScrollableOverlay } from '@/components/ui/ScrollableOverlay';
 import { useDeviceInfo } from '@/lib/device';
 import { isWebRuntime } from '@/lib/desktop';
@@ -49,6 +50,8 @@ export const OpenChamberPage: React.FC<OpenChamberPageProps> = ({ section }) => 
                 return <ChatSectionContent />;
             case 'sessions':
                 return <SessionsSectionContent />;
+            case 'language':
+                return <LanguageSectionContent />;
             default:
                 return null;
         }
@@ -84,4 +87,9 @@ const SessionsSectionContent: React.FC = () => {
             </div>
         </div>
     );
+};
+
+// Language section: Display language selection
+const LanguageSectionContent: React.FC = () => {
+    return <LanguageSettings />;
 };

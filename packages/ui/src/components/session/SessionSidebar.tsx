@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import type { Session } from '@opencode-ai/sdk';
 import { toast } from 'sonner';
 import {
@@ -38,30 +39,7 @@ const WORKTREE_ROOT = '.openchamber';
 const GROUP_COLLAPSE_STORAGE_KEY = 'oc.sessions.groupCollapse';
 const SESSION_EXPANDED_STORAGE_KEY = 'oc.sessions.expandedParents';
 
-const formatDateLabel = (value: string | number) => {
-  const targetDate = new Date(value);
-  const today = new Date();
-  const isSameDay = (a: Date, b: Date) =>
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate();
-
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
-
-  if (isSameDay(targetDate, today)) {
-    return 'Today';
-  }
-  if (isSameDay(targetDate, yesterday)) {
-    return 'Yesterday';
-  }
-  const formatted = targetDate.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-  return formatted.replace(',', '');
-};
+// Date formatting moved to component to use i18n
 
 const normalizePath = (value?: string | null) => {
   if (!value) {
@@ -116,6 +94,7 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
   allowReselect = false,
   hideDirectoryControls = false,
 }) => {
+  const { t } = useTranslation();
   const [editingId, setEditingId] = React.useState<string | null>(null);
   const [editTitle, setEditTitle] = React.useState('');
   const [copiedSessionId, setCopiedSessionId] = React.useState<string | null>(null);
@@ -137,6 +116,31 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
 
   const setActiveMainTab = useUIStore((state) => state.setActiveMainTab);
   const setSessionSwitcherOpen = useUIStore((state) => state.setSessionSwitcherOpen);
+
+  const formatDateLabel = React.useCallback((value: string | number) => {
+    const targetDate = new Date(value);
+    const today = new Date();
+    const isSameDay = (a: Date, b: Date) =>
+      a.getFullYear() === b.getFullYear() &&
+      a.getMonth() === b.getMonth() &&
+      a.getDate() === b.getDate();
+
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+
+    if (isSameDay(targetDate, today)) {
+      return t('common:time.today', 'Today');
+    }
+    if (isSameDay(targetDate, yesterday)) {
+      return t('common:time.yesterday', 'Yesterday');
+    }
+    const formatted = targetDate.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    });
+    return formatted.replace(',', '');
+  }, [t]);
 
   const getSessionsByDirectory = useSessionStore((state) => state.getSessionsByDirectory);
   const currentSessionId = useSessionStore((state) => state.currentSessionId);
@@ -330,8 +334,8 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
 
   const emptyState = (
     <div className="py-6 text-center text-muted-foreground">
-      <p className="typography-ui-label font-semibold">No sessions yet</p>
-      <p className="typography-meta mt-1">Create your first session to start coding.</p>
+      <p className="typography-ui-label font-semibold">{t('chat:session.noSessionsYet', 'No sessions yet')}</p>
+      <p className="typography-meta mt-1">{t('chat:session.noSessionsDescription', 'Create your first session to start coding.')}</p>
     </div>
   );
 
@@ -381,14 +385,14 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
     async (session: Session) => {
       const result = await shareSession(session.id);
       if (result && result.share?.url) {
-        toast.success('Session shared', {
-          description: 'You can copy the link from the menu.',
+        toast.success(t('chat:session.shared', 'Session shared'), {
+          description: t('chat:session.sharedDescription', 'You can copy the link from the menu.'),
         });
       } else {
-        toast.error('Unable to share session');
+        toast.error(t('chat:session.shareFailed', 'Unable to share session'));
       }
     },
-    [shareSession],
+    [shareSession, t],
   );
 
   const handleCopyShareUrl = React.useCallback((url: string, sessionId: string) => {
@@ -405,20 +409,20 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
         }, 2000);
       })
       .catch(() => {
-        toast.error('Failed to copy URL');
+        toast.error(t('chat:session.copyUrlFailed', 'Failed to copy URL'));
       });
-  }, []);
+  }, [t]);
 
   const handleUnshareSession = React.useCallback(
     async (sessionId: string) => {
       const result = await unshareSession(sessionId);
       if (result) {
-        toast.success('Session unshared');
+        toast.success(t('chat:session.unshared', 'Session unshared'));
       } else {
-        toast.error('Unable to unshare session');
+        toast.error(t('chat:session.unshareFailed', 'Unable to unshare session'));
       }
     },
-    [unshareSession],
+    [unshareSession, t],
   );
 
   const collectDescendants = React.useCallback(
@@ -447,23 +451,23 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
 
         const success = await deleteSession(session.id);
         if (success) {
-          toast.success('Session deleted');
+          toast.success(t('chat:session.deleted', 'Session deleted'));
         } else {
-          toast.error('Failed to delete session');
+          toast.error(t('chat:session.deleteFailed', 'Failed to delete session'));
         }
       } else {
 
         const ids = [session.id, ...descendants.map((s) => s.id)];
         const { deletedIds, failedIds } = await deleteSessions(ids);
         if (deletedIds.length > 0) {
-          toast.success(`Deleted ${deletedIds.length} session${deletedIds.length === 1 ? '' : 's'}`);
+          toast.success(t('chat:session.deletedMultiple', { count: deletedIds.length }));
         }
         if (failedIds.length > 0) {
-          toast.error(`Failed to delete ${failedIds.length} session${failedIds.length === 1 ? '' : 's'}`);
+          toast.error(t('chat:session.deleteFailedMultiple', { count: failedIds.length }));
         }
       }
     },
-    [collectDescendants, deleteSession, deleteSessions],
+    [collectDescendants, deleteSession, deleteSessions, t],
   );
 
   const handleCreateSessionInGroup = React.useCallback(
@@ -562,8 +566,8 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
       const directory = worktree?.path ?? sessionDirectory ?? normalizedProjectRoot ?? null;
       if (!groups.has(key)) {
         const label = isMain
-          ? 'Main workspace'
-          : worktree?.label || worktree?.branch || formatDirectoryName(directory || '', homeDirectory) || 'Worktree';
+          ? t('chat:session.mainWorkspace', 'Main workspace')
+          : worktree?.label || worktree?.branch || formatDirectoryName(directory || '', homeDirectory) || t('chat:session.worktree', 'Worktree');
         const description = worktree?.relativePath
           ? formatPathForDisplay(worktree.relativePath, homeDirectory)
           : directory
@@ -599,7 +603,7 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
     if (!groups.has('main')) {
       groups.set('main', {
         id: 'main',
-        label: 'Main workspace',
+        label: t('chat:session.mainWorkspace', 'Main workspace'),
         description: normalizedProjectRoot ? formatPathForDisplay(normalizedProjectRoot, homeDirectory) : null,
         isMain: true,
         worktree: null,
@@ -635,7 +639,7 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
       }
       return (a.label || '').localeCompare(b.label || '');
     });
-  }, [sortedSessions, worktreeMetadata, availableWorktrees, projectRoot, homeDirectory, buildNode, sessionMap]);
+  }, [sortedSessions, worktreeMetadata, availableWorktrees, projectRoot, homeDirectory, buildNode, sessionMap, t]);
 
   const toggleGroup = React.useCallback((groupId: string) => {
     setCollapsedGroups((prev) => {
@@ -674,7 +678,7 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
       const isMissingDirectory = directoryState === 'missing';
       const memoryState = sessionMemoryState.get(session.id);
       const isActive = currentSessionId === session.id;
-      const sessionTitle = session.title || 'Untitled Session';
+      const sessionTitle = session.title || t('chat:session.untitled', 'Untitled Session');
       const hasChildren = node.children.length > 0;
       const isExpanded = expandedParents.has(session.id);
       const additions = session.summary?.additions;
@@ -704,7 +708,7 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
                   onChange={(event) => setEditTitle(event.target.value)}
                   className="flex-1 min-w-0 bg-transparent typography-ui-label outline-none placeholder:text-muted-foreground"
                   autoFocus
-                  placeholder="Rename session"
+                  placeholder={t('chat:session.renamePlaceholder', 'Rename session')}
                   onKeyDown={(event) => {
                     if (event.key === 'Escape') handleCancelEdit();
                   }}
@@ -746,7 +750,7 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
                 ) : null}
                 {hasChildren ? (
                   <span className="truncate">
-                    {node.children.length} {node.children.length === 1 ? 'task' : 'tasks'}
+                    {t('chat:session.tasks', { count: node.children.length })}
                   </span>
                 ) : null}
               </div>
@@ -824,7 +828,7 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
                       )}
                     </span>
                   ) : null}
-                  <span className="flex-shrink-0">{formatDateLabel(session.time?.created || Date.now())}</span>
+                <span className="flex-shrink-0">{formatDateLabel(session.time?.created || Date.now())}</span>
                   {session.share ? (
                     <RiShare2Line className="h-3 w-3 text-[color:var(--status-info)] flex-shrink-0" />
                   ) : null}
@@ -837,13 +841,13 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
                   ) : null}
                   {hasChildren ? (
                     <span className="truncate">
-                      {node.children.length} {node.children.length === 1 ? 'task' : 'tasks'}
+                      {t('chat:session.tasks', { count: node.children.length })}
                     </span>
                   ) : null}
                   {isMissingDirectory ? (
                     <span className="inline-flex items-center gap-0.5 text-warning flex-shrink-0">
                       <RiErrorWarningLine className="h-3 w-3" />
-                      Missing
+                      {t('chat:session.missing', 'Missing')}
                     </span>
                   ) : null}
                 </div>
@@ -875,12 +879,12 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
                       className="[&>svg]:mr-1"
                     >
                       <RiPencilAiLine className="mr-1 h-4 w-4" />
-                      Rename
+                      {t('common:button.rename', 'Rename')}
                     </DropdownMenuItem>
                     {!session.share ? (
                       <DropdownMenuItem onClick={() => handleShareSession(session)} className="[&>svg]:mr-1">
                         <RiShare2Line className="mr-1 h-4 w-4" />
-                        Share
+                        {t('common:button.share', 'Share')}
                       </DropdownMenuItem>
                     ) : (
                       <>
@@ -895,18 +899,18 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
                           {copiedSessionId === session.id ? (
                             <>
                               <RiCheckLine className="mr-1 h-4 w-4" style={{ color: 'var(--status-success)' }} />
-                              Copied
+                              {t('common:button.copied', 'Copied')}
                             </>
                           ) : (
                             <>
                               <RiFileCopyLine className="mr-1 h-4 w-4" />
-                              Copy link
+                              {t('common:button.copyLink', 'Copy link')}
                             </>
                           )}
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleUnshareSession(session.id)} className="[&>svg]:mr-1">
                           <RiLinkUnlinkM className="mr-1 h-4 w-4" />
-                          Unshare
+                          {t('common:button.unshare', 'Unshare')}
                         </DropdownMenuItem>
                       </>
                     )}
@@ -915,7 +919,7 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
                       onClick={() => handleDeleteSession(session)}
                     >
                       <RiDeleteBinLine className="mr-1 h-4 w-4" />
-                      Remove
+                      {t('common:button.remove', 'Remove')}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -948,6 +952,8 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
       handleDeleteSession,
       copiedSessionId,
       mobileVariant,
+      t,
+      formatDateLabel,
     ],
   );
 
@@ -1022,7 +1028,7 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
               if (totalSessions === 0) {
                 return (
                   <div className="py-1 text-left typography-micro text-muted-foreground">
-                    No sessions yet.
+                    {t('chat:session.noSessionsYet', 'No sessions yet.')}
                   </div>
                 );
               }
@@ -1036,7 +1042,7 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
                       onClick={() => toggleGroupSessionLimit(group.id)}
                       className="mt-0.5 flex items-center justify-start rounded-md px-1.5 py-0.5 text-left text-xs text-muted-foreground/70 leading-tight hover:text-foreground hover:underline"
                     >
-                      Show {remainingCount} more {remainingCount === 1 ? 'session' : 'sessions'}
+                      {t('chat:session.showMore', { count: remainingCount })}
                     </button>
                   ) : null}
                   {isExpanded && totalSessions > maxVisible ? (
@@ -1045,7 +1051,7 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
                       onClick={() => toggleGroupSessionLimit(group.id)}
                       className="mt-0.5 flex items-center justify-start rounded-md px-1.5 py-0.5 text-left text-xs text-muted-foreground/70 leading-tight hover:text-foreground hover:underline"
                     >
-                      Show fewer sessions
+                      {t('chat:session.showFewer', 'Show fewer sessions')}
                     </button>
                   ) : null}
                 </>
@@ -1118,7 +1124,7 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
                         {visibleSessions.map((node) => renderSessionNode(node, 0, group.directory))}
                         {totalSessions === 0 ? (
                           <div className="py-1 text-left typography-micro text-muted-foreground">
-                            No sessions in this worktree yet.
+                            {t('chat:session.noSessionsInWorktree', 'No sessions in this worktree yet.')}
                           </div>
                         ) : null}
                         {remainingCount > 0 && !isExpanded ? (
@@ -1127,7 +1133,7 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
                             onClick={() => toggleGroupSessionLimit(group.id)}
                             className="mt-0.5 flex items-center justify-start rounded-md px-1.5 py-0.5 text-left text-xs text-muted-foreground/70 leading-tight hover:text-foreground hover:underline"
                           >
-                            Show {remainingCount} more {remainingCount === 1 ? 'session' : 'sessions'}
+                            {t('chat:session.showMore', { count: remainingCount })}
                           </button>
                         ) : null}
                         {isExpanded && totalSessions > maxVisible ? (
@@ -1136,7 +1142,7 @@ export const SessionSidebar: React.FC<SessionSidebarProps> = ({
                             onClick={() => toggleGroupSessionLimit(group.id)}
                             className="mt-0.5 flex items-center justify-start rounded-md px-1.5 py-0.5 text-left text-xs text-muted-foreground/70 leading-tight hover:text-foreground hover:underline"
                           >
-                            Show fewer sessions
+                            {t('chat:session.showFewer', 'Show fewer sessions')}
                           </button>
                         ) : null}
                       </>

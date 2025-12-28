@@ -1,4 +1,5 @@
 import React, { useRef, memo } from 'react';
+import { useTranslation } from 'react-i18next';
 import { RiAttachment2, RiCloseLine, RiComputerLine, RiFileImageLine, RiFileLine, RiFilePdfLine, RiHardDrive3Line } from '@remixicon/react';
 import { useSessionStore, type AttachedFile } from '@/stores/useSessionStore';
 import { useUIStore } from '@/stores/useUIStore';
@@ -9,6 +10,7 @@ import { useIsVSCodeRuntime } from '@/hooks/useRuntimeAPIs';
 import type { ToolPopupContent } from './message/types';
 
 export const FileAttachmentButton = memo(() => {
+  const { t } = useTranslation('chat');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { addAttachedFile } = useSessionStore();
   const { isMobile } = useUIStore();
@@ -29,11 +31,11 @@ export const FileAttachmentButton = memo(() => {
         }
       } catch (error) {
         console.error('File attach failed', error);
-        toast.error(error instanceof Error ? error.message : 'Failed to attach file');
+        toast.error(error instanceof Error ? error.message : t('file.attachFailed'));
       }
     }
     if (attachedCount > 0) {
-      toast.success(`Attached ${attachedCount} file${attachedCount > 1 ? 's' : ''}`);
+      toast.success(t('file.attached', { count: attachedCount }));
     }
   };
 
@@ -56,7 +58,7 @@ export const FileAttachmentButton = memo(() => {
 
       if (skipped.length > 0) {
         const summary = skipped.map((s: { name?: string; reason?: string }) => `${s?.name || 'file'}: ${s?.reason || 'skipped'}`).join('\n');
-        toast.error(`Some files were skipped:\n${summary}`);
+        toast.error(t('file.someFilesSkipped', { summary }));
       }
 
       const asFiles = picked
@@ -85,7 +87,7 @@ export const FileAttachmentButton = memo(() => {
       }
     } catch (error) {
       console.error('VS Code file pick failed', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to pick files in VS Code');
+      toast.error(error instanceof Error ? error.message : t('file.vsCodePickFailed'));
     }
   };
 
@@ -112,7 +114,7 @@ export const FileAttachmentButton = memo(() => {
           buttonSizeClass,
           'flex items-center justify-center text-muted-foreground transition-none outline-none focus:outline-none flex-shrink-0'
         )}
-        title='Attach files'
+        title={t('file.attachFiles')}
       >
         <RiAttachment2 className={cn(iconSizeClass, 'text-current')} />
       </button>
@@ -126,6 +128,7 @@ interface FileChipProps {
 }
 
 const FileChip = memo(({ file, onRemove }: FileChipProps) => {
+  const { t } = useTranslation('chat');
   const getFileIcon = () => {
     if (file.mimeType.startsWith('image/')) {
       return <RiFileImageLine className="h-3.5 w-3.5" />;
@@ -160,7 +163,7 @@ const FileChip = memo(({ file, onRemove }: FileChipProps) => {
   return (
     <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-muted/30 border border-border/30 rounded-xl typography-meta">
       {}
-      <div title={file.source === 'server' ? "Server file" : "Local file"}>
+      <div title={file.source === 'server' ? t('file.serverFile') : t('file.localFile')}>
         {file.source === 'server' ? (
           <RiHardDrive3Line className="h-3 w-3 text-primary" />
         ) : (
@@ -177,7 +180,7 @@ const FileChip = memo(({ file, onRemove }: FileChipProps) => {
       <button
         onClick={onRemove}
         className="ml-1 hover:text-destructive p-0.5"
-        title="Remove file"
+        title={t('file.removeFile')}
       >
         <RiCloseLine className="h-3 w-3" />
       </button>
@@ -186,6 +189,7 @@ const FileChip = memo(({ file, onRemove }: FileChipProps) => {
 });
 
 export const AttachedFilesList = memo(() => {
+  const { t } = useTranslation('chat');
   const { attachedFiles, removeAttachedFile } = useSessionStore();
 
   if (attachedFiles.length === 0) return null;
@@ -193,7 +197,7 @@ export const AttachedFilesList = memo(() => {
   return (
     <div className="pb-2">
       <div className="flex items-center flex-wrap gap-2 px-3 py-2 bg-muted/30 rounded-xl border border-border/30">
-        <span className="typography-meta text-muted-foreground font-medium">Attached:</span>
+        <span className="typography-meta text-muted-foreground font-medium">{t('file.attached')}</span>
         {attachedFiles.map((file) => (
           <FileChip
             key={file.id}
@@ -223,8 +227,10 @@ export const MessageFilesDisplay = memo(({ files, onShowPopup }: MessageFilesDis
 
   const fileItems = files.filter(f => f.type === 'file' && (f.mime || f.url));
 
+  const { t } = useTranslation('chat');
+
   const extractFilename = (path?: string): string => {
-    if (!path) return 'Unnamed file';
+    if (!path) return t('file.unnamedFile');
 
     const normalized = path.replace(/\\/g, '/');
     const parts = normalized.split('/');
