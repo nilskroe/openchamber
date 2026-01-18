@@ -12,7 +12,6 @@ import { convertThemeToXterm } from '@/lib/terminalTheme';
 import { TerminalViewport, type TerminalController } from '@/components/terminal/TerminalViewport';
 import { ScrollableOverlay } from '@/components/ui/ScrollableOverlay';
 import { cn } from '@/lib/utils';
-import { useUIStore } from '@/stores/useUIStore';
 import { Button } from '@/components/ui/button';
 import { useDeviceInfo } from '@/lib/device';
 import { useRuntimeAPIs } from '@/hooks/useRuntimeAPIs';
@@ -118,7 +117,7 @@ export const TerminalView: React.FC = () => {
     const removeTerminalSession = terminalStore.removeTerminalSession;
     const clearBuffer = terminalStore.clearBuffer;
 
-    const sessionKey = tabId;
+    const sessionKey = tabId ?? effectiveDirectory;
 
     const terminalState = React.useMemo(() => {
         if (!sessionKey) return undefined;
@@ -141,16 +140,13 @@ export const TerminalView: React.FC = () => {
     const sessionKeyRef = React.useRef<string | null>(sessionKey);
     const terminalControllerRef = React.useRef<TerminalController | null>(null);
 
-    const activeMainTab = useUIStore((state) => state.activeMainTab);
-    const isTerminalActive = activeMainTab === 'terminal';
+    const isTerminalActive = true;
 
     React.useEffect(() => {
         terminalIdRef.current = terminalSessionId;
     }, [terminalSessionId]);
 
-    React.useEffect(() => {
-        sessionKeyRef.current = sessionKey;
-    }, [sessionKey]);
+
 
     React.useEffect(() => {
         if (!isMobile && activeModifier !== null) {
@@ -281,10 +277,12 @@ export const TerminalView: React.FC = () => {
             return;
         }
 
+        sessionKeyRef.current = sessionKey;
+
         const ensureSession = async () => {
             const key = sessionKey;
             const cwd = effectiveDirectory;
-            if (!sessionKeyRef.current || sessionKeyRef.current !== key) return;
+            if (sessionKeyRef.current !== key) return;
             const currentState = useTerminalStore.getState().getTerminalSession(key);
 
             let terminalId = currentState?.terminalSessionId ?? null;
