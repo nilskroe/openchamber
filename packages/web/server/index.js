@@ -885,6 +885,7 @@ let openCodeNotReadySince = 0;
 let exitOnShutdown = true;
 let uiAuthController = null;
 let cloudflareTunnelController = null;
+let consecutiveHealthCheckFailures = 0;
 
 // Sync helper - call after modifying any HMR state variable
 const syncToHmrState = () => {
@@ -925,7 +926,7 @@ async function isOpenCodeProcessHealthy() {
   try {
     const response = await fetch(`http://127.0.0.1:${openCodePort}/session`, {
       method: 'GET',
-      signal: AbortSignal.timeout(2000),
+      signal: AbortSignal.timeout(10000),
     });
     return response.ok;
   } catch {
@@ -1923,11 +1924,29 @@ function startHealthMonitoring() {
     try {
       const healthy = await isOpenCodeProcessHealthy();
       if (!healthy) {
-        console.log('OpenCode process not running, restarting...');
-        await restartOpenCode();
+        consecutiveHealthCheckFailures++;
+        console.warn(`[HealthCheck] Failed (attempt ${consecutiveHealthCheckFailures}/2) - OpenCode not responding`);
+        
+        if (consecutiveHealthCheckFailures >= 2) {
+          console.log('[HealthCheck] 2 consecutive failures, restarting OpenCode...');
+          consecutiveHealthCheckFailures = 0;
+          await restartOpenCode();
+        }
+      } else {
+        if (consecutiveHealthCheckFailures > 0) {
+          console.log('[HealthCheck] Recovered after previous failure(s)');
+        }
+        consecutiveHealthCheckFailures = 0;
       }
     } catch (error) {
-      console.error(`Health check error: ${error.message}`);
+      consecutiveHealthCheckFailures++;
+      console.error(`[HealthCheck] Error (attempt ${consecutiveHealthCheckFailures}/2): ${error.message}`);
+      
+      if (consecutiveHealthCheckFailures >= 2) {
+        console.log('[HealthCheck] 2 consecutive errors, restarting OpenCode...');
+        consecutiveHealthCheckFailures = 0;
+        await restartOpenCode();
+      }
     }
   }, HEALTH_CHECK_INTERVAL);
 }
