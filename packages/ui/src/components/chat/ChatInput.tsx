@@ -7,6 +7,7 @@ import {
     RiCloseCircleLine,
     RiFileUploadLine,
     RiSendPlane2Line,
+    RiStopCircleLine,
 } from '@remixicon/react';
 import { useSessionStore } from '@/stores/useSessionStore';
 import { useConfigStore } from '@/stores/useConfigStore';
@@ -1202,8 +1203,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBo
         'flex items-center justify-center text-muted-foreground transition-none outline-none focus:outline-none flex-shrink-0'
     );
 
-    // Desktop and VSCode: show abort button in footer when Esc triggered
     const showAbortInFooter = !isMobile && isAbortPromptActive && canAbort;
+    const showStopButton = canAbort && !canSend;
 
     const actionButton = showAbortInFooter ? (
         <button
@@ -1216,6 +1217,18 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBo
             aria-label='Stop generating'
         >
             <RiCloseCircleLine className={cn(iconSizeClass)} />
+        </button>
+    ) : showStopButton ? (
+        <button
+            type='button'
+            onClick={handleAbort}
+            className={cn(
+                iconButtonBaseClass,
+                'text-[var(--status-error)] hover:text-[var(--status-error)]'
+            )}
+            aria-label='Stop generating'
+        >
+            <RiStopCircleLine className={cn(iconSizeClass)} />
         </button>
     ) : (
         <button

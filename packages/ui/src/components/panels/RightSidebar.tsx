@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { RiFileCopyLine, RiFolderOpenLine, RiTerminalBoxLine, RiArrowUpSLine, RiArrowDownSLine } from '@remixicon/react';
 import { cn } from '@/lib/utils';
+import { useUIStore } from '@/stores/useUIStore';
 import { FileChangesPanel } from './FileChangesPanel';
 import { TerminalPanel } from './TerminalPanel';
 
@@ -22,6 +23,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   directory,
   className,
 }) => {
+  const setGlobalResizing = useUIStore((state) => state.setGlobalResizing);
   const [width, setWidth] = useState(DEFAULT_WIDTH);
   const [activeTab, setActiveTab] = useState<RightSidebarTab>('changes');
   const [terminalCollapsed, setTerminalCollapsed] = useState(false);
@@ -35,6 +37,7 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
   const handleWidthResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     setIsResizingWidth(true);
+    setGlobalResizing(true);
     
     const startX = e.clientX;
     const startWidth = width;
@@ -47,18 +50,20 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
     
     const handleMouseUp = () => {
       setIsResizingWidth(false);
+      setGlobalResizing(false);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
     
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
-  }, [width]);
+  }, [width, setGlobalResizing]);
   
   const handleHeightResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setIsResizingHeight(true);
+    setGlobalResizing(true);
     
     const startY = e.clientY;
     const startHeight = terminalHeight;
@@ -73,13 +78,14 @@ export const RightSidebar: React.FC<RightSidebarProps> = ({
     
     const handleMouseUp = () => {
       setIsResizingHeight(false);
+      setGlobalResizing(false);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
     
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
-  }, [terminalHeight]);
+  }, [terminalHeight, setGlobalResizing]);
   
   const toggleTerminalCollapsed = useCallback(() => {
     setTerminalCollapsed(prev => !prev);

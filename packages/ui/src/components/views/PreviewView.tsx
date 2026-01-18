@@ -14,7 +14,9 @@ import {
 } from '@remixicon/react';
 import { cn } from '@/lib/utils';
 import { useFileStore } from '@/stores/fileStore';
+import { useUIStore } from '@/stores/useUIStore';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useShallow } from 'zustand/shallow';
 import { toast } from 'sonner';
 import { useTabContext } from '@/contexts/useTabContext';
 
@@ -104,6 +106,12 @@ interface PreviewTabMetadata {
 }
 
 export const PreviewView: React.FC = () => {
+  const { isGlobalResizing, setGlobalResizing } = useUIStore(
+    useShallow((state) => ({
+      isGlobalResizing: state.isGlobalResizing,
+      setGlobalResizing: state.setGlobalResizing,
+    }))
+  );
   const tabContext = useTabContext();
   const metadata = (tabContext?.tab.metadata ?? {}) as PreviewTabMetadata;
   
@@ -473,6 +481,7 @@ ${selection.html}
   const handleConsoleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     isResizingConsole.current = true;
+    setGlobalResizing(true);
     const startY = e.clientY;
     const startHeight = consoleHeight;
 
@@ -485,13 +494,14 @@ ${selection.html}
 
     const handleMouseUp = () => {
       isResizingConsole.current = false;
+      setGlobalResizing(false);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
 
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
-  }, [consoleHeight]);
+  }, [consoleHeight, setGlobalResizing]);
 
   useEffect(() => {
     if (showConsole && consoleEndRef.current) {
@@ -687,7 +697,7 @@ ${selection.html}
           <iframe
             ref={iframeRef}
             src={iframeSrc}
-            className="w-full h-full border-0"
+            className={cn('w-full h-full border-0', isGlobalResizing && 'pointer-events-none')}
             sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"
             title="Preview"
             onLoad={handleIframeLoad}

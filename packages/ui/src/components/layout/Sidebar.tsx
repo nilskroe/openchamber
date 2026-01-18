@@ -21,7 +21,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, children }) => {
-    const { sidebarWidth, setSidebarWidth, setSettingsDialogOpen, setAboutDialogOpen } = useUIStore();
+    const { sidebarWidth, setSidebarWidth, setSettingsDialogOpen, setAboutDialogOpen, setGlobalResizing } = useUIStore();
     const [isResizing, setIsResizing] = React.useState(false);
     const startXRef = React.useRef(0);
     const startWidthRef = React.useRef(sidebarWidth || SIDEBAR_CONTENT_WIDTH);
@@ -110,6 +110,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, children }) 
 
         const handlePointerUp = () => {
             setIsResizing(false);
+            setGlobalResizing(false);
         };
 
         window.addEventListener('pointermove', handlePointerMove);
@@ -119,7 +120,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, children }) 
             window.removeEventListener('pointermove', handlePointerMove);
             window.removeEventListener('pointerup', handlePointerUp);
         };
-    }, [isMobile, isResizing, setSidebarWidth]);
+    }, [isMobile, isResizing, setSidebarWidth, setGlobalResizing]);
 
     React.useEffect(() => {
         if (isMobile && isResizing) {
@@ -160,6 +161,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ isOpen, isMobile, children }) 
             return;
         }
         setIsResizing(true);
+        setGlobalResizing(true);
         startXRef.current = event.clientX;
         startWidthRef.current = appliedWidth;
         event.preventDefault();

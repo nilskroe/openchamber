@@ -168,9 +168,12 @@ export const MainLayout: React.FC = () => {
     const isSettingsActive = isSettingsDialogOpen && !isMobile;
     const isFocusedSessionView = sidebarMode === 'sessions' && focusedSessionId !== null;
 
+    const setGlobalResizing = useUIStore((state) => state.setGlobalResizing);
+
     const handleResizeStart = React.useCallback((e: React.MouseEvent) => {
         e.preventDefault();
         setIsResizing(true);
+        setGlobalResizing(true);
 
         const startX = e.clientX;
         const startWidth = rightPaneWidth;
@@ -186,13 +189,14 @@ export const MainLayout: React.FC = () => {
 
         const handleMouseUp = () => {
             setIsResizing(false);
+            setGlobalResizing(false);
             document.removeEventListener('mousemove', handleMouseMove);
             document.removeEventListener('mouseup', handleMouseUp);
         };
 
         document.addEventListener('mousemove', handleMouseMove);
         document.addEventListener('mouseup', handleMouseUp);
-    }, [rightPaneWidth, setRightPaneWidth]);
+    }, [rightPaneWidth, setRightPaneWidth, setGlobalResizing]);
 
     const handleRightDropZoneDragOver = useCallback((e: React.DragEvent) => {
         if (e.dataTransfer.types.includes('application/x-openchamber-tab')) {

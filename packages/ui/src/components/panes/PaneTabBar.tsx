@@ -11,6 +11,7 @@ import {
   RiQuestionLine,
   RiFileList3Line,
   RiWindow2Line,
+  RiSideBarLine,
   type RemixiconComponentType,
 } from '@remixicon/react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -303,6 +304,10 @@ export const PaneTabBar: React.FC<PaneTabBarProps> = ({
     [paneId, onMoveTabFromPane]
   );
 
+  const isSidebarOpen = useUIStore((state) => state.isSidebarOpen);
+  const toggleSidebar = useUIStore((state) => state.toggleSidebar);
+  const showSidebarToggle = paneId === 'left' && !isSidebarOpen;
+
   return (
     <div
       className="flex h-12 items-stretch border-b bg-muted/20 overflow-hidden"
@@ -312,6 +317,23 @@ export const PaneTabBar: React.FC<PaneTabBarProps> = ({
       onDragOver={handleBarDragOver}
       onDrop={handleBarDrop}
     >
+      {showSidebarToggle && (
+        <div className="flex items-stretch shrink-0 border-r" style={{ borderColor: 'var(--interactive-border)' }}>
+          <Tooltip delayDuration={500}>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={toggleSidebar}
+                className={actionButtonClass}
+                aria-label="Open sidebar"
+              >
+                <RiSideBarLine className="h-4 w-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>Open Sidebar</TooltipContent>
+          </Tooltip>
+        </div>
+      )}
       <div className="flex items-stretch overflow-x-auto overflow-y-hidden flex-1 min-w-0">
         {tabs.map((tab) => {
           const phase = tab.sessionId ? sessionActivityPhase?.get(tab.sessionId) : undefined;

@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState, useRef, useEffect } from 'react';
 import type { Session } from '@opencode-ai/sdk/v2';
 import {
   RiAddLine,
@@ -12,6 +12,7 @@ import {
   RiMore2Line,
   RiChat4Line,
   RiSearchLine,
+  RiSideBarLine,
 } from '@remixicon/react';
 import { toast } from 'sonner';
 import {
@@ -72,6 +73,13 @@ interface WorktreeItemProps {
   isMain: boolean;
   stats: WorktreeStats;
   onSelect: () => void;
+  onClose?: () => void;
+  onRename?: () => void;
+  isEditing?: boolean;
+  editValue?: string;
+  onEditChange?: (value: string) => void;
+  onSaveRename?: () => void;
+  onCancelRename?: () => void;
 }
 
 const WorktreeItem: React.FC<WorktreeItemProps> = ({
@@ -80,64 +88,141 @@ const WorktreeItem: React.FC<WorktreeItemProps> = ({
   isMain,
   stats,
   onSelect,
+  onClose,
+  onRename,
+  isEditing,
+  editValue,
+  onEditChange,
+  onSaveRename,
+  onCancelRename,
 }) => {
-  const label = isMain ? 'main' : (worktree.branch || worktree.label || 'worktree');
+  const label = isMain ? 'main' : (worktree.label || worktree.branch || 'worktree');
   const hasChanges = stats.additions > 0 || stats.deletions > 0;
+  const showActions = !isMain && (onClose || onRename);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      onSaveRename?.();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      onCancelRename?.();
+    }
+  }, [onSaveRename, onCancelRename]);
+  
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    if (!showActions) return;
+    e.preventDefault();
+    setDropdownOpen(true);
+  }, [showActions]);
+
   return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className={cn(
-        'group flex w-full flex-col gap-0.5 rounded-md px-2 py-1.5 text-left',
-        'transition-colors',
-        isActive
-          ? 'bg-primary/10'
-          : 'hover:bg-muted/50'
-      )}
-    >
-      <div className="flex items-center gap-2">
-        <RiGitBranchLine className={cn(
-          'h-4 w-4 shrink-0',
-          isActive ? 'text-primary' : 'text-muted-foreground'
-        )} />
-        <span className={cn(
-          'flex-1 truncate text-sm',
-          isActive ? 'text-primary font-medium' : 'text-foreground'
-        )}>
-          {label}
-        </span>
-        {stats.isStreaming && (
-          <GridLoader size="xs" className="text-primary shrink-0" />
+    <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+      <div
+        className={cn(
+          'group flex w-full flex-col gap-0.5 rounded-md px-2 py-1.5 text-left',
+          'transition-colors cursor-pointer',
+          isActive
+            ? 'bg-primary/10'
+            : 'hover:bg-muted/50'
         )}
-        {worktree.status?.isDirty && !stats.isStreaming && (
-          <span className="h-2 w-2 rounded-full bg-warning shrink-0" title="Uncommitted changes" />
-        )}
-      </div>
-      
-      {(stats.sessionCount > 0 || hasChanges) && (
-        <div className="flex items-center gap-2 pl-6 text-xs text-muted-foreground">
-          {stats.sessionCount > 0 && (
-            <span className="flex items-center gap-1">
-              <RiChat4Line className="h-3 w-3" />
-              {stats.sessionCount}
+        onClick={isEditing ? undefined : onSelect}
+        onContextMenu={handleContextMenu}
+      >
+        <div className="flex items-center gap-2">
+          <RiGitBranchLine className={cn(
+            'h-4 w-4 shrink-0',
+            isActive ? 'text-primary' : 'text-muted-foreground'
+          )} />
+          {isEditing ? (
+            <input
+              ref={inputRef}
+              type="text"
+              value={editValue ?? ''}
+              onChange={(e) => onEditChange?.(e.target.value)}
+              onKeyDown={handleKeyDown}
+              onBlur={onSaveRename}
+              onClick={(e) => e.stopPropagation()}
+              className="flex-1 bg-transparent border-b border-primary text-sm text-foreground outline-none px-0 py-0"
+            />
+          ) : (
+            <span className={cn(
+              'flex-1 truncate text-sm',
+              isActive ? 'text-primary font-medium' : 'text-foreground'
+            )}>
+              {label}
             </span>
           )}
-          {hasChanges && (
-            <span className="flex items-center gap-0.5">
-              <span className="text-[color:var(--status-success)]">+{stats.additions}</span>
-              <span>/</span>
-              <span className="text-destructive">-{stats.deletions}</span>
-            </span>
+          {stats.isStreaming && (
+            <GridLoader size="xs" className="text-primary shrink-0" />
           )}
-          {stats.lastUpdated && (
-            <span className="text-muted-foreground/70">
-              {formatRelativeTime(stats.lastUpdated)}
-            </span>
+          {worktree.status?.isDirty && !stats.isStreaming && (
+            <span className="h-2 w-2 rounded-full bg-warning shrink-0" title="Uncommitted changes" />
+          )}
+          {showActions && !isEditing && (
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                onClick={(e) => e.stopPropagation()}
+                className="h-5 w-5 flex items-center justify-center rounded text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-foreground hover:bg-muted/50 transition-all"
+              >
+                <RiMore2Line className="h-3.5 w-3.5" />
+              </button>
+            </DropdownMenuTrigger>
           )}
         </div>
+        
+        {(stats.sessionCount > 0 || hasChanges) && !isEditing && (
+          <div className="flex items-center gap-2 pl-6 text-xs text-muted-foreground">
+            {stats.sessionCount > 0 && (
+              <span className="flex items-center gap-1">
+                <RiChat4Line className="h-3 w-3" />
+                {stats.sessionCount}
+              </span>
+            )}
+            {hasChanges && (
+              <span className="flex items-center gap-0.5">
+                <span className="text-[color:var(--status-success)]">+{stats.additions}</span>
+                <span>/</span>
+                <span className="text-destructive">-{stats.deletions}</span>
+              </span>
+            )}
+            {stats.lastUpdated && (
+              <span className="text-muted-foreground/70">
+                {formatRelativeTime(stats.lastUpdated)}
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+      {showActions && (
+        <DropdownMenuContent align="end" className="min-w-[120px]">
+          {onRename && (
+            <DropdownMenuItem onClick={onRename}>
+              Rename
+            </DropdownMenuItem>
+          )}
+          {onClose && (
+            <DropdownMenuItem
+              onClick={onClose}
+              className="text-destructive focus:text-destructive"
+            >
+              <RiCloseLine className="mr-1.5 h-4 w-4" />
+              Close Worktree
+            </DropdownMenuItem>
+          )}
+        </DropdownMenuContent>
       )}
-    </button>
+    </DropdownMenu>
   );
 };
 
@@ -155,10 +240,18 @@ interface ProjectSectionProps {
   onToggleCollapse: () => void;
   onSelectWorktree: (path: string) => void;
   onClose: () => void;
+  onCloseWorktree?: (worktreePath: string) => void;
   onNewWorktreeSession?: () => void;
   onOpenBranchPicker?: () => void;
   isRepo: boolean;
   getWorktreeStats: (worktreePath: string) => WorktreeStats;
+  editingWorktreePath: string | null;
+  editValue: string;
+  onStartRename: (worktreePath: string, currentLabel: string) => void;
+  onEditChange: (value: string) => void;
+  onSaveRename: () => void;
+  onCancelRename: () => void;
+  worktreeLabels: Map<string, string>;
 }
 
 const ProjectSection: React.FC<ProjectSectionProps> = ({
@@ -170,10 +263,18 @@ const ProjectSection: React.FC<ProjectSectionProps> = ({
   onToggleCollapse,
   onSelectWorktree,
   onClose,
+  onCloseWorktree,
   onNewWorktreeSession,
   onOpenBranchPicker,
   isRepo,
   getWorktreeStats,
+  editingWorktreePath,
+  editValue,
+  onStartRename,
+  onEditChange,
+  onSaveRename,
+  onCancelRename,
+  worktreeLabels,
 }) => {
   const projectLabel = project.label || formatDirectoryName(project.path);
   const normalizedProjectPath = project.normalizedPath;
@@ -324,15 +425,27 @@ const ProjectSection: React.FC<ProjectSectionProps> = ({
             const isWorktreeActive = worktreePath === activeWorktreePath;
             const isMain = worktreePath === normalizedProjectPath;
             const stats = getWorktreeStats(worktree.path);
+            const isEditingThis = editingWorktreePath === worktreePath;
+            // Use saved label if exists, otherwise use branch or default label
+            const savedLabel = worktreePath ? worktreeLabels.get(worktreePath) : undefined;
+            const displayLabel = savedLabel ?? (worktree.branch || worktree.label || 'worktree');
+            const currentLabel = isMain ? 'main' : displayLabel;
             
             return (
               <WorktreeItem
                 key={worktree.path}
-                worktree={worktree}
+                worktree={{ ...worktree, label: currentLabel }}
                 isActive={isWorktreeActive}
                 isMain={isMain}
                 stats={stats}
                 onSelect={() => onSelectWorktree(worktree.path)}
+                onClose={!isMain && onCloseWorktree ? () => onCloseWorktree(worktree.path) : undefined}
+                onRename={!isMain && worktreePath ? () => onStartRename(worktreePath, currentLabel) : undefined}
+                isEditing={isEditingThis}
+                editValue={isEditingThis ? editValue : undefined}
+                onEditChange={onEditChange}
+                onSaveRename={onSaveRename}
+                onCancelRename={onCancelRename}
               />
             );
           })}
@@ -360,6 +473,7 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
   const setDirectory = useDirectoryStore((s) => s.setDirectory);
   
   const toggleCommandPalette = useUIStore((s) => s.toggleCommandPalette);
+  const toggleSidebar = useUIStore((s) => s.toggleSidebar);
   const isSettingsOpen = useUIStore((s) => s.isSettingsDialogOpen);
   const setSettingsOpen = useUIStore((s) => s.setSettingsDialogOpen);
   const activeSettingsTab = useUIStore((s) => s.activeSettingsTab);
@@ -386,6 +500,16 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
   const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set());
   const [projectRepoStatus, setProjectRepoStatus] = useState<Map<string, boolean>>(new Map());
   const [branchPickerOpen, setBranchPickerOpen] = useState(false);
+  const [editingWorktreePath, setEditingWorktreePath] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const [worktreeLabels, setWorktreeLabels] = useState<Map<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem('oc.worktree.labels');
+      return saved ? new Map(JSON.parse(saved)) : new Map();
+    } catch {
+      return new Map();
+    }
+  });
 
   const [isDesktopRuntime] = useState(() => {
     if (typeof window === 'undefined') return false;
@@ -509,8 +633,60 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
     createWorktreeSession();
   }, [activeProjectId, setActiveProject]);
 
+  const handleCloseWorktree = useCallback((worktreePath: string) => {
+    const normalizedPath = normalizePath(worktreePath);
+    if (!normalizedPath) return;
+    
+    if (normalizedPath === normalizePath(currentDirectory)) {
+      const activeProject = projects.find(p => p.id === activeProjectId);
+      if (activeProject) {
+        setDirectory(activeProject.path);
+      }
+    }
+    
+    toast.success('Worktree closed');
+  }, [currentDirectory, projects, activeProjectId, setDirectory]);
+
   const handleOpenBranchPicker = useCallback(() => {
     setBranchPickerOpen(true);
+  }, []);
+
+  const handleStartRename = useCallback((worktreePath: string, currentLabel: string) => {
+    const savedLabel = worktreeLabels.get(worktreePath);
+    setEditingWorktreePath(worktreePath);
+    setEditValue(savedLabel ?? currentLabel);
+  }, [worktreeLabels]);
+
+  const handleSaveRename = useCallback(() => {
+    if (!editingWorktreePath || !editValue.trim()) {
+      setEditingWorktreePath(null);
+      setEditValue('');
+      return;
+    }
+
+    setWorktreeLabels((prev) => {
+      const next = new Map(prev);
+      next.set(editingWorktreePath, editValue.trim());
+      try {
+        localStorage.setItem('oc.worktree.labels', JSON.stringify([...next]));
+      } catch {
+        // Ignore storage errors
+      }
+      return next;
+    });
+
+    setEditingWorktreePath(null);
+    setEditValue('');
+    toast.success('Worktree renamed');
+  }, [editingWorktreePath, editValue]);
+
+  const handleCancelRename = useCallback(() => {
+    setEditingWorktreePath(null);
+    setEditValue('');
+  }, []);
+
+  const handleEditChange = useCallback((value: string) => {
+    setEditValue(value);
   }, []);
 
   const normalizedProjects = useMemo(() => {
@@ -583,23 +759,37 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
 
   const renderSidebarHeader = () => (
     <div className="flex h-12 min-h-12 items-center justify-between px-3 border-b border-border/50">
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            type="button"
-            className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <span>{sidebarMode === 'projects' ? 'Projects' : 'Sessions'}</span>
-            <RiArrowDownSLine className="h-4 w-4" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="min-w-[140px]">
-          <DropdownMenuRadioGroup value={sidebarMode} onValueChange={(v) => setSidebarMode(v as 'projects' | 'sessions')}>
-            <DropdownMenuRadioItem value="projects">Projects</DropdownMenuRadioItem>
-            <DropdownMenuRadioItem value="sessions">Sessions</DropdownMenuRadioItem>
-          </DropdownMenuRadioGroup>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <div className="flex items-center gap-2">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              className="h-6 w-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50"
+            >
+              <RiSideBarLine className="h-4 w-4" />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">Close Sidebar</TooltipContent>
+        </Tooltip>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              type="button"
+              className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <span>{sidebarMode === 'projects' ? 'Projects' : 'Sessions'}</span>
+              <RiArrowDownSLine className="h-4 w-4" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="min-w-[140px]">
+            <DropdownMenuRadioGroup value={sidebarMode} onValueChange={(v) => setSidebarMode(v as 'projects' | 'sessions')}>
+              <DropdownMenuRadioItem value="projects">Projects</DropdownMenuRadioItem>
+              <DropdownMenuRadioItem value="sessions">Sessions</DropdownMenuRadioItem>
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
       {sidebarMode === 'projects' && (
         <Tooltip>
           <TooltipTrigger asChild>
@@ -768,10 +958,18 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
               onToggleCollapse={() => toggleProject(project.id)}
               onSelectWorktree={(path) => handleSelectWorktree(project.id, path)}
               onClose={() => handleCloseProject(project.id)}
+              onCloseWorktree={handleCloseWorktree}
               onNewWorktreeSession={() => handleNewWorktreeSession(project.id)}
               onOpenBranchPicker={handleOpenBranchPicker}
               isRepo={isRepo}
               getWorktreeStats={getWorktreeStats}
+              editingWorktreePath={editingWorktreePath}
+              editValue={editValue}
+              onStartRename={handleStartRename}
+              onEditChange={handleEditChange}
+              onSaveRename={handleSaveRename}
+              onCancelRename={handleCancelRename}
+              worktreeLabels={worktreeLabels}
             />
           );
         })}

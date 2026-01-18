@@ -5,7 +5,7 @@ import { isVSCodeRuntime, isWebRuntime } from '@/lib/desktop';
 import { AboutSettings } from './AboutSettings';
 import { cn } from '@/lib/utils';
 
-export type OpenChamberSection = 'visual' | 'chat' | 'sessions' | 'git' | 'notifications';
+export type OpenChamberSection = 'visual' | 'chat' | 'sessions' | 'layout' | 'git' | 'notifications';
 
 interface OpenChamberSidebarProps {
   selectedSection: OpenChamberSection;
@@ -35,6 +35,12 @@ const OPENCHAMBER_SECTION_GROUPS: SectionGroup[] = [
     id: 'sessions',
     label: 'Sessions',
     items: ['Defaults', 'Retention'],
+  },
+  {
+    id: 'layout',
+    label: 'Layout',
+    items: ['Default Panes', 'Tabs'],
+    hideInVSCode: true,
   },
   {
     id: 'git',

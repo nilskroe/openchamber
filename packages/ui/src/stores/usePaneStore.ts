@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
+import { useSessionStore } from './useSessionStore';
+import { useUIStore } from './useUIStore';
 
 export type PaneId = 'left' | 'right';
 
@@ -65,14 +67,37 @@ const generateTabId = (type: PaneTabType): string => {
   return `${type}-${timestamp}-${random}`;
 };
 
-const createDefaultTabs = (): PaneTab[] => {
+const TAB_TITLES: Record<PaneTabType, string> = {
+  chat: 'Chat',
+  diff: 'Diff',
+  files: 'Files',
+  terminal: 'Terminal',
+  git: 'Git',
+  browser: 'Browser',
+  todo: 'Note',
+  preview: 'Preview',
+};
+
+const createDefaultTabs = (tabTypes?: PaneTabType[]): PaneTab[] => {
+  const types = tabTypes ?? useUIStore.getState().defaultLeftPaneTabs;
   const now = Date.now();
-  return [
-    { id: generateTabId('files'), type: 'files', title: 'Files', createdAt: now },
-    { id: generateTabId('diff'), type: 'diff', title: 'Diff', createdAt: now + 1 },
-    { id: generateTabId('terminal'), type: 'terminal', title: 'Terminal', createdAt: now + 2 },
-    { id: generateTabId('git'), type: 'git', title: 'Git', createdAt: now + 3 },
-  ];
+  return types.map((type, index) => ({
+    id: generateTabId(type),
+    type,
+    title: TAB_TITLES[type] ?? type,
+    createdAt: now + index,
+  }));
+};
+
+const createDefaultRightTabs = (): PaneTab[] => {
+  const types = useUIStore.getState().defaultRightPaneTabs;
+  const now = Date.now();
+  return types.map((type, index) => ({
+    id: generateTabId(type),
+    type,
+    title: TAB_TITLES[type] ?? type,
+    createdAt: now + index,
+  }));
 };
 
 const ensureWorktreePanes = (
@@ -81,10 +106,11 @@ const ensureWorktreePanes = (
 ): { left: PaneState; right: PaneState } => {
   let panes = panesByWorktree.get(worktreeId);
   if (!panes) {
-    const defaultTabs = createDefaultTabs();
+    const leftTabs = createDefaultTabs();
+    const rightTabs = createDefaultRightTabs();
     panes = {
-      left: { tabs: defaultTabs, activeTabId: defaultTabs[0]?.id ?? null },
-      right: { ...EMPTY_PANE_STATE, tabs: [] },
+      left: { tabs: leftTabs, activeTabId: leftTabs[0]?.id ?? null },
+      right: { tabs: rightTabs, activeTabId: rightTabs[0]?.id ?? null },
     };
     panesByWorktree.set(worktreeId, panes);
   }
@@ -313,14 +339,17 @@ export const usePaneStore = create<PaneStore>()(
           const existing = findTabBySessionId(worktreeId, sessionId);
           if (existing) {
             setActiveTab(worktreeId, existing.paneId, existing.tab.id);
+            useSessionStore.getState().setCurrentSession(sessionId);
             return existing.tab.id;
           }
           
-          return addTab(worktreeId, paneId, {
+          const tabId = addTab(worktreeId, paneId, {
             type: 'chat',
             title: title ?? 'Chat',
             sessionId,
           });
+          useSessionStore.getState().setCurrentSession(sessionId);
+          return tabId;
         },
         
         findTabBySessionId: (worktreeId: string, sessionId: string) => {
@@ -346,7 +375,11 @@ export const usePaneStore = create<PaneStore>()(
           
           const paneState = panes[focusedPane];
           if (index >= 0 && index < paneState.tabs.length) {
-            setActiveTab(worktreeId, focusedPane, paneState.tabs[index].id);
+            const tab = paneState.tabs[index];
+            setActiveTab(worktreeId, focusedPane, tab.id);
+            if (tab.type === 'chat' && tab.sessionId) {
+              useSessionStore.getState().setCurrentSession(tab.sessionId);
+            }
           }
         },
         

@@ -94,7 +94,7 @@ export const WorkspacePane: React.FC<WorkspacePaneProps> = ({
           terminal: 'Terminal',
           git: 'Git',
           browser: 'Browser',
-          todo: 'To-Do',
+          todo: 'Note',
           preview: 'Preview',
         };
         addTab(paneId, {

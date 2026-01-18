@@ -61,6 +61,13 @@ interface UIStore {
   nativeNotificationsEnabled: boolean;
   notificationMode: 'always' | 'hidden-only';
 
+  defaultLeftPaneTabs: Array<'files' | 'diff' | 'terminal' | 'git' | 'browser' | 'todo' | 'preview'>;
+  defaultRightPaneTabs: Array<'files' | 'diff' | 'terminal' | 'git' | 'browser' | 'todo' | 'preview'>;
+  defaultRightPaneVisible: boolean;
+
+  isGlobalResizing: boolean;
+  setGlobalResizing: (resizing: boolean) => void;
+
   setTheme: (theme: 'light' | 'dark' | 'system') => void;
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
@@ -110,6 +117,10 @@ interface UIStore {
   setNotificationMode: (mode: 'always' | 'hidden-only') => void;
   openMultiRunLauncher: () => void;
   openMultiRunLauncherWithPrompt: (prompt: string) => void;
+
+  setDefaultLeftPaneTabs: (tabs: Array<'files' | 'diff' | 'terminal' | 'git' | 'browser' | 'todo' | 'preview'>) => void;
+  setDefaultRightPaneTabs: (tabs: Array<'files' | 'diff' | 'terminal' | 'git' | 'browser' | 'todo' | 'preview'>) => void;
+  setDefaultRightPaneVisible: (visible: boolean) => void;
 }
 
 export const useUIStore = create<UIStore>()(
@@ -157,6 +168,14 @@ export const useUIStore = create<UIStore>()(
         isTimelineDialogOpen: false,
         nativeNotificationsEnabled: false,
         notificationMode: 'hidden-only',
+        isGlobalResizing: false,
+        defaultLeftPaneTabs: ['files', 'diff', 'terminal', 'git'],
+        defaultRightPaneTabs: [],
+        defaultRightPaneVisible: true,
+
+        setGlobalResizing: (resizing) => {
+          set({ isGlobalResizing: resizing });
+        },
 
         setTheme: (theme) => {
           set({ theme });
@@ -508,6 +527,18 @@ export const useUIStore = create<UIStore>()(
         setNotificationMode: (mode) => {
           set({ notificationMode: mode });
         },
+
+        setDefaultLeftPaneTabs: (tabs) => {
+          set({ defaultLeftPaneTabs: tabs });
+        },
+
+        setDefaultRightPaneTabs: (tabs) => {
+          set({ defaultRightPaneTabs: tabs });
+        },
+
+        setDefaultRightPaneVisible: (visible) => {
+          set({ defaultRightPaneVisible: visible });
+        },
       }),
       {
         name: 'ui-store',
@@ -537,6 +568,9 @@ export const useUIStore = create<UIStore>()(
           diffViewMode: state.diffViewMode,
           nativeNotificationsEnabled: state.nativeNotificationsEnabled,
           notificationMode: state.notificationMode,
+          defaultLeftPaneTabs: state.defaultLeftPaneTabs,
+          defaultRightPaneTabs: state.defaultRightPaneTabs,
+          defaultRightPaneVisible: state.defaultRightPaneVisible,
         })
       }
     ),
