@@ -1128,7 +1128,7 @@ const ToolPart: React.FC<ToolPartProps> = ({ part, isExpanded, onToggle, syntaxT
                 />
             ) : null}
 
-            {!isTaskTool && isExpanded ? (
+            {!isTaskTool && isExpanded && (
                 <ToolExpandedContent
                     part={part}
                     state={state}
@@ -1138,7 +1138,7 @@ const ToolPart: React.FC<ToolPartProps> = ({ part, isExpanded, onToggle, syntaxT
                     hasPrevTool={hasPrevTool}
                     hasNextTool={hasNextTool}
                 />
-            ) : null}
+            )}
         </div>
     );
 };

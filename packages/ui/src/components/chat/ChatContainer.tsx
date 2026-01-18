@@ -310,8 +310,8 @@ export const ChatContainer: React.FC = () => {
                                 onLoadOlder={handleLoadOlder}
                                 scrollToBottom={scrollToBottom}
                                 pendingAnchorId={pendingAnchorId}
+                                scrollParent={scrollRef.current}
                             />
-                            {}
                             {spacerHeight > 0 && hasActiveAnchor && (
                                 <div
                                     data-role="active-turn-spacer"

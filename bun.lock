@@ -74,7 +74,7 @@
     },
     "packages/desktop": {
       "name": "@openchamber/desktop",
-      "version": "1.4.8",
+      "version": "1.5.1",
       "dependencies": {
         "@openchamber/ui": "workspace:*",
         "@tauri-apps/plugin-notification": "^2.3.3",
@@ -97,7 +97,7 @@
     },
     "packages/ui": {
       "name": "@openchamber/ui",
-      "version": "1.4.8",
+      "version": "1.5.1",
       "dependencies": {
         "@dnd-kit/core": "^6.3.1",
         "@dnd-kit/sortable": "^10.0.0",
@@ -132,6 +132,7 @@
         "react": "^19.1.1",
         "react-dom": "^19.1.1",
         "react-syntax-highlighter": "^15.6.6",
+        "react-virtuoso": "^4.18.1",
         "simple-git": "^3.28.0",
         "sonner": "^2.0.7",
         "streamdown": "^1.6.10",
@@ -169,7 +170,7 @@
     },
     "packages/vscode": {
       "name": "openchamber",
-      "version": "1.4.8",
+      "version": "1.5.1",
       "dependencies": {
         "@openchamber/ui": "workspace:*",
         "@opencode-ai/sdk": "^1.1.19",
@@ -192,7 +193,7 @@
     },
     "packages/web": {
       "name": "@openchamber/web",
-      "version": "1.4.8",
+      "version": "1.5.1",
       "bin": {
         "openchamber": "./bin/cli.js",
       },
@@ -2168,6 +2169,8 @@
     "react-style-singleton": ["react-style-singleton@2.2.3", "", { "dependencies": { "get-nonce": "^1.0.0", "tslib": "^2.0.0" }, "peerDependencies": { "@types/react": "*", "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0 || ^19.0.0-rc" }, "optionalPeers": ["@types/react"] }, "sha512-b6jSvxvVnyptAiLjbkWLE/lOnR4lfTtDAl+eUC7RZy+QQWc6wRzIV2CE6xBuMmDxc2qIihtDCZD5NPOFl7fRBQ=="],
 
     "react-syntax-highlighter": ["react-syntax-highlighter@15.6.6", "", { "dependencies": { "@babel/runtime": "^7.3.1", "highlight.js": "^10.4.1", "highlightjs-vue": "^1.0.0", "lowlight": "^1.17.0", "prismjs": "^1.30.0", "refractor": "^3.6.0" }, "peerDependencies": { "react": ">= 0.14.0" } }, "sha512-DgXrc+AZF47+HvAPEmn7Ua/1p10jNoVZVI/LoPiYdtY+OM+/nG5yefLHKJwdKqY1adMuHFbeyBaG9j64ML7vTw=="],
+
+    "react-virtuoso": ["react-virtuoso@4.18.1", "", { "peerDependencies": { "react": ">=16 || >=17 || >= 18 || >= 19", "react-dom": ">=16 || >=17 || >= 18 || >=19" } }, "sha512-KF474cDwaSb9+SJ380xruBB4P+yGWcVkcu26HtMqYNMTYlYbrNy8vqMkE+GpAApPPufJqgOLMoWMFG/3pJMXUA=="],
 
     "read": ["read@1.0.7", "", { "dependencies": { "mute-stream": "~0.0.4" } }, "sha512-rSOKNYUmaxy0om1BNjMN4ezNT6VKK+2xF4GBhc81mkH7L60i6dp8qPYrkndNLT3QPphoII3maL9PVC9XmhHwVQ=="],
 
