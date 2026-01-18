@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useRef } from 'react';
+import React, { useCallback, useState, useRef, useMemo } from 'react';
 import {
   RiAddLine,
   RiCloseLine,
@@ -13,7 +13,7 @@ import { useSessionStore } from '@/stores/useSessionStore';
 import type { PaneId, PaneTab, PaneTabType } from '@/stores/usePaneStore';
 import { SessionHistoryDropdown } from './SessionHistoryDropdown';
 import { McpDropdown } from '@/components/mcp/McpDropdown';
-import { getTabIcon, getTabAddLabel } from '@/constants/tabs';
+import { getTabIcon, getTabAddLabel, getTabLabel } from '@/constants/tabs';
 
 interface DraggableTabItemProps {
   tab: PaneTab;
@@ -22,6 +22,7 @@ interface DraggableTabItemProps {
   isDragOver: boolean;
   isDragging: boolean;
   isStreaming: boolean;
+  displayTitle: string;
   onActivate: () => void;
   onClose: () => void;
   onDragStart: (e: React.DragEvent, tabId: string) => void;
@@ -37,6 +38,7 @@ const DraggableTabItem: React.FC<DraggableTabItemProps> = ({
   isDragOver,
   isDragging,
   isStreaming,
+  displayTitle,
   onActivate,
   onClose,
   onDragStart,
@@ -93,7 +95,7 @@ const DraggableTabItem: React.FC<DraggableTabItemProps> = ({
       ) : (
         <Icon className="h-4 w-4 shrink-0" />
       )}
-      <span className="truncate max-w-[120px] text-sm">{tab.title}</span>
+      <span className="truncate max-w-[120px] text-sm">{displayTitle}</span>
       <button
         type="button"
         onClick={handleClose}
@@ -103,7 +105,7 @@ const DraggableTabItem: React.FC<DraggableTabItemProps> = ({
           'hover:bg-foreground/10',
           isActive && 'opacity-60'
         )}
-        aria-label={`Close ${tab.title}`}
+        aria-label={`Close ${displayTitle}`}
       >
         <RiCloseLine className="h-4 w-4" />
       </button>
@@ -194,6 +196,27 @@ export const PaneTabBar: React.FC<PaneTabBarProps> = ({
   
   const toggleHelpDialog = useUIStore((state) => state.toggleHelpDialog);
   const sessionActivityPhase = useSessionStore((s) => s.sessionActivityPhase);
+  const sessions = useSessionStore((s) => s.sessions);
+
+  const sessionTitleMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const session of sessions) {
+      if (session.id && session.title) {
+        map.set(session.id, session.title);
+      }
+    }
+    return map;
+  }, [sessions]);
+
+  const getDisplayTitle = useCallback((tab: PaneTab): string => {
+    if (tab.type === 'chat' && tab.sessionId) {
+      const sessionTitle = sessionTitleMap.get(tab.sessionId);
+      if (sessionTitle && sessionTitle.trim().length > 0) {
+        return sessionTitle;
+      }
+    }
+    return tab.title || getTabLabel(tab.type);
+  }, [sessionTitleMap]);
   
   const actionButtonClass = cn(
     'flex h-12 w-12 shrink-0 items-center justify-center',
@@ -325,6 +348,7 @@ export const PaneTabBar: React.FC<PaneTabBarProps> = ({
               isDragOver={dragOverTabId === tab.id}
               isDragging={draggingTabId === tab.id}
               isStreaming={isStreaming}
+              displayTitle={getDisplayTitle(tab)}
               onActivate={() => onActivateTab(tab.id)}
               onClose={() => onCloseTab(tab.id)}
               onDragStart={handleDragStart}
