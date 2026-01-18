@@ -86,6 +86,18 @@ const listDirectoryEntries = async (dirPath) => {
   }
 };
 
+const getDefaultShell = () => {
+  if (process.platform === 'win32') {
+    return process.env.COMSPEC || 'cmd.exe';
+  }
+  const envShell = process.env.SHELL;
+  if (envShell && fs.existsSync(envShell)) {
+    return envShell;
+  }
+  const candidates = ['/bin/zsh', '/bin/bash', '/bin/sh'];
+  return candidates.find(s => fs.existsSync(s)) || '/bin/sh';
+};
+
 /**
  * Fuzzy match scoring function.
  * Returns a score > 0 if the query fuzzy-matches the candidate, null otherwise.
@@ -999,7 +1011,7 @@ function getLoginShellPath() {
     return null;
   }
 
-  const shell = process.env.SHELL || '/bin/zsh';
+  const shell = getDefaultShell();
   const shellName = path.basename(shell);
 
   // Nushell requires different flag syntax and PATH access
@@ -4423,7 +4435,7 @@ async function main(options = {}) {
         return res.status(400).json({ error: 'Specified cwd is not a directory' });
       }
 
-      const shell = process.env.SHELL || (process.platform === 'win32' ? 'cmd.exe' : '/bin/sh');
+      const shell = getDefaultShell();
       const shellFlag = process.platform === 'win32' ? '/c' : '-c';
 
       const jobId = crypto.randomUUID();
@@ -4761,7 +4773,7 @@ async function main(options = {}) {
         return res.status(400).json({ error: 'Invalid working directory' });
       }
 
-      const shell = process.env.SHELL || (process.platform === 'win32' ? 'powershell.exe' : '/bin/zsh');
+      const shell = getDefaultShell();
 
       const sessionId = Math.random().toString(36).substring(2, 15) +
                         Math.random().toString(36).substring(2, 15);
@@ -4977,7 +4989,7 @@ async function main(options = {}) {
         return res.status(400).json({ error: 'Invalid working directory' });
       }
 
-      const shell = process.env.SHELL || (process.platform === 'win32' ? 'powershell.exe' : '/bin/zsh');
+      const shell = getDefaultShell();
 
       const newSessionId = Math.random().toString(36).substring(2, 15) +
                           Math.random().toString(36).substring(2, 15);

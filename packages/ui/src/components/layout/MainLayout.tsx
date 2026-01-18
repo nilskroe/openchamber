@@ -421,7 +421,10 @@ export const MainLayout: React.FC = () => {
                                                                 paneId="rightBottom"
                                                                 worktreeId={worktreeId}
                                                                 className="shrink-0"
-                                                                style={{ height: rightBottomCollapsed ? 48 : rightBottomHeight }}
+                                                                style={{ 
+                                                                    height: rightBottomCollapsed ? 48 : rightBottomHeight,
+                                                                    borderTop: rightBottomCollapsed ? '1px solid var(--interactive-border)' : undefined
+                                                                }}
                                                                 isLastPane={false}
                                                             />
                                                         </>
