@@ -170,6 +170,8 @@ export const MainLayout: React.FC = () => {
 
             timeoutId = window.setTimeout(() => {
                 useUIStore.getState().updateProportionalSidebarWidths();
+                const currentHeight = usePaneStore.getState().rightBottomHeight;
+                usePaneStore.getState().setRightBottomHeight(currentHeight);
             }, 150);
         };
 
