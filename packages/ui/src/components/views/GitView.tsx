@@ -774,9 +774,9 @@ export const GitView: React.FC = () => {
       />
 
       <ScrollableOverlay outerClassName="flex-1 min-h-0" className="p-3">
-        <div className="flex flex-col gap-3">
-          {/* Two-column layout on large screens: Changes + Commit */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+        <div className="@container/git-changes flex flex-col gap-3">
+          {/* Two-column layout when container has enough space */}
+          <div className="grid grid-cols-1 gap-3 @[480px]/git-changes:grid-cols-2">
             {hasChanges ? (
               <ChangesSection
                 changeEntries={changeEntries}
@@ -790,7 +790,7 @@ export const GitView: React.FC = () => {
                 onRevertFile={handleRevertFile}
               />
             ) : (
-              <div className="lg:col-span-2 flex justify-center">
+              <div className="col-span-1 @[480px]/git-changes:col-span-2 flex justify-center">
                 <GitEmptyState
                   behind={status?.behind ?? 0}
                   onPull={() => handleSyncAction('pull')}
