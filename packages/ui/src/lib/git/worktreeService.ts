@@ -3,8 +3,10 @@ import { opencodeClient } from '@/lib/opencode/client';
 import type { WorktreeMetadata } from '@/types/worktree';
 import type { FilesAPI, RuntimeAPIs } from '@/lib/api/types';
 import { getWorktreeSetupCommands, substituteCommandVariables } from '@/lib/openchamberConfig';
+import { useDirectoryStore } from '@/stores/useDirectoryStore';
 
-const WORKTREE_ROOT = '.openchamber';
+const OPENCHAMBER_ROOT = 'openchamber';
+const WORKSPACES_DIR = 'workspaces';
 const DEFAULT_BASE_URL = import.meta.env.VITE_OPENCODE_URL || '/api';
 
 /**
@@ -55,6 +57,72 @@ const shortBranchLabel = (branch?: string): string => {
   return branch;
 };
 
+/**
+ * Get the home directory from the directory store or fallback sources.
+ */
+const getHomeDirectory = (): string => {
+  // Try to get from Zustand store
+  try {
+    const storeHome = useDirectoryStore.getState().homeDirectory;
+    if (storeHome && storeHome !== '/') {
+      return normalize(storeHome);
+    }
+  } catch {
+    // Store might not be initialized yet
+  }
+
+  // Try localStorage fallback
+  if (typeof window !== 'undefined' && window.localStorage) {
+    const stored = window.localStorage.getItem('homeDirectory');
+    if (stored && stored !== '/') {
+      return normalize(stored);
+    }
+  }
+
+  // Fallback to process.env.HOME for Node environments
+  if (typeof process !== 'undefined' && process.env?.HOME) {
+    return normalize(process.env.HOME);
+  }
+
+  return '';
+};
+
+/**
+ * Extract repository name from a project path.
+ * Takes the last segment of the path as the repo name.
+ * e.g., "/Users/user/projects/my-repo" -> "my-repo"
+ */
+export const extractRepoName = (projectDirectory: string): string => {
+  const normalized = normalize(projectDirectory);
+  if (!normalized || normalized === '/') {
+    return 'unnamed-repo';
+  }
+  const segments = normalized.split('/').filter(Boolean);
+  return segments[segments.length - 1] || 'unnamed-repo';
+};
+
+/**
+ * Get the global openchamber workspaces root.
+ * Returns: ~/openchamber/workspaces
+ */
+export const getWorkspacesRoot = (): string => {
+  const home = getHomeDirectory();
+  if (!home) {
+    throw new Error('Could not determine home directory for openchamber workspaces');
+  }
+  return joinPath(joinPath(home, OPENCHAMBER_ROOT), WORKSPACES_DIR);
+};
+
+/**
+ * Get the workspace directory for a specific repository.
+ * Returns: ~/openchamber/workspaces/<repo-name>
+ */
+export const getRepoWorkspaceDir = (projectDirectory: string): string => {
+  const workspacesRoot = getWorkspacesRoot();
+  const repoName = extractRepoName(projectDirectory);
+  return joinPath(workspacesRoot, repoName);
+};
+
 const ensureDirectory = async (path: string) => {
   try {
     await opencodeClient.createDirectory(path);
@@ -92,17 +160,25 @@ export interface ArchiveWorktreeOptions {
   remote?: string;
 }
 
+/**
+ * Resolve the path where a worktree should be created.
+ * New structure: ~/openchamber/workspaces/<repo-name>/<worktree-slug>
+ */
 export async function resolveWorktreePath(projectDirectory: string, worktreeSlug: string): Promise<string> {
-  const normalizedProject = normalize(projectDirectory);
-  const root = joinPath(normalizedProject, WORKTREE_ROOT);
-  await ensureDirectory(root);
-  return joinPath(root, worktreeSlug);
+  const repoWorkspaceDir = getRepoWorkspaceDir(projectDirectory);
+  const workspacesRoot = getWorkspacesRoot();
+  
+  await ensureDirectory(workspacesRoot);
+  await ensureDirectory(repoWorkspaceDir);
+  
+  return joinPath(repoWorkspaceDir, worktreeSlug);
 }
 
 export async function createWorktree(options: CreateWorktreeOptions): Promise<WorktreeMetadata> {
   const { projectDirectory, worktreeSlug, branch, createBranch, startPoint } = options;
   const normalizedProject = normalize(projectDirectory);
   const worktreePath = await resolveWorktreePath(normalizedProject, worktreeSlug);
+  const repoWorkspaceDir = getRepoWorkspaceDir(normalizedProject);
 
   const payload: GitAddWorktreePayload = {
     path: worktreePath,
@@ -118,9 +194,9 @@ export async function createWorktree(options: CreateWorktreeOptions): Promise<Wo
     branch,
     label: shortBranchLabel(branch),
     projectDirectory: normalizedProject,
-    relativePath: worktreePath.startsWith(`${normalizedProject}/`)
-      ? worktreePath.slice(normalizedProject.length + 1)
-      : worktreePath,
+    relativePath: worktreePath.startsWith(`${repoWorkspaceDir}/`)
+      ? worktreePath.slice(repoWorkspaceDir.length + 1)
+      : worktreeSlug,
   };
 }
 
@@ -172,14 +248,24 @@ export async function getWorktreeStatus(worktreePath: string): Promise<WorktreeM
 export function mapWorktreeToMetadata(projectDirectory: string, info: GitWorktreeInfo): WorktreeMetadata {
   const normalizedProject = normalize(projectDirectory);
   const normalizedPath = normalize(info.worktree);
+  const repoWorkspaceDir = getRepoWorkspaceDir(normalizedProject);
+  
+  let relativePath: string;
+  if (normalizedPath.startsWith(`${repoWorkspaceDir}/`)) {
+    relativePath = normalizedPath.slice(repoWorkspaceDir.length + 1);
+  } else if (normalizedPath.startsWith(`${normalizedProject}/`)) {
+    relativePath = normalizedPath.slice(normalizedProject.length + 1);
+  } else {
+    const segments = normalizedPath.split('/').filter(Boolean);
+    relativePath = segments[segments.length - 1] || normalizedPath;
+  }
+  
   return {
     path: normalizedPath,
     branch: info.branch ?? '',
     label: shortBranchLabel(info.branch ?? ''),
     projectDirectory: normalizedProject,
-    relativePath: normalizedPath.startsWith(`${normalizedProject}/`)
-      ? normalizedPath.slice(normalizedProject.length + 1)
-      : normalizedPath,
+    relativePath,
   };
 }
 
@@ -342,4 +428,64 @@ export async function runWorktreeSetupCommands(
 export async function hasWorktreeSetupCommands(projectDirectory: string): Promise<boolean> {
   const commands = await getWorktreeSetupCommands(projectDirectory);
   return commands.length > 0;
+}
+
+const LEGACY_WORKTREE_ROOT = '.openchamber';
+
+export interface MigrateWorktreesResult {
+  success: boolean;
+  migrated: Array<{
+    oldPath: string;
+    newPath: string;
+    success: boolean;
+    error?: string;
+  }>;
+  targetDirectory?: string;
+  message?: string;
+  error?: string;
+}
+
+export async function hasLegacyWorktrees(projectDirectory: string): Promise<boolean> {
+  const normalizedProject = normalize(projectDirectory);
+  try {
+    const worktrees = await listWorktrees(normalizedProject);
+    const legacyRoot = `${normalizedProject}/${LEGACY_WORKTREE_ROOT}/`;
+    return worktrees.some(wt => {
+      const wtPath = normalize(wt.worktree);
+      return wtPath.startsWith(legacyRoot);
+    });
+  } catch {
+    return false;
+  }
+}
+
+export async function migrateWorktreesToGlobalLocation(
+  projectDirectory: string
+): Promise<MigrateWorktreesResult> {
+  const normalizedProject = normalize(projectDirectory);
+  
+  try {
+    const response = await fetch(`${DEFAULT_BASE_URL}/git/migrate-worktrees`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectDirectory: normalizedProject }),
+    });
+
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      return {
+        success: false,
+        migrated: [],
+        error: data.error || 'Migration request failed',
+      };
+    }
+
+    return await response.json() as MigrateWorktreesResult;
+  } catch (error) {
+    return {
+      success: false,
+      migrated: [],
+      error: error instanceof Error ? error.message : 'Migration failed',
+    };
+  }
 }

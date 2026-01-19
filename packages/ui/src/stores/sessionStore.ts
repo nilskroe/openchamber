@@ -4,7 +4,7 @@ import type { Session } from "@opencode-ai/sdk/v2";
 import { opencodeClient } from "@/lib/opencode/client";
 import { getSafeStorage } from "./utils/safeStorage";
 import type { WorktreeMetadata } from "@/types/worktree";
-import { archiveWorktree, getWorktreeStatus, listWorktrees, mapWorktreeToMetadata } from "@/lib/git/worktreeService";
+import { archiveWorktree, getWorktreeStatus, listWorktrees, mapWorktreeToMetadata, getRepoWorkspaceDir, extractRepoName } from "@/lib/git/worktreeService";
 import { useDirectoryStore } from "./useDirectoryStore";
 import { useProjectsStore } from "./useProjectsStore";
 import type { ProjectEntry } from "@/lib/api/types";
@@ -52,7 +52,7 @@ type SessionStore = SessionState & SessionActions;
 
 const safeStorage = getSafeStorage();
 const SESSION_SELECTION_STORAGE_KEY = "oc.sessionSelectionByDirectory";
-const WORKTREE_ROOT = ".openchamber";
+const LEGACY_WORKTREE_ROOT = ".openchamber";
 
 type SessionSelectionMap = Record<string, string>;
 
@@ -548,33 +548,75 @@ export const useSessionStore = create<SessionStore>()(
                                 validPaths.add(normalizedProject);
 
                                 if (isGitRepo) {
-                                    const worktreeRoot = `${normalizedProject}/${WORKTREE_ROOT}`;
+                                    const legacyWorktreeRoot = `${normalizedProject}/${LEGACY_WORKTREE_ROOT}`;
+                                    
+                                    // Get new global workspace directory for this repo
+                                    let globalWorkspaceDir: string | null = null;
+                                    try {
+                                        globalWorkspaceDir = getRepoWorkspaceDir(normalizedProject);
+                                    } catch {
+                                        // Home directory might not be available yet
+                                    }
+                                    
                                     try {
                                         const candidates = new Set<string>();
 
-                                        // Check if .openchamber directory exists before trying to list it
+                                        // Check legacy .openchamber directory (for backwards compatibility)
                                         const projectEntriesList = await opencodeClient.listLocalDirectory(normalizedProject);
-                                        const worktreeDirExists = projectEntriesList.some(
-                                            (entry) => entry.isDirectory && entry.name === WORKTREE_ROOT
+                                        const legacyWorktreeDirExists = projectEntriesList.some(
+                                            (entry) => entry.isDirectory && entry.name === LEGACY_WORKTREE_ROOT
                                         );
 
-                                        if (worktreeDirExists) {
-                                            const entries = await opencodeClient.listLocalDirectory(worktreeRoot);
+                                        if (legacyWorktreeDirExists) {
+                                            const entries = await opencodeClient.listLocalDirectory(legacyWorktreeRoot);
                                             entries
                                                 .filter((entry) => entry.isDirectory)
                                                 .forEach((entry) => {
                                                     const isAbsolutePath = /^([A-Za-z]:)?\//.test(entry.path);
-                                                    const resolvedPath = isAbsolutePath ? entry.path : `${worktreeRoot}/${entry.name}`;
+                                                    const resolvedPath = isAbsolutePath ? entry.path : `${legacyWorktreeRoot}/${entry.name}`;
                                                     const normalizedPath = normalizePath(resolvedPath) ?? resolvedPath;
                                                     candidates.add(normalizedPath);
                                                 });
                                         }
 
+                                        // Check new global workspace directory ~/openchamber/workspaces/<repo>/
+                                        if (globalWorkspaceDir) {
+                                            try {
+                                                const globalEntries = await opencodeClient.listLocalDirectory(globalWorkspaceDir);
+                                                globalEntries
+                                                    .filter((entry) => entry.isDirectory)
+                                                    .forEach((entry) => {
+                                                        const isAbsolutePath = /^([A-Za-z]:)?\//.test(entry.path);
+                                                        const resolvedPath = isAbsolutePath ? entry.path : `${globalWorkspaceDir}/${entry.name}`;
+                                                        const normalizedPath = normalizePath(resolvedPath) ?? resolvedPath;
+                                                        candidates.add(normalizedPath);
+                                                    });
+                                            } catch {
+                                                // Global workspace dir might not exist yet - that's fine
+                                            }
+                                        }
+
                                         const listedWorktrees = await listWorktrees(normalizedProject);
                                         if (Array.isArray(listedWorktrees)) {
+                                            // Filter worktrees that are in either legacy or new location
+                                            const repoName = extractRepoName(normalizedProject);
                                             discoveredWorktrees = listedWorktrees
                                                 .map((info) => mapWorktreeToMetadata(normalizedProject, info))
-                                                .filter((meta) => meta.path.includes(`/${WORKTREE_ROOT}/`));
+                                                .filter((meta) => {
+                                                    // Include if in legacy location
+                                                    if (meta.path.includes(`/${LEGACY_WORKTREE_ROOT}/`)) {
+                                                        return true;
+                                                    }
+                                                    // Include if in new global location (~/openchamber/workspaces/<repo>/)
+                                                    if (globalWorkspaceDir && meta.path.startsWith(`${globalWorkspaceDir}/`)) {
+                                                        return true;
+                                                    }
+                                                    // Also check by pattern for workspaces path
+                                                    if (meta.path.includes(`/openchamber/workspaces/${repoName}/`)) {
+                                                        return true;
+                                                    }
+                                                    return false;
+                                                });
                                             discoveredWorktrees.forEach((meta) => candidates.add(meta.path));
                                         }
 

@@ -14,6 +14,7 @@ import {
   RiChat4Line,
   RiSearchLine,
   RiSideBarLine,
+  RiFolderTransferLine,
 } from '@remixicon/react';
 import { toast } from 'sonner';
 import {
@@ -35,6 +36,7 @@ import { useUIStore } from '@/stores/useUIStore';
 import { sessionEvents } from '@/lib/sessionEvents';
 import { checkIsGitRepository } from '@/lib/gitApi';
 import { createWorktreeSession } from '@/lib/worktreeSessionCreator';
+import { hasLegacyWorktrees, migrateWorktreesToGlobalLocation } from '@/lib/git/worktreeService';
 import { BranchPickerDialog } from '@/components/session/BranchPickerDialog';
 import type { WorktreeMetadata } from '@/types/worktree';
 import { SIDEBAR_SECTIONS, type SidebarSection } from '@/constants/sidebar';
@@ -253,7 +255,9 @@ interface ProjectSectionProps {
   onOpenInFinder?: (worktreePath: string) => void;
   onNewWorktreeSession?: () => void;
   onOpenBranchPicker?: () => void;
+  onMigrateWorktrees?: () => void;
   isRepo: boolean;
+  hasLegacy: boolean;
   getWorktreeStats: (worktreePath: string) => WorktreeStats;
   editingWorktreePath: string | null;
   editValue: string;
@@ -277,7 +281,9 @@ const ProjectSection: React.FC<ProjectSectionProps> = ({
   onOpenInFinder,
   onNewWorktreeSession,
   onOpenBranchPicker,
+  onMigrateWorktrees,
   isRepo,
+  hasLegacy,
   getWorktreeStats,
   editingWorktreePath,
   editValue,
@@ -290,18 +296,10 @@ const ProjectSection: React.FC<ProjectSectionProps> = ({
   const projectLabel = project.label || formatDirectoryName(project.path);
   const normalizedProjectPath = project.normalizedPath;
   
-  const mainWorktree: WorktreeMetadata = useMemo(() => ({
-    path: project.path,
-    projectDirectory: project.path,
-    branch: 'main',
-    label: 'main',
-  }), [project.path]);
-
-  const allWorktrees = useMemo(() => {
-    if (!isRepo) return [mainWorktree];
-    const nonMain = worktrees.filter(w => normalizePath(w.path) !== normalizedProjectPath);
-    return [mainWorktree, ...nonMain];
-  }, [isRepo, worktrees, mainWorktree, normalizedProjectPath]);
+  const actualWorktrees = useMemo(() => {
+    if (!isRepo) return [];
+    return worktrees.filter(w => normalizePath(w.path) !== normalizedProjectPath);
+  }, [isRepo, worktrees, normalizedProjectPath]);
 
   const projectStats = useMemo(() => {
     let totalSessions = 0;
@@ -309,7 +307,7 @@ const ProjectSection: React.FC<ProjectSectionProps> = ({
     let totalDeletions = 0;
     let lastUpdated: number | null = null;
 
-    allWorktrees.forEach(wt => {
+    actualWorktrees.forEach(wt => {
       const stats = getWorktreeStats(wt.path);
       totalSessions += stats.sessionCount;
       totalAdditions += stats.additions;
@@ -320,7 +318,7 @@ const ProjectSection: React.FC<ProjectSectionProps> = ({
     });
 
     return { totalSessions, totalAdditions, totalDeletions, lastUpdated };
-  }, [allWorktrees, getWorktreeStats]);
+  }, [actualWorktrees, getWorktreeStats]);
 
   return (
     <div className="mb-2">
@@ -358,7 +356,13 @@ const ProjectSection: React.FC<ProjectSectionProps> = ({
               <RiMore2Line className="h-4 w-4" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="min-w-[140px]">
+          <DropdownMenuContent align="end" className="min-w-[160px]">
+            {hasLegacy && onMigrateWorktrees && (
+              <DropdownMenuItem onClick={onMigrateWorktrees}>
+                <RiFolderTransferLine className="mr-1.5 h-4 w-4" />
+                Migrate Worktrees
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem
               onClick={onClose}
               className="text-destructive focus:text-destructive"
@@ -431,36 +435,39 @@ const ProjectSection: React.FC<ProjectSectionProps> = ({
 
       {!isCollapsed && (
         <div className="ml-3 mt-0.5 space-y-0.5 border-l border-border/50 pl-2">
-          {allWorktrees.map((worktree) => {
-            const worktreePath = normalizePath(worktree.path);
-            const isWorktreeActive = worktreePath === activeWorktreePath;
-            const isMain = worktreePath === normalizedProjectPath;
-            const stats = getWorktreeStats(worktree.path);
-            const isEditingThis = editingWorktreePath === worktreePath;
-            // Use saved label if exists, otherwise use branch or default label
-            const savedLabel = worktreePath ? worktreeLabels.get(worktreePath) : undefined;
-            const displayLabel = savedLabel ?? (worktree.branch || worktree.label || 'worktree');
-            const currentLabel = isMain ? 'main' : displayLabel;
-            
-            return (
-              <WorktreeItem
-                key={worktree.path}
-                worktree={{ ...worktree, label: currentLabel }}
-                isActive={isWorktreeActive}
-                isMain={isMain}
-                stats={stats}
-                onSelect={() => onSelectWorktree(worktree.path)}
-                onClose={!isMain && onCloseWorktree ? () => onCloseWorktree(worktree.path) : undefined}
-                onRename={!isMain && worktreePath ? () => onStartRename(worktreePath, currentLabel) : undefined}
-                onOpenInFinder={onOpenInFinder ? () => onOpenInFinder(worktree.path) : undefined}
-                isEditing={isEditingThis}
-                editValue={isEditingThis ? editValue : undefined}
-                onEditChange={onEditChange}
-                onSaveRename={onSaveRename}
-                onCancelRename={onCancelRename}
-              />
-            );
-          })}
+          {actualWorktrees.length === 0 ? (
+            <div className="px-2 py-2 text-xs text-muted-foreground/70 italic">
+              No worktrees yet
+            </div>
+          ) : (
+            actualWorktrees.map((worktree) => {
+              const worktreePath = normalizePath(worktree.path);
+              const isWorktreeActive = worktreePath === activeWorktreePath;
+              const stats = getWorktreeStats(worktree.path);
+              const isEditingThis = editingWorktreePath === worktreePath;
+              const savedLabel = worktreePath ? worktreeLabels.get(worktreePath) : undefined;
+              const displayLabel = savedLabel ?? (worktree.branch || worktree.label || 'worktree');
+              
+              return (
+                <WorktreeItem
+                  key={worktree.path}
+                  worktree={{ ...worktree, label: displayLabel }}
+                  isActive={isWorktreeActive}
+                  isMain={false}
+                  stats={stats}
+                  onSelect={() => onSelectWorktree(worktree.path)}
+                  onClose={onCloseWorktree ? () => onCloseWorktree(worktree.path) : undefined}
+                  onRename={worktreePath ? () => onStartRename(worktreePath, displayLabel) : undefined}
+                  onOpenInFinder={onOpenInFinder ? () => onOpenInFinder(worktree.path) : undefined}
+                  isEditing={isEditingThis}
+                  editValue={isEditingThis ? editValue : undefined}
+                  onEditChange={onEditChange}
+                  onSaveRename={onSaveRename}
+                  onCancelRename={onCancelRename}
+                />
+              );
+            })
+          )}
         </div>
       )}
     </div>
@@ -528,6 +535,8 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
     return typeof window.opencodeDesktop !== 'undefined';
   });
 
+  const [projectLegacyStatus, setProjectLegacyStatus] = useState<Map<string, boolean>>(new Map());
+
   React.useEffect(() => {
     let cancelled = false;
     projects.forEach((project) => {
@@ -548,6 +557,65 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
     });
     return () => { cancelled = true; };
   }, [projects, projectRepoStatus]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    projects.forEach((project) => {
+      const path = normalizePath(project.path);
+      const isRepo = projectRepoStatus.get(project.id);
+      if (!path || !isRepo || projectLegacyStatus.has(project.id)) return;
+      
+      hasLegacyWorktrees(path)
+        .then((hasLegacy) => {
+          if (!cancelled) {
+            setProjectLegacyStatus((prev) => new Map(prev).set(project.id, hasLegacy));
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setProjectLegacyStatus((prev) => new Map(prev).set(project.id, false));
+          }
+        });
+    });
+    return () => { cancelled = true; };
+  }, [projects, projectRepoStatus, projectLegacyStatus]);
+
+  const loadSessions = useSessionStore((s) => s.loadSessions);
+
+  const handleMigrateWorktrees = useCallback(async (projectId: string) => {
+    const project = projects.find(p => p.id === projectId);
+    if (!project) return;
+    
+    const path = normalizePath(project.path);
+    if (!path) return;
+    
+    toast.loading('Migrating worktrees...', { id: 'migrate-worktrees' });
+    
+    try {
+      const result = await migrateWorktreesToGlobalLocation(path);
+      
+      if (result.success) {
+        const count = result.migrated.filter(m => m.success).length;
+        toast.success(`Migrated ${count} worktree${count === 1 ? '' : 's'}`, { 
+          id: 'migrate-worktrees',
+          description: result.targetDirectory ? `To: ${result.targetDirectory}` : undefined,
+        });
+        setProjectLegacyStatus((prev) => new Map(prev).set(projectId, false));
+        loadSessions();
+      } else {
+        const failed = result.migrated.filter(m => !m.success);
+        toast.error('Migration failed', { 
+          id: 'migrate-worktrees',
+          description: failed.length > 0 ? `${failed.length} worktree(s) failed to migrate` : result.error,
+        });
+      }
+    } catch (error) {
+      toast.error('Migration failed', { 
+        id: 'migrate-worktrees',
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  }, [projects, loadSessions]);
 
   const activeWorktreePath = useMemo(() => {
     return normalizePath(currentDirectory);
@@ -690,10 +758,20 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
       }
     } else {
       try {
-        await navigator.clipboard.writeText(normalizedPath);
-        toast.success('Path copied to clipboard');
-      } catch {
-        toast.error('Could not copy path');
+        const response = await fetch('/api/fs/reveal', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ path: normalizedPath }),
+        });
+        
+        if (!response.ok) {
+          const data = await response.json().catch(() => ({}));
+          throw new Error(data.error || 'Failed to open folder');
+        }
+      } catch (error) {
+        toast.error('Failed to open folder', {
+          description: error instanceof Error ? error.message : 'Unknown error',
+        });
       }
     }
   }, [isDesktopRuntime]);
@@ -1013,7 +1091,9 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
               onOpenInFinder={handleOpenInFinder}
               onNewWorktreeSession={() => handleNewWorktreeSession(project.id)}
               onOpenBranchPicker={handleOpenBranchPicker}
+              onMigrateWorktrees={() => handleMigrateWorktrees(project.id)}
               isRepo={isRepo}
+              hasLegacy={projectLegacyStatus.get(project.id) ?? false}
               getWorktreeStats={getWorktreeStats}
               editingWorktreePath={editingWorktreePath}
               editValue={editValue}

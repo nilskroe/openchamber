@@ -3957,6 +3957,77 @@ async function main(options = {}) {
     }
   });
 
+  app.post('/api/git/migrate-worktrees', async (req, res) => {
+    const { listWorktrees } = await getGitLibraries();
+    try {
+      const { projectDirectory } = req.body;
+      if (!projectDirectory || typeof projectDirectory !== 'string') {
+        return res.status(400).json({ error: 'projectDirectory is required' });
+      }
+
+      const normalizedProject = path.resolve(normalizeDirectoryPath(projectDirectory));
+      const repoName = path.basename(normalizedProject);
+      const legacyWorktreeRoot = path.join(normalizedProject, '.openchamber');
+      const globalWorkspacesRoot = path.join(os.homedir(), 'openchamber', 'workspaces');
+      const targetRepoDir = path.join(globalWorkspacesRoot, repoName);
+
+      const worktrees = await listWorktrees(normalizedProject);
+      const legacyWorktrees = worktrees.filter(wt => {
+        const wtPath = wt.worktree || wt.path;
+        return wtPath && wtPath.startsWith(legacyWorktreeRoot + path.sep);
+      });
+
+      if (legacyWorktrees.length === 0) {
+        return res.json({ success: true, migrated: [], message: 'No legacy worktrees found' });
+      }
+
+      await fsPromises.mkdir(globalWorkspacesRoot, { recursive: true });
+      await fsPromises.mkdir(targetRepoDir, { recursive: true });
+
+      const results = [];
+      for (const wt of legacyWorktrees) {
+        const oldPath = wt.worktree || wt.path;
+        const worktreeName = path.basename(oldPath);
+        const newPath = path.join(targetRepoDir, worktreeName);
+
+        try {
+          await new Promise((resolve, reject) => {
+            const child = spawn('git', ['worktree', 'move', oldPath, newPath], {
+              cwd: normalizedProject,
+              stdio: ['ignore', 'pipe', 'pipe'],
+            });
+
+            let stderr = '';
+            child.stderr.on('data', (data) => { stderr += data.toString(); });
+            
+            child.on('close', (code) => {
+              if (code === 0) {
+                resolve();
+              } else {
+                reject(new Error(stderr || `git worktree move failed with code ${code}`));
+              }
+            });
+            child.on('error', reject);
+          });
+
+          results.push({ oldPath, newPath, success: true });
+        } catch (error) {
+          results.push({ oldPath, newPath, success: false, error: error.message });
+        }
+      }
+
+      const allSuccess = results.every(r => r.success);
+      res.json({ 
+        success: allSuccess, 
+        migrated: results,
+        targetDirectory: targetRepoDir,
+      });
+    } catch (error) {
+      console.error('Failed to migrate worktrees:', error);
+      res.status(500).json({ error: error.message || 'Failed to migrate worktrees' });
+    }
+  });
+
   app.get('/api/git/worktree-type', async (req, res) => {
     const { isLinkedWorktree } = await getGitLibraries();
     try {
@@ -4121,9 +4192,9 @@ async function main(options = {}) {
         fs.mkdirSync(parentDir, { recursive: true });
       }
 
-      const result = spawnSync('git', ['clone', cloneUrl, finalPath], {
+      const result = spawnSync('git', ['clone', '--depth', '1', '--single-branch', cloneUrl, finalPath], {
         encoding: 'utf8',
-        timeout: 120000
+        timeout: 300000
       });
 
       if (result.error) {
@@ -4558,6 +4629,48 @@ async function main(options = {}) {
     } catch (error) {
       console.error('Failed to update OpenCode working directory:', error);
       res.status(500).json({ error: error.message || 'Failed to update working directory' });
+    }
+  });
+
+  app.post('/api/fs/reveal', async (req, res) => {
+    try {
+      const rawPath = typeof req.body?.path === 'string' ? req.body.path.trim() : '';
+      if (!rawPath) {
+        return res.status(400).json({ error: 'Path is required' });
+      }
+
+      const resolvedPath = path.resolve(normalizeDirectoryPath(rawPath));
+
+      const stats = await fsPromises.stat(resolvedPath).catch(() => null);
+      if (!stats) {
+        return res.status(404).json({ error: 'Path does not exist' });
+      }
+
+      const platform = process.platform;
+      let command;
+      let args;
+
+      if (platform === 'darwin') {
+        command = 'open';
+        args = stats.isDirectory() ? [resolvedPath] : ['-R', resolvedPath];
+      } else if (platform === 'win32') {
+        command = 'explorer';
+        args = stats.isDirectory() ? [resolvedPath] : ['/select,', resolvedPath];
+      } else {
+        command = 'xdg-open';
+        args = [stats.isDirectory() ? resolvedPath : path.dirname(resolvedPath)];
+      }
+
+      const child = spawn(command, args, {
+        detached: true,
+        stdio: 'ignore',
+      });
+      child.unref();
+
+      res.json({ success: true, path: resolvedPath });
+    } catch (error) {
+      console.error('Failed to reveal path:', error);
+      res.status(500).json({ error: error.message || 'Failed to reveal path' });
     }
   });
 

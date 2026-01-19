@@ -99,7 +99,8 @@ export const DirectoryExplorerDialog: React.FC<DirectoryExplorerDialogProps> = (
       setPendingPath(initialPath);
       setPathInputValue(formatPath(initialPath));
       if (homeDirectory) {
-        setCloneDirectory(homeDirectory);
+        const openChamberRoot = `${homeDirectory}/openchamber`;
+        setCloneDirectory(openChamberRoot);
       }
     }
   }, [open, currentDirectory, homeDirectory, formatPath, getActiveProject]);
@@ -419,7 +420,7 @@ export const DirectoryExplorerDialog: React.FC<DirectoryExplorerDialogProps> = (
           <Input
             value={cloneDirectory}
             onChange={(e) => setCloneDirectory(e.target.value)}
-            placeholder="~/Projects"
+            placeholder="~/openchamber"
             className="font-mono typography-meta"
             spellCheck={false}
           />
