@@ -56,10 +56,7 @@ jobs:
         run: bun run --cwd packages/ui build
 
       - name: Build Desktop app (unsigned)
-        run: bun run --cwd packages/desktop build && bun run --cwd packages/desktop tauri build --target ${{ matrix.target }}
-        env:
-          TAURI_SIGNING_PRIVATE_KEY: ""
-          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
+        run: bun run --cwd packages/desktop build && bun run --cwd packages/desktop tauri build --target ${{ matrix.target }} --bundles dmg
 
       - name: Prepare release artifacts
         run: |
