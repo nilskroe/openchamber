@@ -55,7 +55,9 @@ const resolveWorkspacePath = (targetPath, baseDirectory) => {
   const resolvedBase = path.resolve(baseDirectory || os.homedir());
   const relative = path.relative(resolvedBase, resolved);
 
-  if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) {
+  // Allow: empty string (target === base), or paths that don't escape the base
+  // Reject: paths starting with '..' (escaping base) or absolute paths
+  if (relative.startsWith('..') || path.isAbsolute(relative)) {
     return { ok: false, error: 'Path is outside of active workspace' };
   }
 
@@ -68,7 +70,21 @@ const resolveWorkspacePathFromContext = async (req, targetPath) => {
     return { ok: false, error: resolvedProject.error || 'Active workspace is required' };
   }
 
-  return resolveWorkspacePath(targetPath, resolvedProject.directory);
+  // First try the project directory
+  const projectResult = resolveWorkspacePath(targetPath, resolvedProject.directory);
+  if (projectResult.ok) {
+    return projectResult;
+  }
+
+  // Also allow ~/openchamber/ for worktree creation
+  const openchamberRoot = path.join(os.homedir(), 'openchamber');
+  const openchamberResult = resolveWorkspacePath(targetPath, openchamberRoot);
+  if (openchamberResult.ok) {
+    return openchamberResult;
+  }
+
+  // Return the original project error
+  return projectResult;
 };
 
 
