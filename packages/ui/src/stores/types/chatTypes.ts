@@ -127,7 +127,7 @@ export interface ChatActions {
   loadMoreMessages: (direction: "up" | "down") => Promise<void>;
 
   // Streaming
-  addStreamingPart: (messageId: string, part: Part, role?: string) => void;
+  addStreamingPart: (messageId: string, part: Part, role?: string, sessionId?: string) => void;
   completeStreamingMessage: (messageId: string) => void;
   forceCompleteMessage: (messageId: string, source?: "timeout" | "cooldown") => void;
   markMessageStreamSettled: (messageId: string) => void;
@@ -193,7 +193,7 @@ export interface ChatActions {
   refreshWorktrees: () => Promise<void>;
 
   // Internal (used by addStreamingPart batch processing)
-  _addStreamingPartDirect: (messageId: string, part: Part, role?: string) => void;
+  _addStreamingPartDirect: (messageId: string, part: Part, role?: string, sessionId?: string) => void;
 }
 
 export type ChatStore = ChatState & ChatActions;

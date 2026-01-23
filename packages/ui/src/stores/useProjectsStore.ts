@@ -217,10 +217,18 @@ export const useProjectsStore = create<ProjectsStore>()(
       if (vscodeWorkspace) return;
 
       const openchamberRoot = getOpenchamberRoot();
+
+      // Debug logging for startup issues
+      const homeDir = getHomeDirectory();
+      console.log('[ProjectsStore] discoverProjects called', {
+        openchamberRoot,
+        homeDir,
+        storeHomeDir: useDirectoryStore.getState().homeDirectory,
+        isHomeReady: useDirectoryStore.getState().isHomeReady,
+      });
+
       if (!openchamberRoot) {
-        if (streamDebugEnabled()) {
-          console.warn('[ProjectsStore] Cannot discover projects: no home directory');
-        }
+        console.warn('[ProjectsStore] Cannot discover projects: no home directory available yet');
         return;
       }
 

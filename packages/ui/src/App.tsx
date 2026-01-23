@@ -19,7 +19,7 @@ import { GitPollingProvider } from '@/hooks/useGitPolling';
 import { useConfigStore } from '@/stores/useConfigStore';
 import { hasModifier } from '@/lib/utils';
 import { useChatStore } from '@/stores/useChatStore';
-import { useDirectoryStore } from '@/stores/useDirectoryStore';
+import { useDirectoryStore, initializeHomeDirectory } from '@/stores/useDirectoryStore';
 import { opencodeClient } from '@/lib/opencode/client';
 import { useFontPreferences } from '@/hooks/useFontPreferences';
 import { CODE_FONT_OPTION_MAP, DEFAULT_MONO_FONT, DEFAULT_UI_FONT, UI_FONT_OPTION_MAP } from '@/lib/fontOptions';
@@ -74,6 +74,7 @@ function App({ apis }: AppProps) {
   const worktreesLoaded = useChatStore((s) => s.worktreesLoaded);
   const currentDirectory = useDirectoryStore((state) => state.currentDirectory);
   const isSwitchingDirectory = useDirectoryStore((state) => state.isSwitchingDirectory);
+  const isHomeReady = useDirectoryStore((state) => state.isHomeReady);
 
   const { uiFont, monoFont } = useFontPreferences();
   const [isDesktopRuntime, setIsDesktopRuntime] = React.useState<boolean>(() => apis.runtime.isDesktop);
@@ -155,16 +156,36 @@ function App({ apis }: AppProps) {
       // Initialize file-based settings storage (~/openchamber/settings.json)
       await initSettingsStorage();
       await initializeApp();
-      // Discover projects and worktrees in background - cached data shows instantly
-      // Don't await these to allow the UI to render immediately with cached data
-      void useProjectsStore.getState().discoverProjects().then(() => {
-        // Refresh worktrees after projects are discovered
-        void useChatStore.getState().refreshWorktrees();
-      });
+
+      // After server connection is established, re-initialize home directory
+      // The module-level init in useDirectoryStore might have failed if server wasn't ready yet
+      const home = await initializeHomeDirectory();
+      useDirectoryStore.getState().synchronizeHomeDirectory(home);
+
+      // Directly call discoverProjects and refreshWorktrees after home is set up
+      // This is more robust than relying on the isHomeReady effect to fire
+      console.log('[App] Init complete, discovering projects...');
+      await useProjectsStore.getState().discoverProjects();
+      console.log('[App] Projects discovered, refreshing worktrees...');
+      await useChatStore.getState().refreshWorktrees();
+      console.log('[App] Worktrees refreshed');
     };
 
     init();
   }, [initializeApp, isVSCodeRuntime]);
+
+  // Discover projects and worktrees when home directory is ready
+  // This effect is separate from init to properly handle the race condition
+  // where homeDirectory is set asynchronously by initializeHomeDirectory()
+  React.useEffect(() => {
+    if (!isHomeReady || isVSCodeRuntime) {
+      return;
+    }
+    // Discover projects and refresh worktrees - cached data shows instantly
+    void useProjectsStore.getState().discoverProjects().then(() => {
+      void useChatStore.getState().refreshWorktrees();
+    });
+  }, [isHomeReady, isVSCodeRuntime]);
 
   React.useEffect(() => {
     if (isSwitchingDirectory) {

@@ -4,6 +4,7 @@ import {
   RiCheckboxCircleLine,
   RiCircleLine,
   RiCloseLine,
+  RiLoader4Line,
   RiPlayLine,
   RiStopLine,
 } from '@remixicon/react';
@@ -65,12 +66,16 @@ export const AppRunnerTerminal: React.FC = () => {
     addDetectedUrl,
     clearDetectedUrls,
     setLastExitCode,
+    startRunner,
+    stopRunner,
   } = useAppRunnerStore();
 
   // Read per-directory state reactively
   const dirState = useAppRunnerStore((s) => effectiveDirectory ? s.directoryStates[effectiveDirectory] : undefined);
   const status = dirState?.status ?? 'stopped';
   const terminalSessionId = dirState?.terminalSessionId ?? null;
+  const isTransitioning = dirState?.isTransitioning ?? false;
+  const storeError = dirState?.error ?? null;
 
   const [bufferChunks, setBufferChunks] = React.useState<TerminalChunk[]>([]);
   const [connectionError, setConnectionError] = React.useState<string | null>(null);
@@ -181,21 +186,7 @@ export const AppRunnerTerminal: React.FC = () => {
                 }
                 setConnectionError(null);
                 setIsFatalError(false);
-
-                if (!commandSentRef.current && command) {
-                  commandSentRef.current = true;
-                  setStatus(dir, 'starting');
-                  setTimeout(() => {
-                    void terminal.sendInput(terminalId, command + '\n').then(() => {
-                      const currentDir = directoryRef.current;
-                      if (currentDir) setStatus(currentDir, 'running');
-                    }).catch((error) => {
-                      console.error('[AppRunner] Failed to send command:', error);
-                      setConnectionError(error instanceof Error ? error.message : 'Failed to send command');
-                    });
-                  }, 100);
-                }
-
+                // Command is now sent by the store after session creation
                 terminalControllerRef.current?.focus();
                 break;
               }
@@ -257,7 +248,7 @@ export const AppRunnerTerminal: React.FC = () => {
       };
       activeTerminalIdRef.current = terminalId;
     },
-    [appendToBuffer, command, disconnectStream, setLastExitCode, setStatus, setTerminalSessionId, terminal]
+    [appendToBuffer, disconnectStream, setLastExitCode, setStatus, setTerminalSessionId, terminal]
   );
 
   // Connect to the terminal session for the current directory
@@ -267,74 +258,58 @@ export const AppRunnerTerminal: React.FC = () => {
     }
   }, [terminalSessionId, startStream]);
 
-  const handleStartRef = React.useRef<() => void>(() => {});
-  const handleStopRef = React.useRef<() => void>(() => {});
-
-  const handleStart = React.useCallback(async () => {
+  // Button click handlers - use store actions directly
+  const handleStart = React.useCallback(() => {
     if (!effectiveDirectory) return;
-    if (status === 'running' || status === 'starting') return;
+    if (status === 'running' || status === 'starting' || isTransitioning) return;
 
+    // Clear local state before starting
     setConnectionError(null);
     setIsFatalError(false);
-    clearDetectedUrls(effectiveDirectory);
     clearBuffer();
     commandSentRef.current = false;
 
-    try {
-      setStatus(effectiveDirectory, 'starting');
-      const session = await terminal.createSession({
-        cwd: effectiveDirectory,
-      });
-      setTerminalSessionId(effectiveDirectory, session.sessionId);
-      terminalIdRef.current = session.sessionId;
-      startStream(session.sessionId);
-    } catch (error) {
-      setConnectionError(
-        error instanceof Error ? error.message : 'Failed to start terminal session'
-      );
-      setIsFatalError(true);
-      setStatus(effectiveDirectory, 'crashed');
-    }
-  }, [effectiveDirectory, status, clearBuffer, clearDetectedUrls, setStatus, setTerminalSessionId, startStream, terminal]);
+    // Use store action - it handles everything including session creation
+    void startRunner(effectiveDirectory);
+  }, [effectiveDirectory, status, isTransitioning, clearBuffer, startRunner]);
 
-  const handleStop = React.useCallback(async () => {
-    if (!terminalSessionId || !effectiveDirectory) return;
+  const handleStop = React.useCallback(() => {
+    if (!effectiveDirectory || isTransitioning) return;
 
-    try {
-      await terminal.sendInput(terminalSessionId, '\x03');
-      await new Promise(resolve => setTimeout(resolve, 500));
+    // Use store action - it handles Ctrl+C, session close, state updates
+    void stopRunner(effectiveDirectory);
+  }, [effectiveDirectory, isTransitioning, stopRunner]);
 
-      const currentId = terminalIdRef.current;
-      if (currentId) {
-        await terminal.close(currentId);
+  // Listen for store-dispatched events to connect/disconnect stream
+  // The store creates/closes sessions and dispatches these events so we can manage the stream
+  React.useEffect(() => {
+    const onSessionCreated = (event: Event) => {
+      const { directory, sessionId } = (event as CustomEvent<{ directory: string; sessionId: string }>).detail;
+      if (directory === effectiveDirectory && sessionId) {
+        // Clear buffer for fresh output
+        clearBuffer();
+        commandSentRef.current = false;
+        // Connect to the stream - store has already created the session
+        startStream(sessionId);
       }
-    } catch (error) {
-      console.error('[AppRunner] Failed to stop:', error);
-    }
+    };
 
-    disconnectStream();
-    setTerminalSessionId(effectiveDirectory, null);
-    setStatus(effectiveDirectory, 'stopped');
-    commandSentRef.current = false;
-  }, [disconnectStream, effectiveDirectory, setStatus, setTerminalSessionId, terminal, terminalSessionId]);
+    const onSessionClosed = (event: Event) => {
+      const { directory } = (event as CustomEvent<{ directory: string; sessionId: string }>).detail;
+      if (directory === effectiveDirectory) {
+        disconnectStream();
+        commandSentRef.current = false;
+      }
+    };
 
-  React.useEffect(() => {
-    handleStartRef.current = handleStart;
-    handleStopRef.current = handleStop;
-  }, [handleStart, handleStop]);
-
-  React.useEffect(() => {
-    const onStart = () => handleStartRef.current?.();
-    const onStop = () => handleStopRef.current?.();
-
-    document.addEventListener('app-runner-start', onStart);
-    document.addEventListener('app-runner-stop', onStop);
+    document.addEventListener('app-runner-session-created', onSessionCreated);
+    document.addEventListener('app-runner-session-closed', onSessionClosed);
 
     return () => {
-      document.removeEventListener('app-runner-start', onStart);
-      document.removeEventListener('app-runner-stop', onStop);
+      document.removeEventListener('app-runner-session-created', onSessionCreated);
+      document.removeEventListener('app-runner-session-closed', onSessionClosed);
     };
-  }, []);
+  }, [effectiveDirectory, clearBuffer, startStream, disconnectStream]);
 
   const handleViewportInput = React.useCallback(
     (data: string) => {
@@ -449,11 +424,16 @@ export const AppRunnerTerminal: React.FC = () => {
                 variant="default"
                 className="h-7 px-2 py-0"
                 onClick={handleStart}
+                disabled={isTransitioning}
                 title="Start dev server"
                 type="button"
               >
-                <RiPlayLine size={16} />
-                Start
+                {isTransitioning ? (
+                  <RiLoader4Line size={16} className="animate-spin" />
+                ) : (
+                  <RiPlayLine size={16} />
+                )}
+                {isTransitioning ? 'Starting...' : 'Start'}
               </Button>
             ) : (
               <Button
@@ -461,12 +441,16 @@ export const AppRunnerTerminal: React.FC = () => {
                 variant="destructive"
                 className="h-7 px-2 py-0"
                 onClick={handleStop}
-                disabled={status === 'starting'}
+                disabled={status === 'starting' || isTransitioning}
                 title="Stop dev server"
                 type="button"
               >
-                <RiStopLine size={16} />
-                Stop
+                {isTransitioning ? (
+                  <RiLoader4Line size={16} className="animate-spin" />
+                ) : (
+                  <RiStopLine size={16} />
+                )}
+                {isTransitioning ? 'Stopping...' : 'Stop'}
               </Button>
             )}
           </div>
@@ -513,15 +497,16 @@ export const AppRunnerTerminal: React.FC = () => {
             </ScrollableOverlay>
           )}
         </div>
-        {connectionError && !isReconnecting && (
+        {(connectionError || storeError) && !isReconnecting && (
           <div className="absolute inset-x-0 bottom-0 bg-destructive/90 px-3 py-2 text-xs text-destructive-foreground flex items-center justify-between gap-2">
-            <span>{connectionError}</span>
-            {isFatalError && (
+            <span>{connectionError || storeError}</span>
+            {(isFatalError || storeError) && (
               <Button
                 size="sm"
                 variant="secondary"
                 className="h-6 px-2 py-0 text-xs"
                 onClick={handleStart}
+                disabled={isTransitioning}
                 title="Restart"
                 type="button"
               >

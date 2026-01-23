@@ -350,7 +350,9 @@ export const useEventStream = () => {
           updateActivityPhase('busy');
         }
 
-        addStreamingPart(messageId, part, role);
+        // Pass sessionId to addStreamingPart to handle race conditions where
+        // currentSessionId may not be set yet in the store
+        addStreamingPart(messageId, part, role, sessionId || undefined);
 
         // Track session metadata from message
         if (message) {

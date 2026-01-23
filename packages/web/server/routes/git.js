@@ -887,24 +887,4 @@ export function register(app, ctx) {
     }
   });
 
-  /**
-   * Migrate an existing repository to the bare repo pattern.
-   * POST /api/git/migrate-to-bare
-   * Body: { mainClonePath: string }
-   */
-  app.post('/api/git/migrate-to-bare', async (req, res) => {
-    const { migrateToBareBareRepo } = await getGitLibraries();
-    try {
-      const { mainClonePath } = req.body;
-      if (!mainClonePath || typeof mainClonePath !== 'string') {
-        return res.status(400).json({ error: 'mainClonePath is required' });
-      }
-
-      const result = await migrateToBareBareRepo(mainClonePath);
-      res.json(result);
-    } catch (error) {
-      console.error('Failed to migrate to bare repo:', error);
-      res.status(500).json({ error: error.message || 'Failed to migrate repository' });
-    }
-  });
 }

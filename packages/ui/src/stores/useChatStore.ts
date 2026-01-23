@@ -153,7 +153,7 @@ const clearLifecycleCompletionTimer = (messageId: string) => {
 };
 
 // Batch queue for streaming parts
-let batchQueue: Array<{ messageId: string; part: Part; role?: string }> = [];
+let batchQueue: Array<{ messageId: string; part: Part; role?: string; sessionId?: string }> = [];
 let batchTimer: ReturnType<typeof setTimeout> | null = null;
 
 const ignoredMessageIds = new Set<string>();
@@ -717,33 +717,37 @@ export const useChatStore = create<ChatStore>()(
 
         // ─── Streaming ──────────────────────────────────────────────────────
 
-        addStreamingPart: (messageId: string, part: Part, role?: string) => {
+        addStreamingPart: (messageId: string, part: Part, role?: string, sessionId?: string) => {
           if (ignoredMessageIds.has(messageId)) return;
 
+          // Use passed sessionId or fall back to currentSessionId from store
           const { currentSessionId } = get();
-          if (!currentSessionId) return;
+          const effectiveSessionId = sessionId || currentSessionId;
+
+          // Only drop if we have NO session context at all
+          if (!effectiveSessionId) return;
 
           // Batch user-role parts for debounced processing
           if (role === 'user') {
-            batchQueue.push({ messageId, part, role });
+            batchQueue.push({ messageId, part, role, sessionId: effectiveSessionId });
             if (!batchTimer) {
               batchTimer = setTimeout(() => {
                 const queue = batchQueue;
                 batchQueue = [];
                 batchTimer = null;
                 for (const item of queue) {
-                  get()._addStreamingPartDirect(item.messageId, item.part, item.role);
+                  get()._addStreamingPartDirect(item.messageId, item.part, item.role, item.sessionId);
                 }
               }, BATCH_INTERVAL);
             }
             return;
           }
 
-          get()._addStreamingPartDirect(messageId, part, role);
+          get()._addStreamingPartDirect(messageId, part, role, effectiveSessionId);
         },
 
         // Internal: direct streaming part processing
-        _addStreamingPartDirect: (messageId: string, part: Part, role?: string) => {
+        _addStreamingPartDirect: (messageId: string, part: Part, role?: string, _sessionId?: string) => {
           const state = get();
           if (ignoredMessageIds.has(messageId)) return;
 

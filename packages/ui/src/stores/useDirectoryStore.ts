@@ -355,8 +355,22 @@ export const useDirectoryStore = create<DirectoryStore>()(
   )
 );
 
+// Module-level initialization - this runs early and may fail if server isn't ready yet
+// The React effect in App.tsx will retry after initializeApp() establishes the connection
 if (typeof window !== 'undefined') {
   initializeHomeDirectory().then((home) => {
     useDirectoryStore.getState().synchronizeHomeDirectory(home);
+    // After home directory is known, discover projects and refresh worktrees
+    // This handles the race condition where App.tsx's init runs before home is ready
+    import('./useProjectsStore').then(({ useProjectsStore }) => {
+      void useProjectsStore.getState().discoverProjects().then(() => {
+        import('./useChatStore').then(({ useChatStore }) => {
+          void useChatStore.getState().refreshWorktrees();
+        });
+      });
+    });
   });
 }
+
+// Export initializeHomeDirectory so it can be called from App.tsx after server connection is established
+export { initializeHomeDirectory };

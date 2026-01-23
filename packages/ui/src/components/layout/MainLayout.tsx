@@ -158,11 +158,9 @@ export const MainLayout: React.FC = () => {
 
                 e.preventDefault();
                 const dir = useDirectoryStore.getState().currentDirectory;
-                const dirStatus = dir ? appRunner.directoryStates[dir]?.status : undefined;
-                if (dirStatus === 'running' || dirStatus === 'starting') {
-                    document.dispatchEvent(new CustomEvent('app-runner-stop'));
-                } else {
-                    document.dispatchEvent(new CustomEvent('app-runner-start'));
+                if (dir) {
+                    // Use store action directly - works regardless of component focus
+                    void appRunner.toggleRunner(dir);
                 }
                 return;
             }
