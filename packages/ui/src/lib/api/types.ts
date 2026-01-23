@@ -367,11 +367,9 @@ export interface ProjectEntry {
   id: string;
   path: string;
   label?: string;
-  addedAt?: number;
-  lastOpenedAt?: number;
   worktreeDefaults?: WorktreeDefaults;
-  owner?: string;
-  repo?: string;
+  owner: string;
+  repo: string;
 }
 
 export interface SettingsPayload {

@@ -23,6 +23,7 @@ import {
 } from '@remixicon/react';
 import type { EditPermissionMode } from '@/stores/types/chatTypes';
 import type { ModelMetadata } from '@/types';
+import { formatTokens, formatCost, formatKnowledge } from '@/lib/modelFormatters';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -186,40 +187,6 @@ const getModalityIcons = (metadata: ModelMetadata | undefined, direction: 'input
         .filter((entry): entry is ModalityIcon => Boolean(entry));
 };
 
-const COMPACT_NUMBER_FORMATTER = new Intl.NumberFormat('en-US', {
-    notation: 'compact',
-    compactDisplay: 'short',
-    maximumFractionDigits: 1,
-    minimumFractionDigits: 0,
-});
-
-const CURRENCY_FORMATTER = new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 4,
-    minimumFractionDigits: 2,
-});
-
-const formatTokens = (value?: number | null) => {
-    if (typeof value !== 'number' || Number.isNaN(value)) {
-        return '—';
-    }
-
-    if (value === 0) {
-        return '0';
-    }
-
-    const formatted = COMPACT_NUMBER_FORMATTER.format(value);
-    return formatted.endsWith('.0') ? formatted.slice(0, -2) : formatted;
-};
-
-const formatCost = (value?: number | null) => {
-    if (typeof value !== 'number' || !Number.isFinite(value)) {
-        return '—';
-    }
-
-    return CURRENCY_FORMATTER.format(value);
-};
 
 const getCapabilityIcons = (metadata?: ModelMetadata) => {
     return CAPABILITY_DEFINITIONS.filter((definition) => definition.isActive(metadata)).map((definition) => ({
@@ -229,23 +196,6 @@ const getCapabilityIcons = (metadata?: ModelMetadata) => {
     }));
 };
 
-const formatKnowledge = (knowledge?: string) => {
-    if (!knowledge) {
-        return '—';
-    }
-
-    const match = knowledge.match(/^(\d{4})-(\d{2})$/);
-    if (match) {
-        const year = Number.parseInt(match[1], 10);
-        const monthIndex = Number.parseInt(match[2], 10) - 1;
-        const knowledgeDate = new Date(Date.UTC(year, monthIndex, 1));
-        if (!Number.isNaN(knowledgeDate.getTime())) {
-            return new Intl.DateTimeFormat('en-US', { month: 'short', year: 'numeric' }).format(knowledgeDate);
-        }
-    }
-
-    return knowledge;
-};
 
 const formatDate = (value?: string) => {
     if (!value) {

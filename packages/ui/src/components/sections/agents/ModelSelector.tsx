@@ -12,6 +12,7 @@ import { useUIStore } from '@/stores/useUIStore';
 import { useDeviceInfo } from '@/lib/device';
 import { RiArrowDownSLine, RiArrowRightSLine, RiCheckLine, RiCloseLine, RiPencilAiLine, RiSearchLine, RiStarFill, RiStarLine, RiTimeLine } from '@remixicon/react';
 import { cn } from '@/lib/utils';
+import { formatTokens } from '@/lib/modelFormatters';
 import { MobileOverlayPanel } from '@/components/ui/MobileOverlayPanel';
 import { ProviderLogo } from '@/components/ui/ProviderLogo';
 import { ScrollableOverlay } from '@/components/ui/ScrollableOverlay';
@@ -28,23 +29,6 @@ interface ModelSelectorProps {
     allowedProviderIds?: string[];
 }
 
-const COMPACT_NUMBER_FORMATTER = new Intl.NumberFormat('en-US', {
-    notation: 'compact',
-    compactDisplay: 'short',
-    maximumFractionDigits: 1,
-    minimumFractionDigits: 0,
-});
-
-const formatTokens = (value?: number | null) => {
-    if (typeof value !== 'number' || Number.isNaN(value)) {
-        return '';
-    }
-    if (value === 0) {
-        return '0';
-    }
-    const formatted = COMPACT_NUMBER_FORMATTER.format(value);
-    return formatted.endsWith('.0') ? formatted.slice(0, -2) : formatted;
-};
 
 export const ModelSelector: React.FC<ModelSelectorProps> = ({
     providerId,
@@ -149,7 +133,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
         isHighlighted: boolean
     ) => {
         const metadata = getModelMetadata(provID, modID);
-        const contextTokens = formatTokens(metadata?.limit?.context);
+        const hasContextLimit = metadata?.limit?.context != null;
         const isSelected = providerId === provID && modelId === modID;
         const isFavorite = isFavoriteModel(provID, modID);
 
@@ -168,9 +152,9 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({
                     <span className="font-medium truncate">
                         {getModelDisplayName(model)}
                     </span>
-                    {contextTokens ? (
+                    {hasContextLimit ? (
                         <span className="typography-micro text-muted-foreground flex-shrink-0">
-                            {contextTokens}
+                            {formatTokens(metadata?.limit?.context)}
                         </span>
                     ) : null}
                 </div>

@@ -93,13 +93,12 @@ interface ProjectsStore {
   isDiscovering: boolean;
 
   discoverProjects: () => Promise<void>;
-  addProject: (path: string, options: { label?: string; id?: string; owner: string; repo: string }) => ProjectEntry | null;
+  addProject: (path: string, options: { owner: string; repo: string }) => ProjectEntry | null;
   removeProject: (id: string) => void;
   setActiveProject: (id: string) => void;
   setActiveProjectIdOnly: (id: string) => void;
   getActiveProject: () => ProjectEntry | null;
   updateWorktreeDefaults: (projectId: string, defaults: Partial<WorktreeDefaults>) => void;
-  validateProjectPath: (path: string) => { ok: boolean; normalizedPath?: string; reason?: string };
 }
 
 /**
@@ -170,8 +169,8 @@ export const useProjectsStore = create<ProjectsStore>()(
     discoverProjects: async () => {
       if (vscodeWorkspace) return;
 
-      const reposRoot = getReposRoot();
-      if (!reposRoot) {
+      const openchamberRoot = getOpenchamberRoot();
+      if (!openchamberRoot) {
         if (streamDebugEnabled()) {
           console.warn('[ProjectsStore] Cannot discover projects: no home directory');
         }
@@ -181,34 +180,38 @@ export const useProjectsStore = create<ProjectsStore>()(
       set({ isDiscovering: true });
 
       try {
-        // List owner directories in ~/openchamber/repos/
-        const ownerEntries = await opencodeClient.listLocalDirectory(reposRoot);
-        const ownerDirs = ownerEntries.filter((e) => e.isDirectory);
+        // List repo directories in ~/openchamber/
+        const entries = await opencodeClient.listLocalDirectory(openchamberRoot);
+        const repoDirs = entries.filter((e) => e.isDirectory);
 
         const discovered: ProjectEntry[] = [];
 
-        for (const ownerDir of ownerDirs) {
-          const owner = ownerDir.name;
-          const ownerPath = joinPath(reposRoot, owner);
+        for (const repoDir of repoDirs) {
+          const repoName = repoDir.name;
+          const repoDirPath = joinPath(openchamberRoot, repoName);
+          const mainPath = normalizePath(joinPath(repoDirPath, MAIN_DIR));
 
-          // List repo directories in ~/openchamber/repos/<owner>/
-          const repoEntries = await opencodeClient.listLocalDirectory(ownerPath);
-          const repoDirs = repoEntries.filter((e) => e.isDirectory);
+          // Check if <repo>/main/ exists and is a git repo
+          const isGit = await checkIsGitRepository(mainPath).catch(() => false);
+          if (!isGit) continue;
 
-          for (const repoDir of repoDirs) {
-            const repo = repoDir.name;
-            const repoPath = normalizePath(joinPath(ownerPath, repo));
-            const id = buildProjectId(owner, repo);
+          // Derive owner/repo from git remote
+          const remoteUrl = await getRemoteUrl(mainPath, 'origin').catch(() => null);
+          if (!remoteUrl) continue;
 
-            discovered.push({
-              id,
-              path: repoPath,
-              owner,
-              repo,
-              label: `${owner}/${repo}`,
-              worktreeDefaults: readWorktreeDefaults(id),
-            });
-          }
+          const info = parseGitHubRemoteUrl(remoteUrl);
+          if (!info) continue;
+
+          const id = buildProjectId(info.owner, info.repo);
+
+          discovered.push({
+            id,
+            path: mainPath,
+            owner: info.owner,
+            repo: info.repo,
+            label: `${info.owner}/${info.repo}`,
+            worktreeDefaults: readWorktreeDefaults(id),
+          });
         }
 
         if (streamDebugEnabled()) {
@@ -248,18 +251,7 @@ export const useProjectsStore = create<ProjectsStore>()(
       }
     },
 
-    validateProjectPath: (path: string) => {
-      if (typeof path !== 'string' || path.trim().length === 0) {
-        return { ok: false, reason: 'Provide a directory path.' };
-      }
-      const normalized = normalizePath(path.trim());
-      if (!normalized) {
-        return { ok: false, reason: 'Directory path cannot be empty.' };
-      }
-      return { ok: true, normalizedPath: normalized };
-    },
-
-    addProject: (path: string, options: { label?: string; id?: string; owner: string; repo: string }) => {
+    addProject: (path: string, options: { owner: string; repo: string }) => {
       if (vscodeWorkspace) return null;
 
       const normalized = normalizePath(path.trim());
@@ -281,7 +273,7 @@ export const useProjectsStore = create<ProjectsStore>()(
         path: normalized,
         owner,
         repo,
-        label: options.label?.trim() || `${owner}/${repo}`,
+        label: `${owner}/${repo}`,
       };
 
       const nextProjects = [...get().projects, entry];
@@ -294,9 +286,6 @@ export const useProjectsStore = create<ProjectsStore>()(
       if (streamDebugEnabled()) {
         console.info('[ProjectsStore] Added project', entry);
       }
-
-      // Re-discover from filesystem to stay in sync
-      void get().discoverProjects();
 
       return entry;
     },
@@ -314,16 +303,6 @@ export const useProjectsStore = create<ProjectsStore>()(
 
       set({ projects: nextProjects, activeProjectId: nextActiveId });
       persistActiveProjectId(nextActiveId);
-
-      if (nextActiveId) {
-        const nextActive = nextProjects.find((p) => p.id === nextActiveId);
-        if (nextActive) {
-          opencodeClient.setDirectory(nextActive.path);
-          useDirectoryStore.getState().setDirectory(nextActive.path, { showOverlay: false });
-        }
-      } else {
-        void useDirectoryStore.getState().goHome();
-      }
     },
 
     setActiveProject: (id: string) => {
@@ -337,9 +316,6 @@ export const useProjectsStore = create<ProjectsStore>()(
 
       set({ activeProjectId: id });
       persistActiveProjectId(id);
-
-      opencodeClient.setDirectory(target.path);
-      useDirectoryStore.getState().setDirectory(target.path, { showOverlay: false });
     },
 
     setActiveProjectIdOnly: (id: string) => {

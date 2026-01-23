@@ -14,25 +14,9 @@ import { toast } from '@/components/ui';
 import { RiStackLine, RiToolsLine, RiBrainAi3Line, RiFileImageLine, RiArrowDownSLine, RiCheckLine, RiSearchLine } from '@remixicon/react';
 import { reloadOpenCodeConfiguration } from '@/stores/useAgentsStore';
 import { cn } from '@/lib/utils';
+import { formatTokens } from '@/lib/modelFormatters';
 import type { ModelMetadata } from '@/types';
 
-const COMPACT_NUMBER_FORMATTER = new Intl.NumberFormat('en-US', {
-  notation: 'compact',
-  compactDisplay: 'short',
-  maximumFractionDigits: 1,
-  minimumFractionDigits: 0,
-});
-
-const formatTokens = (value?: number | null) => {
-  if (typeof value !== 'number' || Number.isNaN(value)) {
-    return null;
-  }
-  if (value === 0) {
-    return '0';
-  }
-  const formatted = COMPACT_NUMBER_FORMATTER.format(value);
-  return formatted.endsWith('.0') ? formatted.slice(0, -2) : formatted;
-};
 
 const ADD_PROVIDER_ID = '__add_provider__';
 
@@ -1013,8 +997,8 @@ export const ProvidersPage: React.FC = () => {
               const modelName = typeof model?.name === 'string' ? model.name : modelId;
               const metadata = modelId ? getModelMetadata(selectedProvider.id, modelId) as ModelMetadata | undefined : undefined;
 
-              const contextTokens = formatTokens(metadata?.limit?.context);
-              const outputTokens = formatTokens(metadata?.limit?.output);
+              const hasContext = metadata?.limit?.context != null;
+              const hasOutput = metadata?.limit?.output != null;
 
               const capabilityIcons: Array<{ key: string; icon: typeof RiToolsLine; label: string }> = [];
               if (metadata?.tool_call) capabilityIcons.push({ key: 'tools', icon: RiToolsLine, label: 'Tool calling' });
@@ -1029,11 +1013,11 @@ export const ProvidersPage: React.FC = () => {
                   <span className="typography-meta font-medium text-foreground truncate flex-1 min-w-0">
                     {modelName}
                   </span>
-                  {(contextTokens || outputTokens) && (
+                  {(hasContext || hasOutput) && (
                     <span className="typography-micro text-muted-foreground flex-shrink-0">
-                      {contextTokens ? `${contextTokens} ctx` : ''}
-                      {contextTokens && outputTokens ? ' · ' : ''}
-                      {outputTokens ? `${outputTokens} out` : ''}
+                      {hasContext ? `${formatTokens(metadata?.limit?.context)} ctx` : ''}
+                      {hasContext && hasOutput ? ' · ' : ''}
+                      {hasOutput ? `${formatTokens(metadata?.limit?.output)} out` : ''}
                     </span>
                   )}
                   {capabilityIcons.length > 0 && (

@@ -11,6 +11,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { MobileOverlayPanel } from '@/components/ui/MobileOverlayPanel';
 import { cn } from '@/lib/utils';
+import { formatTokensCompact } from '@/lib/modelFormatters';
 import { useChatStore } from '@/stores/useChatStore';
 import { useConfigStore } from '@/stores/useConfigStore';
 import { toast } from 'sonner';
@@ -41,15 +42,6 @@ export const CompactButton: React.FC<CompactButtonProps> = ({
     const totalTokens = contextUsage?.totalTokens ?? 0;
     const contextLimit = contextUsage?.contextLimit ?? 0;
 
-    const formatTokens = (tokens: number) => {
-        if (tokens >= 1_000_000) {
-            return `${(tokens / 1_000_000).toFixed(1)}M`;
-        }
-        if (tokens >= 1_000) {
-            return `${(tokens / 1_000).toFixed(0)}K`;
-        }
-        return tokens.toString();
-    };
 
     const getPercentageColor = (pct: number) => {
         if (pct >= 90) return 'text-[var(--status-error)]';
@@ -121,11 +113,11 @@ export const CompactButton: React.FC<CompactButtonProps> = ({
             <div className="px-2 py-1.5 space-y-1">
                 <div className="flex justify-between items-center">
                     <span className="typography-meta text-muted-foreground">Used</span>
-                    <span className="typography-meta text-foreground font-medium">{formatTokens(totalTokens)}</span>
+                    <span className="typography-meta text-foreground font-medium">{formatTokensCompact(totalTokens)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                     <span className="typography-meta text-muted-foreground">Limit</span>
-                    <span className="typography-meta text-foreground font-medium">{formatTokens(contextLimit)}</span>
+                    <span className="typography-meta text-foreground font-medium">{formatTokensCompact(contextLimit)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                     <span className="typography-meta text-muted-foreground">Usage</span>
@@ -186,11 +178,11 @@ export const CompactButton: React.FC<CompactButtonProps> = ({
                         <div className="rounded-xl border border-border/40 bg-sidebar/30 px-3 py-2 space-y-1.5">
                             <div className="flex justify-between items-center">
                                 <span className="typography-meta text-muted-foreground">Used tokens</span>
-                                <span className="typography-meta text-foreground font-medium">{formatTokens(totalTokens)}</span>
+                                <span className="typography-meta text-foreground font-medium">{formatTokensCompact(totalTokens)}</span>
                             </div>
                             <div className="flex justify-between items-center">
                                 <span className="typography-meta text-muted-foreground">Context limit</span>
-                                <span className="typography-meta text-foreground font-medium">{formatTokens(contextLimit)}</span>
+                                <span className="typography-meta text-foreground font-medium">{formatTokensCompact(contextLimit)}</span>
                             </div>
                             <div className="flex justify-between items-center pt-1 border-t border-border/40">
                                 <span className="typography-meta text-muted-foreground">Usage</span>

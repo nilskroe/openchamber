@@ -7,6 +7,7 @@ import { ScrollableOverlay } from '@/components/ui/ScrollableOverlay';
 import { ProviderLogo } from '@/components/ui/ProviderLogo';
 import { cn } from '@/lib/utils';
 import { isIMECompositionEvent } from '@/lib/ime';
+import { formatTokens } from '@/lib/modelFormatters';
 import { useConfigStore } from '@/stores/useConfigStore';
 import { useModelLists } from '@/hooks/useModelLists';
 import type { ModelMetadata } from '@/types';
@@ -36,23 +37,6 @@ export const generateInstanceId = (): string => {
   return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 };
 
-const COMPACT_NUMBER_FORMATTER = new Intl.NumberFormat('en-US', {
-  notation: 'compact',
-  compactDisplay: 'short',
-  maximumFractionDigits: 1,
-  minimumFractionDigits: 0,
-});
-
-const formatTokens = (value?: number | null) => {
-  if (typeof value !== 'number' || Number.isNaN(value)) {
-    return '';
-  }
-  if (value === 0) {
-    return '0';
-  }
-  const formatted = COMPACT_NUMBER_FORMATTER.format(value);
-  return formatted.endsWith('.0') ? formatted.slice(0, -2) : formatted;
-};
 
 /**
  * Model selection chip with remove button.
@@ -252,7 +236,7 @@ export const ModelMultiSelect: React.FC<ModelMultiSelectProps> = ({
     const key = `${providerID}:${modelID}`;
     const selectionCount = modelCounts.get(key) || 0;
     const metadata = getModelMetadata(providerID, modelID);
-    const contextTokens = formatTokens(metadata?.limit?.context);
+    const hasContextLimit = metadata?.limit?.context != null;
 
     return (
       <button
@@ -278,9 +262,9 @@ export const ModelMultiSelect: React.FC<ModelMultiSelectProps> = ({
           <span className="font-medium truncate">
             {getModelDisplayName(model)}
           </span>
-          {contextTokens && (
+          {hasContextLimit && (
             <span className="typography-micro text-muted-foreground flex-shrink-0">
-              {contextTokens}
+              {formatTokens(metadata?.limit?.context)}
             </span>
           )}
         </div>
