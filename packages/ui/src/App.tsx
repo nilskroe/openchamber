@@ -130,7 +130,7 @@ function App({ apis }: AppProps) {
         return;
       }
       await initializeApp();
-      // Discover projects from the filesystem (~/openchamber/repos/)
+      // Discover projects from the filesystem (~/openchamber/)
       await useProjectsStore.getState().discoverProjects();
     };
 

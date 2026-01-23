@@ -9,6 +9,7 @@ import os from 'os';
 import crypto from 'crypto';
 import { createUiAuth } from './lib/ui-auth.js';
 import { startCloudflareTunnel, printTunnelWarning, checkCloudflaredAvailable } from './lib/cloudflare-tunnel.js';
+import { normalizeDirectoryPath } from './lib/paths.js';
 import { createOpencodeServer } from '@opencode-ai/sdk/server';
 import webPush from 'web-push';
 
@@ -43,26 +44,6 @@ const FILE_SEARCH_EXCLUDED_DIRS = new Set([
 // Lock to prevent race conditions in persistSettings
 let persistSettingsLock = Promise.resolve();
 
-const normalizeDirectoryPath = (value) => {
-  if (typeof value !== 'string') {
-    return value;
-  }
-
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return trimmed;
-  }
-
-  if (trimmed === '~') {
-    return os.homedir();
-  }
-
-  if (trimmed.startsWith('~/') || trimmed.startsWith('~\\')) {
-    return path.join(os.homedir(), trimmed.slice(2));
-  }
-
-  return trimmed;
-};
 
 const resolveWorkspacePath = (targetPath, baseDirectory) => {
   const normalized = normalizeDirectoryPath(targetPath);

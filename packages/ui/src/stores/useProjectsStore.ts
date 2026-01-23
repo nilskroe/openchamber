@@ -166,6 +166,10 @@ export const useProjectsStore = create<ProjectsStore>()(
     activeProjectId: initialActiveProjectId,
     isDiscovering: false,
 
+    /**
+     * Scan ~/openchamber/ for repo directories containing a main/ git clone.
+     * Derives owner/repo from git remote. Does NOT navigate — users must select a worktree.
+     */
     discoverProjects: async () => {
       if (vscodeWorkspace) return;
 
@@ -180,7 +184,6 @@ export const useProjectsStore = create<ProjectsStore>()(
       set({ isDiscovering: true });
 
       try {
-        // List repo directories in ~/openchamber/
         const entries = await opencodeClient.listLocalDirectory(openchamberRoot);
         const repoDirs = entries.filter((e) => e.isDirectory);
 
@@ -191,11 +194,9 @@ export const useProjectsStore = create<ProjectsStore>()(
           const repoDirPath = joinPath(openchamberRoot, repoName);
           const mainPath = normalizePath(joinPath(repoDirPath, MAIN_DIR));
 
-          // Check if <repo>/main/ exists and is a git repo
           const isGit = await checkIsGitRepository(mainPath).catch(() => false);
           if (!isGit) continue;
 
-          // Derive owner/repo from git remote
           const remoteUrl = await getRemoteUrl(mainPath, 'origin').catch(() => null);
           if (!remoteUrl) continue;
 
@@ -221,28 +222,18 @@ export const useProjectsStore = create<ProjectsStore>()(
         const current = get();
         let nextActiveId = current.activeProjectId;
 
-        // If the active project is no longer present, select the first one
         if (nextActiveId && !discovered.find((p) => p.id === nextActiveId)) {
           nextActiveId = discovered[0]?.id ?? null;
           persistActiveProjectId(nextActiveId);
         }
 
-        // If no active project but projects exist, select the first
         if (!nextActiveId && discovered.length > 0) {
           nextActiveId = discovered[0].id;
           persistActiveProjectId(nextActiveId);
         }
 
         set({ projects: discovered, activeProjectId: nextActiveId, isDiscovering: false });
-
-        // Switch the opencode client directory to the active project
-        if (nextActiveId) {
-          const activeProject = discovered.find((p) => p.id === nextActiveId);
-          if (activeProject) {
-            opencodeClient.setDirectory(activeProject.path);
-            useDirectoryStore.getState().setDirectory(activeProject.path, { showOverlay: false });
-          }
-        }
+        // Navigation is handled by worktree selection in the sidebar, not here
       } catch (error) {
         if (streamDebugEnabled()) {
           console.error('[ProjectsStore] Failed to discover projects:', error);
@@ -251,6 +242,10 @@ export const useProjectsStore = create<ProjectsStore>()(
       }
     },
 
+    /**
+     * Add a project entry. Does NOT navigate to the main clone —
+     * the user must create/select a worktree to start working.
+     */
     addProject: (path: string, options: { owner: string; repo: string }) => {
       if (vscodeWorkspace) return null;
 
@@ -264,7 +259,7 @@ export const useProjectsStore = create<ProjectsStore>()(
       const id = buildProjectId(owner, repo);
       const existing = get().projects.find((p) => p.id === id);
       if (existing) {
-        get().setActiveProject(existing.id);
+        get().setActiveProjectIdOnly(existing.id);
         return existing;
       }
 
@@ -280,16 +275,18 @@ export const useProjectsStore = create<ProjectsStore>()(
       set({ projects: nextProjects, activeProjectId: id });
       persistActiveProjectId(id);
 
-      opencodeClient.setDirectory(entry.path);
-      useDirectoryStore.getState().setDirectory(entry.path, { showOverlay: false });
-
       if (streamDebugEnabled()) {
         console.info('[ProjectsStore] Added project', entry);
       }
 
+      void get().discoverProjects();
+
       return entry;
     },
 
+    /**
+     * Remove a project from the list. Does NOT navigate.
+     */
     removeProject: (id: string) => {
       if (vscodeWorkspace) return;
 
@@ -305,6 +302,10 @@ export const useProjectsStore = create<ProjectsStore>()(
       persistActiveProjectId(nextActiveId);
     },
 
+    /**
+     * Set the active project. Does NOT navigate to the main clone —
+     * the user must select a worktree in the sidebar to navigate.
+     */
     setActiveProject: (id: string) => {
       if (vscodeWorkspace) return;
 
@@ -374,25 +375,3 @@ export const useProjectsStore = create<ProjectsStore>()(
   }), { name: 'projects-store' })
 );
 
-/**
- * Validate that a directory is a GitHub repository and extract owner/repo.
- * Returns { owner, repo } on success, or throws an error with a user-friendly message.
- */
-export async function validateGitHubProject(path: string): Promise<{ owner: string; repo: string }> {
-  const isGitRepo = await checkIsGitRepository(path).catch(() => false);
-  if (!isGitRepo) {
-    throw new Error('This directory is not a Git repository.');
-  }
-
-  const remoteUrl = await getRemoteUrl(path, 'origin');
-  if (!remoteUrl) {
-    throw new Error('No remote "origin" found. Only GitHub repositories can be added.');
-  }
-
-  const info = parseGitHubRemoteUrl(remoteUrl);
-  if (!info) {
-    throw new Error('Remote is not a GitHub repository. Only GitHub repositories are supported.');
-  }
-
-  return { owner: info.owner, repo: info.repo };
-}

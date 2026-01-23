@@ -11,6 +11,7 @@ import { useDirectoryStore } from '@/stores/useDirectoryStore';
 import { opencodeClient } from '@/lib/opencode/client';
 import { RiAddLine, RiAiAgentFill, RiAiAgentLine, RiInformationLine, RiRobot2Line, RiRobotLine, RiSaveLine, RiSubtractLine, RiUser3Line, RiFolderLine } from '@remixicon/react';
 import { cn } from '@/lib/utils';
+import { asPermissionRuleset, type PermissionAction, type PermissionRule } from '@/lib/permissions/permissionRuleUtils';
 import { ModelSelector } from './ModelSelector';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ScrollableOverlay } from '@/components/ui/ScrollableOverlay';
@@ -21,9 +22,7 @@ import {
   SelectTrigger,
 } from '@/components/ui/select';
 
-type PermissionAction = 'allow' | 'ask' | 'deny';
 type DefaultOverride = 'default' | PermissionAction;
-type PermissionRule = { permission: string; pattern: string; action: PermissionAction };
 type PermissionConfigValue = PermissionAction | Record<string, PermissionAction>;
 
 type ParsedPermissionConfig = {
@@ -166,28 +165,6 @@ const pruneRedundantPermissionOverrides = (
   return pruned;
 };
 
-const asPermissionRuleset = (value: unknown): PermissionRule[] | null => {
-  if (!Array.isArray(value)) {
-    return null;
-  }
-
-  const rules: PermissionRule[] = [];
-  for (const entry of value) {
-    if (!entry || typeof entry !== 'object') {
-      continue;
-    }
-    const candidate = entry as Partial<PermissionRule>;
-    if (typeof candidate.permission !== 'string' || typeof candidate.pattern !== 'string' || typeof candidate.action !== 'string') {
-      continue;
-    }
-    if (candidate.action !== 'allow' && candidate.action !== 'ask' && candidate.action !== 'deny') {
-      continue;
-    }
-    rules.push({ permission: candidate.permission, pattern: candidate.pattern, action: candidate.action });
-  }
-
-  return rules;
-};
 
 const rulesetToPermissionConfig = (ruleset: unknown): ParsedPermissionConfig => {
   const rules = asPermissionRuleset(ruleset);

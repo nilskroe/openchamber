@@ -1,4 +1,5 @@
 import type { EditPermissionMode } from "../types/chatTypes";
+import type { PermissionAction, PermissionRule } from "@/lib/permissions/permissionRuleUtils";
 
 const EDIT_PERMISSION_TOOL_NAMES = new Set([
     'edit',
@@ -15,13 +16,6 @@ export const isEditPermissionType = (type?: string | null): boolean => {
     return EDIT_PERMISSION_TOOL_NAMES.has(type.toLowerCase());
 };
 
-type PermissionAction = 'allow' | 'deny' | 'ask';
-
-type PermissionRule = {
-    permission: string;
-    pattern: string;
-    action: PermissionAction;
-};
 
 type ConfigStoreAgent = {
     name: string;

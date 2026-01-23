@@ -30,8 +30,7 @@ interface AgentsSidebarProps {
   onItemSelect?: () => void;
 }
 
-type PermissionAction = 'allow' | 'ask' | 'deny';
-type PermissionRule = { permission: string; pattern: string; action: PermissionAction };
+import { type PermissionAction, type PermissionRule } from '@/lib/permissions/permissionRuleUtils';
 
 type PermissionConfigValue = PermissionAction | Record<string, PermissionAction>;
 

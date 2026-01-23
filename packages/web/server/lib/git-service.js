@@ -1,33 +1,12 @@
 import simpleGit from 'simple-git';
 import fs from 'fs';
 import path from 'path';
-import os from 'os';
 import { execFile } from 'child_process';
 import { promisify } from 'util';
+import { normalizeDirectoryPath } from './paths.js';
 
 const fsp = fs.promises;
 const execFileAsync = promisify(execFile);
-
-const normalizeDirectoryPath = (value) => {
-  if (typeof value !== 'string') {
-    return value;
-  }
-
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return trimmed;
-  }
-
-  if (trimmed === '~') {
-    return os.homedir();
-  }
-
-  if (trimmed.startsWith('~/') || trimmed.startsWith('~\\')) {
-    return path.join(os.homedir(), trimmed.slice(2));
-  }
-
-  return trimmed;
-};
 
 const cleanBranchName = (branch) => {
   if (!branch) {
