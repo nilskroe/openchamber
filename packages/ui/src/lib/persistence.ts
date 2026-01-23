@@ -5,7 +5,6 @@ import { useMessageQueueStore } from '@/stores/messageQueueStore';
 import { useAppRunnerStore } from '@/stores/useAppRunnerStore';
 import { loadAppearancePreferences, applyAppearancePreferences } from '@/lib/appearancePersistence';
 import { getRegisteredRuntimeAPIs } from '@/contexts/runtimeAPIRegistry';
-import { normalizePath } from '@/lib/paths';
 
 const persistToLocalStorage = (settings: DesktopSettings) => {
   if (typeof window === 'undefined') {
@@ -34,16 +33,7 @@ const persistToLocalStorage = (settings: DesktopSettings) => {
     localStorage.setItem('homeDirectory', settings.homeDirectory);
     window.__OPENCHAMBER_HOME__ = settings.homeDirectory;
   }
-  if (Array.isArray(settings.projects) && settings.projects.length > 0) {
-    localStorage.setItem('projects', JSON.stringify(settings.projects));
-  } else {
-    localStorage.removeItem('projects');
-  }
-  if (settings.activeProjectId) {
-    localStorage.setItem('activeProjectId', settings.activeProjectId);
-  } else {
-    localStorage.removeItem('activeProjectId');
-  }
+  // Projects are discovered from filesystem (~/openchamber/repos/) - no persistence needed.
   if (Array.isArray(settings.pinnedDirectories) && settings.pinnedDirectories.length > 0) {
     localStorage.setItem('pinnedDirectories', JSON.stringify(settings.pinnedDirectories));
   } else {
@@ -95,71 +85,6 @@ const sanitizeSkillCatalogs = (value: unknown): DesktopSettings['skillCatalogs']
   return result;
 };
 
-const sanitizeProjects = (value: unknown): DesktopSettings['projects'] | undefined => {
-  if (!Array.isArray(value)) {
-    return undefined;
-  }
-
-  const result: NonNullable<DesktopSettings['projects']> = [];
-  const seenIds = new Set<string>();
-  const seenPaths = new Set<string>();
-
-  for (const entry of value) {
-    if (!entry || typeof entry !== 'object') continue;
-    const candidate = entry as Record<string, unknown>;
-
-    const id = typeof candidate.id === 'string' ? candidate.id.trim() : '';
-    const rawPath = typeof candidate.path === 'string' ? candidate.path.trim() : '';
-    if (!id || !rawPath) continue;
-
-    const normalizedPath = normalizePath(rawPath);
-    if (!normalizedPath) continue;
-
-    if (seenIds.has(id) || seenPaths.has(normalizedPath)) continue;
-    seenIds.add(id);
-    seenPaths.add(normalizedPath);
-
-    const project: NonNullable<DesktopSettings['projects']>[number] = {
-      id,
-      path: normalizedPath,
-    };
-
-    if (typeof candidate.label === 'string' && candidate.label.trim().length > 0) {
-      project.label = candidate.label.trim();
-    }
-    if (typeof candidate.addedAt === 'number' && Number.isFinite(candidate.addedAt) && candidate.addedAt >= 0) {
-      project.addedAt = candidate.addedAt;
-    }
-    if (
-      typeof candidate.lastOpenedAt === 'number' &&
-      Number.isFinite(candidate.lastOpenedAt) &&
-      candidate.lastOpenedAt >= 0
-    ) {
-      project.lastOpenedAt = candidate.lastOpenedAt;
-    }
-    // Preserve worktreeDefaults
-    if (candidate.worktreeDefaults && typeof candidate.worktreeDefaults === 'object') {
-      const wt = candidate.worktreeDefaults as Record<string, unknown>;
-      const defaults: Record<string, unknown> = {};
-      if (typeof wt.branchPrefix === 'string' && wt.branchPrefix.trim()) {
-        defaults.branchPrefix = wt.branchPrefix.trim();
-      }
-      if (typeof wt.baseBranch === 'string' && wt.baseBranch.trim()) {
-        defaults.baseBranch = wt.baseBranch.trim();
-      }
-      if (typeof wt.autoCreateWorktree === 'boolean') {
-        defaults.autoCreateWorktree = wt.autoCreateWorktree;
-      }
-      if (Object.keys(defaults).length > 0) {
-        (project as unknown as Record<string, unknown>).worktreeDefaults = defaults;
-      }
-    }
-
-    result.push(project);
-  }
-
-  return result.length > 0 ? result : undefined;
-};
 
 const getPersistApi = (): PersistApi | undefined => {
   const candidate = (useUIStore as unknown as { persist?: PersistApi }).persist;
@@ -246,13 +171,7 @@ const sanitizeWebSettings = (payload: unknown): DesktopSettings | null => {
     result.homeDirectory = candidate.homeDirectory;
   }
 
-  const projects = sanitizeProjects(candidate.projects);
-  if (projects) {
-    result.projects = projects;
-  }
-  if (typeof candidate.activeProjectId === 'string' && candidate.activeProjectId.length > 0) {
-    result.activeProjectId = candidate.activeProjectId;
-  }
+  // Projects are discovered from filesystem (~/openchamber/repos/) - not synced from settings.
 
   if (Array.isArray(candidate.approvedDirectories)) {
     result.approvedDirectories = candidate.approvedDirectories.filter(

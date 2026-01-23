@@ -76,7 +76,7 @@ export function RepoPickerDialog({ open, onOpenChange }: RepoPickerDialogProps) 
 
   const getCloneTargetDir = (repo: GitHubRepo): string => {
     const home = homeDirectory || '';
-    return joinPath(joinPath(joinPath(home, 'openchamber'), 'repos'), repo.fullName);
+    return joinPath(joinPath(joinPath(home, 'openchamber'), repo.name), 'main');
   };
 
   const handleSelectRepo = async (repo: GitHubRepo) => {

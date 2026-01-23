@@ -7,7 +7,6 @@ import { useDirectoryStore } from '@/stores/useDirectoryStore';
 import { normalizePath as normalize, joinPath } from '@/lib/paths';
 
 const OPENCHAMBER_ROOT = 'openchamber';
-const WORKSPACES_DIR = 'workspaces';
 const DEFAULT_BASE_URL = import.meta.env.VITE_OPENCODE_URL || '/api';
 
 /**
@@ -83,25 +82,34 @@ export const extractRepoName = (projectDirectory: string): string => {
 };
 
 /**
- * Get the global openchamber workspaces root.
- * Returns: ~/openchamber/workspaces
+ * Get the global openchamber root directory.
+ * Returns: ~/openchamber
  */
-export const getWorkspacesRoot = (): string => {
+export const getOpenchamberRoot = (): string => {
   const home = getHomeDirectory();
   if (!home) {
-    throw new Error('Could not determine home directory for openchamber workspaces');
+    throw new Error('Could not determine home directory for openchamber');
   }
-  return joinPath(joinPath(home, OPENCHAMBER_ROOT), WORKSPACES_DIR);
+  return joinPath(home, OPENCHAMBER_ROOT);
 };
 
 /**
  * Get the workspace directory for a specific repository.
- * Returns: ~/openchamber/workspaces/<repo-name>
+ * Structure: ~/openchamber/<repo-name>/
+ *   main/           ← the initial clone (project directory)
+ *   <worktree-slug>/ ← worktrees
+ *
+ * Since projectDirectory is ~/openchamber/<repo-name>/main,
+ * this returns its parent: ~/openchamber/<repo-name>
  */
 export const getRepoWorkspaceDir = (projectDirectory: string): string => {
-  const workspacesRoot = getWorkspacesRoot();
-  const repoName = extractRepoName(projectDirectory);
-  return joinPath(workspacesRoot, repoName);
+  const normalized = normalize(projectDirectory);
+  if (!normalized || normalized === '/') {
+    throw new Error('Invalid project directory');
+  }
+  const lastSlash = normalized.lastIndexOf('/');
+  if (lastSlash <= 0) return normalized;
+  return normalized.substring(0, lastSlash);
 };
 
 const ensureDirectory = async (path: string) => {
@@ -143,15 +151,15 @@ export interface ArchiveWorktreeOptions {
 
 /**
  * Resolve the path where a worktree should be created.
- * New structure: ~/openchamber/workspaces/<repo-name>/<worktree-slug>
+ * Structure: ~/openchamber/<repo-name>/<worktree-slug>
  */
 export async function resolveWorktreePath(projectDirectory: string, worktreeSlug: string): Promise<string> {
   const repoWorkspaceDir = getRepoWorkspaceDir(projectDirectory);
-  const workspacesRoot = getWorkspacesRoot();
-  
-  await ensureDirectory(workspacesRoot);
+  const openchamberRoot = getOpenchamberRoot();
+
+  await ensureDirectory(openchamberRoot);
   await ensureDirectory(repoWorkspaceDir);
-  
+
   return joinPath(repoWorkspaceDir, worktreeSlug);
 }
 
@@ -411,62 +419,3 @@ export async function hasWorktreeSetupCommands(projectDirectory: string): Promis
   return commands.length > 0;
 }
 
-const LEGACY_WORKTREE_ROOT = '.openchamber';
-
-export interface MigrateWorktreesResult {
-  success: boolean;
-  migrated: Array<{
-    oldPath: string;
-    newPath: string;
-    success: boolean;
-    error?: string;
-  }>;
-  targetDirectory?: string;
-  message?: string;
-  error?: string;
-}
-
-export async function hasLegacyWorktrees(projectDirectory: string): Promise<boolean> {
-  const normalizedProject = normalize(projectDirectory);
-  try {
-    const worktrees = await listWorktrees(normalizedProject);
-    const legacyRoot = `${normalizedProject}/${LEGACY_WORKTREE_ROOT}/`;
-    return worktrees.some(wt => {
-      const wtPath = normalize(wt.worktree);
-      return wtPath.startsWith(legacyRoot);
-    });
-  } catch {
-    return false;
-  }
-}
-
-export async function migrateWorktreesToGlobalLocation(
-  projectDirectory: string
-): Promise<MigrateWorktreesResult> {
-  const normalizedProject = normalize(projectDirectory);
-  
-  try {
-    const response = await fetch(`${DEFAULT_BASE_URL}/git/migrate-worktrees`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ projectDirectory: normalizedProject }),
-    });
-
-    if (!response.ok) {
-      const data = await response.json().catch(() => ({}));
-      return {
-        success: false,
-        migrated: [],
-        error: data.error || 'Migration request failed',
-      };
-    }
-
-    return await response.json() as MigrateWorktreesResult;
-  } catch (error) {
-    return {
-      success: false,
-      migrated: [],
-      error: error instanceof Error ? error.message : 'Migration failed',
-    };
-  }
-}

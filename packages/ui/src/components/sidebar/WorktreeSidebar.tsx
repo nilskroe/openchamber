@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState, useRef, useEffect } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
   RiAddLine,
   RiArrowDownSLine,
@@ -12,7 +12,6 @@ import {
   RiMore2Line,
   RiSearchLine,
   RiSideBarLine,
-  RiFolderTransferLine,
 } from '@remixicon/react';
 import { toast } from 'sonner';
 import {
@@ -31,8 +30,6 @@ import { useDirectoryStore } from '@/stores/useDirectoryStore';
 import { useUIStore } from '@/stores/useUIStore';
 import { usePanes } from '@/stores/usePaneStore';
 import { sessionEvents } from '@/lib/sessionEvents';
-import { createWorktreeSession } from '@/lib/worktreeSessionCreator';
-import { hasLegacyWorktrees, migrateWorktreesToGlobalLocation } from '@/lib/git/worktreeService';
 import { BranchPickerDialog } from '@/components/session/BranchPickerDialog';
 import type { WorktreeMetadata } from '@/types/worktree';
 import { SIDEBAR_SECTIONS, type SidebarSection } from '@/constants/sidebar';
@@ -73,13 +70,7 @@ interface WorktreeItemProps {
   stats: WorktreeStats;
   onSelect: () => void;
   onClose?: () => void;
-  onRename?: () => void;
   onOpenInFinder?: () => void;
-  isEditing?: boolean;
-  editValue?: string;
-  onEditChange?: (value: string) => void;
-  onSaveRename?: () => void;
-  onCancelRename?: () => void;
   isAutoReviewEnabled?: boolean;
 }
 
@@ -90,42 +81,18 @@ const WorktreeItem: React.FC<WorktreeItemProps> = ({
   stats,
   onSelect,
   onClose,
-  onRename,
   onOpenInFinder,
-  isEditing,
-  editValue,
-  onEditChange,
-  onSaveRename,
-  onCancelRename,
   isAutoReviewEnabled,
 }) => {
   const branchLabel = isMain ? 'main' : (worktree.branch || 'worktree');
   const primaryLabel = stats.sessionTitle || (isMain ? 'main' : (worktree.label || worktree.branch || 'worktree'));
   const hasChanges = stats.additions > 0 || stats.deletions > 0;
-  const showActions = onOpenInFinder || (!isMain && (onClose || onRename));
-  const inputRef = useRef<HTMLInputElement>(null);
+  const showActions = onOpenInFinder || (!isMain && onClose);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   // Show streaming indicator only for the active worktree
   const activityPhase = useChatStore((s) => s.activityPhase);
   const isStreaming = isActive && (activityPhase === 'busy' || activityPhase === 'cooldown');
-  
-  useEffect(() => {
-    if (isEditing && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
-    }
-  }, [isEditing]);
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      onSaveRename?.();
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      onCancelRename?.();
-    }
-  }, [onSaveRename, onCancelRename]);
   
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     if (!showActions) return;
@@ -143,7 +110,7 @@ const WorktreeItem: React.FC<WorktreeItemProps> = ({
             ? 'bg-primary/10'
             : 'hover:bg-muted/50'
         )}
-        onClick={isEditing ? undefined : onSelect}
+        onClick={onSelect}
         onContextMenu={handleContextMenu}
       >
         <div className="flex items-center gap-2">
@@ -151,32 +118,19 @@ const WorktreeItem: React.FC<WorktreeItemProps> = ({
             'h-4 w-4 shrink-0',
             isActive ? 'text-primary' : 'text-muted-foreground'
           )} />
-          {isEditing ? (
-            <input
-              ref={inputRef}
-              type="text"
-              value={editValue ?? ''}
-              onChange={(e) => onEditChange?.(e.target.value)}
-              onKeyDown={handleKeyDown}
-              onBlur={onSaveRename}
-              onClick={(e) => e.stopPropagation()}
-              className="flex-1 bg-transparent border-b border-primary text-sm text-foreground outline-none px-0 py-0"
-            />
-          ) : (
-            <div className="flex-1 min-w-0">
-              <span className={cn(
-                'block truncate text-sm',
-                isActive ? 'text-primary font-medium' : 'text-foreground'
-              )}>
-                {primaryLabel}
+          <div className="flex-1 min-w-0">
+            <span className={cn(
+              'block truncate text-sm',
+              isActive ? 'text-primary font-medium' : 'text-foreground'
+            )}>
+              {primaryLabel}
+            </span>
+            {stats.sessionTitle && !isMain && (
+              <span className="block truncate text-xs text-muted-foreground">
+                {branchLabel}
               </span>
-              {stats.sessionTitle && !isMain && (
-                <span className="block truncate text-xs text-muted-foreground">
-                  {branchLabel}
-                </span>
-              )}
-            </div>
-          )}
+            )}
+          </div>
           {isStreaming && (
             <GridLoader size="xs" className="text-primary shrink-0" />
           )}
@@ -191,7 +145,7 @@ const WorktreeItem: React.FC<WorktreeItemProps> = ({
           {worktree.status?.isDirty && !isStreaming && !isAutoReviewEnabled && (
             <span className="h-2 w-2 rounded-full bg-warning shrink-0" title="Uncommitted changes" />
           )}
-          {showActions && !isEditing && (
+          {showActions && (
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
@@ -204,7 +158,7 @@ const WorktreeItem: React.FC<WorktreeItemProps> = ({
           )}
         </div>
         
-        {hasChanges && !isEditing && (
+        {hasChanges && (
           <div className="flex items-center gap-2 pl-6 text-xs text-muted-foreground">
             <span className="flex items-center gap-0.5">
               <span className="text-[color:var(--status-success)]">+{stats.additions}</span>
@@ -225,11 +179,6 @@ const WorktreeItem: React.FC<WorktreeItemProps> = ({
             <DropdownMenuItem onClick={onOpenInFinder}>
               <RiFolderOpenLine className="mr-1.5 h-4 w-4" />
               Open in Finder
-            </DropdownMenuItem>
-          )}
-          {onRename && (
-            <DropdownMenuItem onClick={onRename}>
-              Rename
             </DropdownMenuItem>
           )}
           {onClose && (
@@ -265,19 +214,9 @@ interface ProjectSectionProps {
   onClose: () => void;
   onCloseWorktree?: (worktreePath: string) => void;
   onOpenInFinder?: (worktreePath: string) => void;
-  onNewWorktreeSession?: () => void;
   onOpenBranchPicker?: () => void;
   onOpenGitHubBoard?: () => void;
-  onMigrateWorktrees?: () => void;
-  hasLegacy: boolean;
   getWorktreeStats: (worktreePath: string) => WorktreeStats;
-  editingWorktreePath: string | null;
-  editValue: string;
-  onStartRename: (worktreePath: string, currentLabel: string) => void;
-  onEditChange: (value: string) => void;
-  onSaveRename: () => void;
-  onCancelRename: () => void;
-  worktreeLabels: Map<string, string>;
   autoReviewDirectory: string | null;
 }
 
@@ -292,19 +231,9 @@ const ProjectSection: React.FC<ProjectSectionProps> = ({
   onClose,
   onCloseWorktree,
   onOpenInFinder,
-  onNewWorktreeSession,
   onOpenBranchPicker,
   onOpenGitHubBoard,
-  onMigrateWorktrees,
-  hasLegacy,
   getWorktreeStats,
-  editingWorktreePath,
-  editValue,
-  onStartRename,
-  onEditChange,
-  onSaveRename,
-  onCancelRename,
-  worktreeLabels,
   autoReviewDirectory,
 }) => {
   const projectLabel = project.label || formatDirectoryName(project.path);
@@ -368,18 +297,12 @@ const ProjectSection: React.FC<ProjectSectionProps> = ({
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="min-w-[160px]">
-            {hasLegacy && onMigrateWorktrees && (
-              <DropdownMenuItem onClick={onMigrateWorktrees}>
-                <RiFolderTransferLine className="mr-1.5 h-4 w-4" />
-                Migrate Worktrees
-              </DropdownMenuItem>
-            )}
             <DropdownMenuItem
               onClick={onClose}
               className="text-destructive focus:text-destructive"
             >
               <RiCloseLine className="mr-1.5 h-4 w-4" />
-              Close Project
+              Remove Repository
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -421,25 +344,6 @@ const ProjectSection: React.FC<ProjectSectionProps> = ({
             <TooltipContent side="bottom">Browse branches</TooltipContent>
           </Tooltip>
         )}
-
-        {onNewWorktreeSession && (
-          <Tooltip delayDuration={700}>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onNewWorktreeSession();
-                }}
-                className="h-6 w-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all"
-                aria-label="New worktree session"
-              >
-                <RiAddLine className="h-4 w-4" />
-              </button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">New worktree session</TooltipContent>
-          </Tooltip>
-        )}
       </div>
 
       {isCollapsed && (projectStats.totalAdditions > 0 || projectStats.totalDeletions > 0) && (
@@ -468,28 +372,18 @@ const ProjectSection: React.FC<ProjectSectionProps> = ({
               const worktreePath = normalizePath(worktree.path);
               const isWorktreeActive = worktreePath === activeWorktreePath;
               const stats = getWorktreeStats(worktree.path);
-              const isEditingThis = editingWorktreePath === worktreePath;
-              const savedLabel = worktreePath ? worktreeLabels.get(worktreePath) : undefined;
-              const displayLabel = savedLabel ?? (worktree.branch || worktree.label || 'worktree');
-              
               const isAutoReviewEnabled = autoReviewDirectory !== null && worktreePath === autoReviewDirectory;
               
               return (
                 <WorktreeItem
                   key={worktree.path}
-                  worktree={{ ...worktree, label: displayLabel }}
+                  worktree={worktree}
                   isActive={isWorktreeActive}
                   isMain={false}
                   stats={stats}
                   onSelect={() => onSelectWorktree(worktree.path)}
                   onClose={onCloseWorktree ? () => onCloseWorktree(worktree.path) : undefined}
-                  onRename={worktreePath ? () => onStartRename(worktreePath, displayLabel) : undefined}
                   onOpenInFinder={onOpenInFinder ? () => onOpenInFinder(worktree.path) : undefined}
-                  isEditing={isEditingThis}
-                  editValue={isEditingThis ? editValue : undefined}
-                  onEditChange={onEditChange}
-                  onSaveRename={onSaveRename}
-                  onCancelRename={onCancelRename}
                   isAutoReviewEnabled={isAutoReviewEnabled}
                 />
               );
@@ -541,81 +435,11 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
 
   const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set());
   const [branchPickerOpen, setBranchPickerOpen] = useState(false);
-  const [editingWorktreePath, setEditingWorktreePath] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState('');
-  const [worktreeLabels, setWorktreeLabels] = useState<Map<string, string>>(() => {
-    try {
-      const saved = localStorage.getItem('oc.worktree.labels');
-      return saved ? new Map(JSON.parse(saved)) : new Map();
-    } catch {
-      return new Map();
-    }
-  });
 
   const [isDesktopRuntime] = useState(() => {
     if (typeof window === 'undefined') return false;
     return typeof window.opencodeDesktop !== 'undefined';
   });
-
-  const [projectLegacyStatus, setProjectLegacyStatus] = useState<Map<string, boolean>>(new Map());
-
-  React.useEffect(() => {
-    let cancelled = false;
-    projects.forEach((project) => {
-      const path = normalizePath(project.path);
-      if (!path || projectLegacyStatus.has(project.id)) return;
-      
-      hasLegacyWorktrees(path)
-        .then((hasLegacy) => {
-          if (!cancelled) {
-            setProjectLegacyStatus((prev) => new Map(prev).set(project.id, hasLegacy));
-          }
-        })
-        .catch(() => {
-          if (!cancelled) {
-            setProjectLegacyStatus((prev) => new Map(prev).set(project.id, false));
-          }
-        });
-    });
-    return () => { cancelled = true; };
-  }, [projects, projectLegacyStatus]);
-
-  const loadAllSessions = useChatStore((s) => s.loadAllSessions);
-
-  const handleMigrateWorktrees = useCallback(async (projectId: string) => {
-    const project = projects.find(p => p.id === projectId);
-    if (!project) return;
-    
-    const path = normalizePath(project.path);
-    if (!path) return;
-    
-    toast.loading('Migrating worktrees...', { id: 'migrate-worktrees' });
-    
-    try {
-      const result = await migrateWorktreesToGlobalLocation(path);
-      
-      if (result.success) {
-        const count = result.migrated.filter(m => m.success).length;
-        toast.success(`Migrated ${count} worktree${count === 1 ? '' : 's'}`, { 
-          id: 'migrate-worktrees',
-          description: result.targetDirectory ? `To: ${result.targetDirectory}` : undefined,
-        });
-        setProjectLegacyStatus((prev) => new Map(prev).set(projectId, false));
-        loadAllSessions();
-      } else {
-        const failed = result.migrated.filter(m => !m.success);
-        toast.error('Migration failed', { 
-          id: 'migrate-worktrees',
-          description: failed.length > 0 ? `${failed.length} worktree(s) failed to migrate` : result.error,
-        });
-      }
-    } catch (error) {
-      toast.error('Migration failed', { 
-        id: 'migrate-worktrees',
-        description: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
-  }, [projects, loadAllSessions]);
 
   const activeWorktreePath = useMemo(() => {
     return normalizePath(currentDirectory);
@@ -671,15 +495,6 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
   const handleAddRepository = useCallback(() => {
     sessionEvents.requestDirectoryDialog();
   }, []);
-
-
-
-  const handleNewWorktreeSession = useCallback((projectId: string) => {
-    if (projectId !== activeProjectId) {
-      setActiveProject(projectId);
-    }
-    createWorktreeSession();
-  }, [activeProjectId, setActiveProject]);
 
   const handleCloseWorktree = useCallback((worktreePath: string) => {
     const normalizedPath = normalizePath(worktreePath);
@@ -757,44 +572,6 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
       metadata: { owner: project.owner, repo: project.repo, projectDirectory: project.path },
     });
   }, [addTab, projects]);
-
-  const handleStartRename = useCallback((worktreePath: string, currentLabel: string) => {
-    const savedLabel = worktreeLabels.get(worktreePath);
-    setEditingWorktreePath(worktreePath);
-    setEditValue(savedLabel ?? currentLabel);
-  }, [worktreeLabels]);
-
-  const handleSaveRename = useCallback(() => {
-    if (!editingWorktreePath || !editValue.trim()) {
-      setEditingWorktreePath(null);
-      setEditValue('');
-      return;
-    }
-
-    setWorktreeLabels((prev) => {
-      const next = new Map(prev);
-      next.set(editingWorktreePath, editValue.trim());
-      try {
-        localStorage.setItem('oc.worktree.labels', JSON.stringify([...next]));
-      } catch {
-        // Ignore storage errors
-      }
-      return next;
-    });
-
-    setEditingWorktreePath(null);
-    setEditValue('');
-    toast.success('Worktree renamed');
-  }, [editingWorktreePath, editValue]);
-
-  const handleCancelRename = useCallback(() => {
-    setEditingWorktreePath(null);
-    setEditValue('');
-  }, []);
-
-  const handleEditChange = useCallback((value: string) => {
-    setEditValue(value);
-  }, []);
 
   const normalizedProjects = useMemo(() => {
     return projects.map((p) => ({
@@ -958,19 +735,9 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
               onClose={() => handleCloseProject(project.id)}
               onCloseWorktree={handleCloseWorktree}
               onOpenInFinder={handleOpenInFinder}
-              onNewWorktreeSession={() => handleNewWorktreeSession(project.id)}
               onOpenBranchPicker={handleOpenBranchPicker}
               onOpenGitHubBoard={() => handleOpenGitHubBoard(project.id)}
-              onMigrateWorktrees={() => handleMigrateWorktrees(project.id)}
-              hasLegacy={projectLegacyStatus.get(project.id) ?? false}
               getWorktreeStats={getWorktreeStats}
-              editingWorktreePath={editingWorktreePath}
-              editValue={editValue}
-              onStartRename={handleStartRename}
-              onEditChange={handleEditChange}
-              onSaveRename={handleSaveRename}
-              onCancelRename={handleCancelRename}
-              worktreeLabels={worktreeLabels}
               autoReviewDirectory={normalizedAutoReviewDirectory}
             />
           );

@@ -2,322 +2,310 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { opencodeClient } from '@/lib/opencode/client';
 import type { ProjectEntry, WorktreeDefaults } from '@/lib/api/types';
-import type { DesktopSettings } from '@/lib/desktop';
-import { updateDesktopSettings } from '@/lib/persistence';
 import { getSafeStorage } from './utils/safeStorage';
 import { useDirectoryStore } from './useDirectoryStore';
 import { streamDebugEnabled } from '@/stores/utils/streamDebug';
 import { checkIsGitRepository, getRemoteUrl } from '@/lib/gitApi';
 import { parseGitHubRemoteUrl } from '@/lib/github-repos/utils';
-import { normalizePath } from '@/lib/paths';
+import { normalizePath, joinPath } from '@/lib/paths';
 
-interface ProjectPathValidationResult {
-  ok: boolean;
-  normalizedPath?: string;
-  reason?: string;
-}
+const OPENCHAMBER_DIR = 'openchamber';
+const MAIN_DIR = 'main';
+const ACTIVE_PROJECT_KEY = 'activeProjectId';
+const WORKTREE_DEFAULTS_PREFIX = 'worktreeDefaults:';
+
+const safeStorage = getSafeStorage();
+
+/**
+ * Get the home directory from the directory store or fallback sources.
+ */
+const getHomeDirectory = (): string => {
+  try {
+    const storeHome = useDirectoryStore.getState().homeDirectory;
+    if (storeHome && storeHome !== '/') {
+      return normalizePath(storeHome);
+    }
+  } catch {
+    // Store might not be initialized yet
+  }
+
+  if (typeof window !== 'undefined' && window.localStorage) {
+    const stored = window.localStorage.getItem('homeDirectory');
+    if (stored && stored !== '/') {
+      return normalizePath(stored);
+    }
+  }
+
+  return '';
+};
+
+/**
+ * Get the openchamber root directory: ~/openchamber
+ */
+const getOpenchamberRoot = (): string => {
+  const home = getHomeDirectory();
+  if (!home) return '';
+  return joinPath(home, OPENCHAMBER_DIR);
+};
+
+/**
+ * Build a project ID from owner/repo.
+ */
+const buildProjectId = (owner: string, repo: string): string => `${owner}/${repo}`;
+
+/**
+ * Read worktree defaults from localStorage for a project.
+ */
+const readWorktreeDefaults = (projectId: string): WorktreeDefaults | undefined => {
+  try {
+    const raw = safeStorage.getItem(`${WORKTREE_DEFAULTS_PREFIX}${projectId}`);
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw);
+    if (typeof parsed !== 'object' || parsed === null) return undefined;
+    const defaults: WorktreeDefaults = {};
+    if (typeof parsed.branchPrefix === 'string') defaults.branchPrefix = parsed.branchPrefix;
+    if (typeof parsed.baseBranch === 'string') defaults.baseBranch = parsed.baseBranch;
+    if (typeof parsed.autoCreateWorktree === 'boolean') defaults.autoCreateWorktree = parsed.autoCreateWorktree;
+    return Object.keys(defaults).length > 0 ? defaults : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+/**
+ * Write worktree defaults to localStorage for a project.
+ */
+const writeWorktreeDefaults = (projectId: string, defaults: WorktreeDefaults | undefined) => {
+  try {
+    if (!defaults || Object.keys(defaults).length === 0) {
+      safeStorage.removeItem(`${WORKTREE_DEFAULTS_PREFIX}${projectId}`);
+    } else {
+      safeStorage.setItem(`${WORKTREE_DEFAULTS_PREFIX}${projectId}`, JSON.stringify(defaults));
+    }
+  } catch {
+    // ignored
+  }
+};
 
 interface ProjectsStore {
   projects: ProjectEntry[];
   activeProjectId: string | null;
+  isDiscovering: boolean;
 
+  discoverProjects: () => Promise<void>;
   addProject: (path: string, options: { label?: string; id?: string; owner: string; repo: string }) => ProjectEntry | null;
   removeProject: (id: string) => void;
   setActiveProject: (id: string) => void;
   setActiveProjectIdOnly: (id: string) => void;
-  renameProject: (id: string, label: string) => void;
-  reorderProjects: (fromIndex: number, toIndex: number) => void;
-  validateProjectPath: (path: string) => ProjectPathValidationResult;
-  synchronizeFromSettings: (settings: DesktopSettings) => void;
   getActiveProject: () => ProjectEntry | null;
   updateWorktreeDefaults: (projectId: string, defaults: Partial<WorktreeDefaults>) => void;
+  validateProjectPath: (path: string) => { ok: boolean; normalizedPath?: string; reason?: string };
 }
 
-const safeStorage = getSafeStorage();
-const PROJECTS_STORAGE_KEY = 'projects';
-const ACTIVE_PROJECT_STORAGE_KEY = 'activeProjectId';
-
-const resolveTildePath = (value: string, homeDir?: string | null): string => {
-  const trimmed = value.trim();
-  if (!trimmed.startsWith('~')) {
-    return trimmed;
-  }
-  if (!homeDir) {
-    return trimmed;
-  }
-  if (trimmed === '~') {
-    return homeDir;
-  }
-  if (trimmed.startsWith('~/') || trimmed.startsWith('~\\')) {
-    return `${homeDir}${trimmed.slice(1)}`;
-  }
-  return trimmed;
-};
-
-const normalizeProjectPath = (value: string): string => {
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return '';
-  }
-
-  const homeDirectory = safeStorage.getItem('homeDirectory') || useDirectoryStore.getState().homeDirectory || '';
-  const expanded = resolveTildePath(trimmed, homeDirectory);
-
-  return normalizePath(expanded);
-};
-
-const deriveProjectLabel = (path: string): string => {
-  const normalized = normalizeProjectPath(path);
-  if (!normalized || normalized === '/') {
-    return 'Root';
-  }
-  const segments = normalized.split('/').filter(Boolean);
-  return segments[segments.length - 1] || normalized;
-};
-
-const createProjectId = (): string => {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return crypto.randomUUID();
-  }
-  return `proj_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-};
-
-const sanitizeProjects = (value: unknown): ProjectEntry[] => {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  const result: ProjectEntry[] = [];
-  const seenIds = new Set<string>();
-  const seenPaths = new Set<string>();
-
-  for (const entry of value) {
-    if (!entry || typeof entry !== 'object') continue;
-    const candidate = entry as Record<string, unknown>;
-
-    const id = typeof candidate.id === 'string' ? candidate.id.trim() : '';
-    const rawPath = typeof candidate.path === 'string' ? candidate.path.trim() : '';
-    if (!id || !rawPath) continue;
-
-    // Require owner and repo fields (migration: drop entries without them)
-    const owner = typeof candidate.owner === 'string' ? candidate.owner.trim() : '';
-    const repo = typeof candidate.repo === 'string' ? candidate.repo.trim() : '';
-    if (!owner || !repo) continue;
-
-    const normalizedPath = normalizeProjectPath(rawPath);
-    if (!normalizedPath) continue;
-
-    if (seenIds.has(id) || seenPaths.has(normalizedPath)) continue;
-    seenIds.add(id);
-    seenPaths.add(normalizedPath);
-
-    const project: ProjectEntry = {
-      id,
-      path: normalizedPath,
-      owner,
-      repo,
-    };
-
-    if (typeof candidate.label === 'string' && candidate.label.trim().length > 0) {
-      project.label = candidate.label.trim();
-    }
-    if (typeof candidate.addedAt === 'number' && Number.isFinite(candidate.addedAt) && candidate.addedAt >= 0) {
-      project.addedAt = candidate.addedAt;
-    }
-    if (typeof candidate.lastOpenedAt === 'number' && Number.isFinite(candidate.lastOpenedAt) && candidate.lastOpenedAt >= 0) {
-      project.lastOpenedAt = candidate.lastOpenedAt;
-    }
-    if (candidate.worktreeDefaults && typeof candidate.worktreeDefaults === 'object') {
-      const wt = candidate.worktreeDefaults as Record<string, unknown>;
-      const defaults: WorktreeDefaults = {};
-      if (typeof wt.branchPrefix === 'string') {
-        defaults.branchPrefix = wt.branchPrefix;
-      }
-      if (typeof wt.baseBranch === 'string') {
-        defaults.baseBranch = wt.baseBranch;
-      }
-      if (typeof wt.autoCreateWorktree === 'boolean') {
-        defaults.autoCreateWorktree = wt.autoCreateWorktree;
-      }
-      if (Object.keys(defaults).length > 0) {
-        project.worktreeDefaults = defaults;
-      }
-    }
-
-    result.push(project);
-  }
-
-  return result;
-};
-
-const readPersistedProjects = (): ProjectEntry[] => {
+/**
+ * Read the persisted active project ID from localStorage.
+ */
+const readActiveProjectId = (): string | null => {
   try {
-    const raw = safeStorage.getItem(PROJECTS_STORAGE_KEY);
-    if (!raw) {
-      return [];
-    }
-    return sanitizeProjects(JSON.parse(raw));
-  } catch {
-    return [];
-  }
-};
-
-const readPersistedActiveProjectId = (): string | null => {
-  try {
-    const raw = safeStorage.getItem(ACTIVE_PROJECT_STORAGE_KEY);
+    const raw = safeStorage.getItem(ACTIVE_PROJECT_KEY);
     if (typeof raw === 'string' && raw.trim().length > 0) {
       return raw.trim();
     }
   } catch {
-    return null;
+    // ignored
   }
   return null;
 };
 
-const cacheProjects = (projects: ProjectEntry[], activeProjectId: string | null) => {
+const persistActiveProjectId = (id: string | null) => {
   try {
-    safeStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(projects));
-  } catch {
-    // ignored
-  }
-
-  try {
-    if (activeProjectId) {
-      safeStorage.setItem(ACTIVE_PROJECT_STORAGE_KEY, activeProjectId);
+    if (id) {
+      safeStorage.setItem(ACTIVE_PROJECT_KEY, id);
     } else {
-      safeStorage.removeItem(ACTIVE_PROJECT_STORAGE_KEY);
+      safeStorage.removeItem(ACTIVE_PROJECT_KEY);
     }
   } catch {
     // ignored
   }
 };
 
-const persistProjects = (projects: ProjectEntry[], activeProjectId: string | null) => {
-  cacheProjects(projects, activeProjectId);
-  void updateDesktopSettings({ projects, activeProjectId: activeProjectId ?? undefined });
-};
-
-const initialProjects = readPersistedProjects();
+/**
+ * For VS Code runtime, derive a single project from the workspace folder.
+ */
 const getVSCodeWorkspaceProject = (): { projects: ProjectEntry[]; activeProjectId: string | null } | null => {
-  if (typeof window === 'undefined') {
-    return null;
-  }
+  if (typeof window === 'undefined') return null;
 
   const runtimeApis = (window as unknown as { __OPENCHAMBER_RUNTIME_APIS__?: { runtime?: { isVSCode?: boolean } } })
     .__OPENCHAMBER_RUNTIME_APIS__;
-  if (!runtimeApis?.runtime?.isVSCode) {
-    return null;
-  }
+  if (!runtimeApis?.runtime?.isVSCode) return null;
 
   const workspaceFolder = (window as unknown as { __VSCODE_CONFIG__?: { workspaceFolder?: unknown } }).__VSCODE_CONFIG__?.workspaceFolder;
-  if (typeof workspaceFolder !== 'string' || workspaceFolder.trim().length === 0) {
-    return null;
-  }
+  if (typeof workspaceFolder !== 'string' || workspaceFolder.trim().length === 0) return null;
 
-  const normalizedPath = normalizeProjectPath(workspaceFolder);
-  if (!normalizedPath) {
-    return null;
-  }
+  const normalizedPath = normalizePath(workspaceFolder.trim());
+  if (!normalizedPath) return null;
 
   const id = `vscode:${normalizedPath}`;
+  const segments = normalizedPath.split('/').filter(Boolean);
   const entry: ProjectEntry = {
     id,
     path: normalizedPath,
-    label: deriveProjectLabel(normalizedPath),
-    addedAt: Date.now(),
-    lastOpenedAt: Date.now(),
+    label: segments[segments.length - 1] || 'Workspace',
     owner: '',
     repo: '',
   };
 
-  if (streamDebugEnabled()) {
-    console.log('[OpenChamber][VSCode][projects] Using workspace fallback project', entry);
-  }
-
   return { projects: [entry], activeProjectId: id };
 };
 
-// VS Code runtime should behave as a single-project environment scoped to the workspace folder.
-// Always prefer the workspace project over any persisted multi-project registry.
 const vscodeWorkspace = getVSCodeWorkspaceProject();
-const effectiveInitialProjects = vscodeWorkspace?.projects ?? initialProjects;
-const initialActiveProjectId = vscodeWorkspace?.activeProjectId
-  ?? readPersistedActiveProjectId()
-  ?? effectiveInitialProjects[0]?.id
-  ?? null;
-
-if (vscodeWorkspace) {
-  cacheProjects(effectiveInitialProjects, initialActiveProjectId);
-}
+const initialActiveProjectId = vscodeWorkspace?.activeProjectId ?? readActiveProjectId();
 
 export const useProjectsStore = create<ProjectsStore>()(
   devtools((set, get) => ({
-    projects: effectiveInitialProjects,
+    projects: vscodeWorkspace?.projects ?? [],
     activeProjectId: initialActiveProjectId,
+    isDiscovering: false,
 
-    validateProjectPath: (path: string): ProjectPathValidationResult => {
+    discoverProjects: async () => {
+      if (vscodeWorkspace) return;
+
+      const reposRoot = getReposRoot();
+      if (!reposRoot) {
+        if (streamDebugEnabled()) {
+          console.warn('[ProjectsStore] Cannot discover projects: no home directory');
+        }
+        return;
+      }
+
+      set({ isDiscovering: true });
+
+      try {
+        // List owner directories in ~/openchamber/repos/
+        const ownerEntries = await opencodeClient.listLocalDirectory(reposRoot);
+        const ownerDirs = ownerEntries.filter((e) => e.isDirectory);
+
+        const discovered: ProjectEntry[] = [];
+
+        for (const ownerDir of ownerDirs) {
+          const owner = ownerDir.name;
+          const ownerPath = joinPath(reposRoot, owner);
+
+          // List repo directories in ~/openchamber/repos/<owner>/
+          const repoEntries = await opencodeClient.listLocalDirectory(ownerPath);
+          const repoDirs = repoEntries.filter((e) => e.isDirectory);
+
+          for (const repoDir of repoDirs) {
+            const repo = repoDir.name;
+            const repoPath = normalizePath(joinPath(ownerPath, repo));
+            const id = buildProjectId(owner, repo);
+
+            discovered.push({
+              id,
+              path: repoPath,
+              owner,
+              repo,
+              label: `${owner}/${repo}`,
+              worktreeDefaults: readWorktreeDefaults(id),
+            });
+          }
+        }
+
+        if (streamDebugEnabled()) {
+          console.log('[ProjectsStore] Discovered projects:', discovered.map((p) => p.id));
+        }
+
+        const current = get();
+        let nextActiveId = current.activeProjectId;
+
+        // If the active project is no longer present, select the first one
+        if (nextActiveId && !discovered.find((p) => p.id === nextActiveId)) {
+          nextActiveId = discovered[0]?.id ?? null;
+          persistActiveProjectId(nextActiveId);
+        }
+
+        // If no active project but projects exist, select the first
+        if (!nextActiveId && discovered.length > 0) {
+          nextActiveId = discovered[0].id;
+          persistActiveProjectId(nextActiveId);
+        }
+
+        set({ projects: discovered, activeProjectId: nextActiveId, isDiscovering: false });
+
+        // Switch the opencode client directory to the active project
+        if (nextActiveId) {
+          const activeProject = discovered.find((p) => p.id === nextActiveId);
+          if (activeProject) {
+            opencodeClient.setDirectory(activeProject.path);
+            useDirectoryStore.getState().setDirectory(activeProject.path, { showOverlay: false });
+          }
+        }
+      } catch (error) {
+        if (streamDebugEnabled()) {
+          console.error('[ProjectsStore] Failed to discover projects:', error);
+        }
+        set({ isDiscovering: false });
+      }
+    },
+
+    validateProjectPath: (path: string) => {
       if (typeof path !== 'string' || path.trim().length === 0) {
         return { ok: false, reason: 'Provide a directory path.' };
       }
-
-      const normalized = normalizeProjectPath(path);
+      const normalized = normalizePath(path.trim());
       if (!normalized) {
         return { ok: false, reason: 'Directory path cannot be empty.' };
       }
-
       return { ok: true, normalizedPath: normalized };
     },
 
     addProject: (path: string, options: { label?: string; id?: string; owner: string; repo: string }) => {
-      if (vscodeWorkspace) {
-        return null;
-      }
-      const { validateProjectPath } = get();
-      const validation = validateProjectPath(path);
-      if (!validation.ok || !validation.normalizedPath) {
-        return null;
-      }
+      if (vscodeWorkspace) return null;
 
-      const normalizedPath = validation.normalizedPath;
-      const existing = get().projects.find((project) => project.path === normalizedPath);
+      const normalized = normalizePath(path.trim());
+      if (!normalized) return null;
+
+      const owner = options.owner.trim();
+      const repo = options.repo.trim();
+      if (!owner || !repo) return null;
+
+      const id = buildProjectId(owner, repo);
+      const existing = get().projects.find((p) => p.id === id);
       if (existing) {
         get().setActiveProject(existing.id);
         return existing;
       }
 
-      const now = Date.now();
-      const label = options?.label?.trim() || `${options.owner}/${options.repo}`;
-      const candidateId = options?.id?.trim();
-      const id = candidateId && !get().projects.some((project) => project.id === candidateId)
-        ? candidateId
-        : createProjectId();
       const entry: ProjectEntry = {
         id,
-        path: normalizedPath,
-        label,
-        addedAt: now,
-        lastOpenedAt: now,
-        owner: options.owner,
-        repo: options.repo,
+        path: normalized,
+        owner,
+        repo,
+        label: options.label?.trim() || `${owner}/${repo}`,
       };
 
       const nextProjects = [...get().projects, entry];
-      set({ projects: nextProjects });
+      set({ projects: nextProjects, activeProjectId: id });
+      persistActiveProjectId(id);
+
+      opencodeClient.setDirectory(entry.path);
+      useDirectoryStore.getState().setDirectory(entry.path, { showOverlay: false });
 
       if (streamDebugEnabled()) {
         console.info('[ProjectsStore] Added project', entry);
       }
 
-      get().setActiveProject(entry.id);
+      // Re-discover from filesystem to stay in sync
+      void get().discoverProjects();
+
       return entry;
     },
 
     removeProject: (id: string) => {
-      if (vscodeWorkspace) {
-        return;
-      }
+      if (vscodeWorkspace) return;
+
       const current = get();
-      const nextProjects = current.projects.filter((project) => project.id !== id);
+      const nextProjects = current.projects.filter((p) => p.id !== id);
       let nextActiveId = current.activeProjectId;
 
       if (current.activeProjectId === id) {
@@ -325,10 +313,10 @@ export const useProjectsStore = create<ProjectsStore>()(
       }
 
       set({ projects: nextProjects, activeProjectId: nextActiveId });
-      persistProjects(nextProjects, nextActiveId);
+      persistActiveProjectId(nextActiveId);
 
       if (nextActiveId) {
-        const nextActive = nextProjects.find((project) => project.id === nextActiveId);
+        const nextActive = nextProjects.find((p) => p.id === nextActiveId);
         if (nextActive) {
           opencodeClient.setDirectory(nextActive.path);
           useDirectoryStore.getState().setDirectory(nextActive.path, { showOverlay: false });
@@ -339,138 +327,46 @@ export const useProjectsStore = create<ProjectsStore>()(
     },
 
     setActiveProject: (id: string) => {
-      if (vscodeWorkspace) {
-        return;
-      }
+      if (vscodeWorkspace) return;
+
       const { projects, activeProjectId } = get();
-      if (activeProjectId === id) {
-        return;
-      }
-      const target = projects.find((project) => project.id === id);
-      if (!target) {
-        return;
-      }
+      if (activeProjectId === id) return;
 
-      const now = Date.now();
-      const nextProjects = projects.map((project) =>
-        project.id === id ? { ...project, lastOpenedAt: now } : project
-      );
+      const target = projects.find((p) => p.id === id);
+      if (!target) return;
 
-      set({ projects: nextProjects, activeProjectId: id });
-      persistProjects(nextProjects, id);
+      set({ activeProjectId: id });
+      persistActiveProjectId(id);
 
       opencodeClient.setDirectory(target.path);
       useDirectoryStore.getState().setDirectory(target.path, { showOverlay: false });
     },
 
     setActiveProjectIdOnly: (id: string) => {
-      if (vscodeWorkspace) {
-        return;
-      }
-      const { projects, activeProjectId } = get();
-      if (activeProjectId === id) {
-        return;
-      }
-      const target = projects.find((project) => project.id === id);
-      if (!target) {
-        return;
-      }
-
-      const now = Date.now();
-      const nextProjects = projects.map((project) =>
-        project.id === id ? { ...project, lastOpenedAt: now } : project
-      );
-
-      set({ projects: nextProjects, activeProjectId: id });
-      persistProjects(nextProjects, id);
-    },
-
-    renameProject: (id: string, label: string) => {
-      if (vscodeWorkspace) {
-        return;
-      }
-      const trimmed = label.trim();
-      if (!trimmed) {
-        return;
-      }
+      if (vscodeWorkspace) return;
 
       const { projects, activeProjectId } = get();
-      const nextProjects = projects.map((project) =>
-        project.id === id ? { ...project, label: trimmed } : project
-      );
-      set({ projects: nextProjects });
-      persistProjects(nextProjects, activeProjectId);
-    },
+      if (activeProjectId === id) return;
 
-    reorderProjects: (fromIndex: number, toIndex: number) => {
-      if (vscodeWorkspace) {
-        return;
-      }
-      const { projects, activeProjectId } = get();
-      if (
-        fromIndex < 0 ||
-        fromIndex >= projects.length ||
-        toIndex < 0 ||
-        toIndex >= projects.length ||
-        fromIndex === toIndex
-      ) {
-        return;
-      }
+      const target = projects.find((p) => p.id === id);
+      if (!target) return;
 
-      const nextProjects = [...projects];
-      const [moved] = nextProjects.splice(fromIndex, 1);
-      nextProjects.splice(toIndex, 0, moved);
-
-      set({ projects: nextProjects });
-      persistProjects(nextProjects, activeProjectId);
-    },
-
-    synchronizeFromSettings: (settings: DesktopSettings) => {
-      if (vscodeWorkspace) {
-        return;
-      }
-      const incomingProjects = sanitizeProjects(settings.projects ?? []);
-      const incomingActive = typeof settings.activeProjectId === 'string' && settings.activeProjectId.trim()
-        ? settings.activeProjectId.trim()
-        : null;
-
-      const current = get();
-      const projectsChanged = JSON.stringify(current.projects) !== JSON.stringify(incomingProjects);
-      const activeChanged = current.activeProjectId !== incomingActive;
-
-      if (!projectsChanged && !activeChanged) {
-        return;
-      }
-
-      set({ projects: incomingProjects, activeProjectId: incomingActive });
-      cacheProjects(incomingProjects, incomingActive);
-
-      if (incomingActive) {
-        const activeProject = incomingProjects.find((project) => project.id === incomingActive);
-        if (activeProject) {
-          opencodeClient.setDirectory(activeProject.path);
-          useDirectoryStore.getState().setDirectory(activeProject.path, { showOverlay: false });
-        }
-      }
+      set({ activeProjectId: id });
+      persistActiveProjectId(id);
     },
 
     getActiveProject: () => {
       const { projects, activeProjectId } = get();
-      if (!activeProjectId) {
-        return null;
-      }
-      return projects.find((project) => project.id === activeProjectId) ?? null;
+      if (!activeProjectId) return null;
+      return projects.find((p) => p.id === activeProjectId) ?? null;
     },
 
     updateWorktreeDefaults: (projectId: string, defaults: Partial<WorktreeDefaults>) => {
-      if (vscodeWorkspace) {
-        return;
-      }
-      const { projects, activeProjectId } = get();
-      const target = projects.find((project) => project.id === projectId);
-      if (!target) {
-        return;
-      }
+      if (vscodeWorkspace) return;
+
+      const { projects } = get();
+      const target = projects.find((p) => p.id === projectId);
+      if (!target) return;
 
       const merged: WorktreeDefaults = { ...target.worktreeDefaults };
       if (defaults.branchPrefix !== undefined) {
@@ -491,26 +387,16 @@ export const useProjectsStore = create<ProjectsStore>()(
         merged.autoCreateWorktree = defaults.autoCreateWorktree;
       }
 
-      const nextProjects = projects.map((project) =>
-        project.id === projectId
-          ? { ...project, worktreeDefaults: Object.keys(merged).length > 0 ? merged : undefined }
-          : project
-      );
+      const finalDefaults = Object.keys(merged).length > 0 ? merged : undefined;
+      writeWorktreeDefaults(projectId, finalDefaults);
 
+      const nextProjects = projects.map((p) =>
+        p.id === projectId ? { ...p, worktreeDefaults: finalDefaults } : p
+      );
       set({ projects: nextProjects });
-      persistProjects(nextProjects, activeProjectId);
     },
   }), { name: 'projects-store' })
 );
-
-if (typeof window !== 'undefined') {
-  window.addEventListener('openchamber:settings-synced', (event: Event) => {
-    const detail = (event as CustomEvent<DesktopSettings>).detail;
-    if (detail && typeof detail === 'object') {
-      useProjectsStore.getState().synchronizeFromSettings(detail);
-    }
-  });
-}
 
 /**
  * Validate that a directory is a GitHub repository and extract owner/repo.

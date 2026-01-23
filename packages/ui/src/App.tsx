@@ -29,6 +29,7 @@ import { registerRuntimeAPIs } from '@/contexts/runtimeAPIRegistry';
 import { OnboardingScreen } from '@/components/onboarding/OnboardingScreen';
 import { isCliAvailable } from '@/lib/desktop';
 import { useUIStore } from '@/stores/useUIStore';
+import { useProjectsStore } from '@/stores/useProjectsStore';
 import type { RuntimeAPIs } from '@/lib/api/types';
 
 const AboutDialogWrapper: React.FC = () => {
@@ -129,6 +130,8 @@ function App({ apis }: AppProps) {
         return;
       }
       await initializeApp();
+      // Discover projects from the filesystem (~/openchamber/repos/)
+      await useProjectsStore.getState().discoverProjects();
     };
 
     init();
