@@ -360,6 +360,7 @@ interface MessageActions {
     getLastMessageModel: (sessionId: string) => { providerID?: string; modelID?: string } | null;
     updateSessionCompaction: (sessionId: string, compactingTimestamp: number | null | undefined) => void;
     acknowledgeSessionAbort: (sessionId: string) => void;
+    cleanupSession: (sessionId: string) => void;
 }
 
 type MessageStore = MessageState & MessageActions;
@@ -2183,6 +2184,47 @@ export const useMessageStore = create<MessageStore>()(
                         const nextAbortFlags = new Map(state.sessionAbortFlags);
                         nextAbortFlags.set(sessionId, { ...record, acknowledged: true });
                         return { sessionAbortFlags: nextAbortFlags } as Partial<MessageState>;
+                    });
+                },
+
+                cleanupSession: (sessionId: string) => {
+                    if (!sessionId) {
+                        return;
+                    }
+
+                    set((state) => {
+                        const newMessages = new Map(state.messages);
+                        newMessages.delete(sessionId);
+
+                        const newSessionMemoryState = new Map(state.sessionMemoryState);
+                        newSessionMemoryState.delete(sessionId);
+
+                        const newStreamingMessageIds = new Map(state.streamingMessageIds);
+                        newStreamingMessageIds.delete(sessionId);
+
+                        const newSessionCompactionUntil = new Map(state.sessionCompactionUntil);
+                        newSessionCompactionUntil.delete(sessionId);
+
+                        const newSessionAbortFlags = new Map(state.sessionAbortFlags);
+                        newSessionAbortFlags.delete(sessionId);
+
+                        const newPendingUserMessageMetaBySession = cleanupPendingUserMessageMeta(
+                            state.pendingUserMessageMetaBySession,
+                            sessionId
+                        );
+
+                        const newPendingAssistantHeaderSessions = new Set(state.pendingAssistantHeaderSessions);
+                        newPendingAssistantHeaderSessions.delete(sessionId);
+
+                        return {
+                            messages: newMessages,
+                            sessionMemoryState: newSessionMemoryState,
+                            streamingMessageIds: newStreamingMessageIds,
+                            sessionCompactionUntil: newSessionCompactionUntil,
+                            sessionAbortFlags: newSessionAbortFlags,
+                            pendingUserMessageMetaBySession: newPendingUserMessageMetaBySession,
+                            pendingAssistantHeaderSessions: newPendingAssistantHeaderSessions,
+                        } as Partial<MessageState>;
                     });
                 },
 

@@ -318,7 +318,7 @@ export const Header: React.FC = () => {
            </TooltipContent>
          </Tooltip>
 
-         <McpDropdown headerIconButtonClass={headerIconButtonClass} />
+         <McpDropdown buttonClassName={headerIconButtonClass} />
 
         <Tooltip delayDuration={500}>
           <TooltipTrigger asChild>
@@ -424,7 +424,7 @@ export const Header: React.FC = () => {
             })}
           </div>
 
-          <McpDropdown headerIconButtonClass={headerIconButtonClass} />
+          <McpDropdown buttonClassName={headerIconButtonClass} />
 
           <Tooltip delayDuration={500}>
             <TooltipTrigger asChild>
