@@ -63,6 +63,74 @@ const PICKER_SCRIPT = `
     label.style.left = r.left + 'px';
   }
 
+  function getAncestry(el) {
+    var chain = [];
+    var node = el;
+    while (node && node !== document.body && chain.length < 6) {
+      var tag = node.tagName.toLowerCase();
+      var id = node.id ? '#' + node.id : '';
+      var role = node.getAttribute('role');
+      var roleStr = role ? '[role=' + role + ']' : '';
+      chain.unshift(tag + id + roleStr);
+      node = node.parentElement;
+    }
+    return chain.join(' > ');
+  }
+
+  function getNearestHeading(el) {
+    var node = el;
+    while (node && node !== document.body) {
+      var h = node.querySelector('h1,h2,h3,h4,h5,h6');
+      if (h) return h.textContent.trim().substring(0, 100);
+      node = node.parentElement;
+    }
+    var prev = el;
+    while (prev = prev.previousElementSibling) {
+      if (/^H[1-6]$/.test(prev.tagName)) return prev.textContent.trim().substring(0, 100);
+    }
+    return null;
+  }
+
+  function getLandmark(el) {
+    var landmarks = ['nav','main','header','footer','aside','section','form'];
+    var node = el.parentElement;
+    while (node && node !== document.body) {
+      var tag = node.tagName.toLowerCase();
+      if (landmarks.indexOf(tag) !== -1) {
+        var lbl = node.getAttribute('aria-label') || node.getAttribute('aria-labelledby') || '';
+        return tag + (lbl ? ' (' + lbl + ')' : '');
+      }
+      var role = node.getAttribute('role');
+      if (role && ['navigation','main','banner','contentinfo','complementary','region','form'].indexOf(role) !== -1) {
+        var rl = node.getAttribute('aria-label') || '';
+        return role + (rl ? ' (' + rl + ')' : '');
+      }
+      node = node.parentElement;
+    }
+    return null;
+  }
+
+  function getFormContext(el) {
+    var form = el.closest('form');
+    if (!form) return null;
+    return { action: form.action || '', method: form.method || 'get', name: form.getAttribute('name') || '', id: form.id || '' };
+  }
+
+  function getAriaInfo(el) {
+    var info = {};
+    var role = el.getAttribute('role'); if (role) info.role = role;
+    var ariaLabel = el.getAttribute('aria-label'); if (ariaLabel) info.label = ariaLabel;
+    var ariaDesc = el.getAttribute('aria-describedby');
+    if (ariaDesc) {
+      var descEl = document.getElementById(ariaDesc);
+      if (descEl) info.description = descEl.textContent.trim().substring(0, 200);
+    }
+    var ariaExpanded = el.getAttribute('aria-expanded'); if (ariaExpanded) info.expanded = ariaExpanded;
+    var ariaDisabled = el.getAttribute('aria-disabled') || el.disabled; if (ariaDisabled) info.disabled = String(ariaDisabled);
+    var ariaChecked = el.getAttribute('aria-checked'); if (ariaChecked) info.checked = ariaChecked;
+    return Object.keys(info).length ? info : null;
+  }
+
   function onMove(e) {
     var el = document.elementFromPoint(e.clientX, e.clientY);
     if (el && el !== overlay && el !== label) {
@@ -85,10 +153,94 @@ const PICKER_SCRIPT = `
       var a = el.attributes[i];
       attrs[a.name] = a.value;
     }
-    window.parent.postMessage({
-      type: 'OPENCHAMBER_ELEMENT_SELECTED',
-      data: { tagName: tag, text: text, outerHTML: html, attributes: attrs }
-    }, '*');
+    var rect = el.getBoundingClientRect();
+
+    // Capture computed styles (most useful for UI work)
+    var cs = window.getComputedStyle(el);
+    var styles = {};
+    var styleProps = ['color','background-color','font-size','font-weight','font-family',
+      'padding','margin','border','border-radius','display','position',
+      'width','height','gap','opacity','box-shadow','text-align'];
+    for (var si = 0; si < styleProps.length; si++) {
+      var val = cs.getPropertyValue(styleProps[si]);
+      if (val && val !== 'none' && val !== 'normal' && val !== '0px' && val !== 'rgba(0, 0, 0, 0)') {
+        styles[styleProps[si]] = val;
+      }
+    }
+
+    var payload = {
+      tagName: tag,
+      text: text,
+      outerHTML: html,
+      attributes: attrs,
+      page: { url: location.href, path: location.pathname, title: document.title },
+      ancestry: getAncestry(el),
+      nearestHeading: getNearestHeading(el),
+      landmark: getLandmark(el),
+      aria: getAriaInfo(el),
+      formContext: getFormContext(el),
+      dimensions: { width: Math.round(rect.width), height: Math.round(rect.height) },
+      computedStyles: styles,
+      boundingRect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
+      screenshotDataUrl: null
+    };
+
+    // Attempt screenshot via SVG foreignObject (best-effort, no external deps)
+    try {
+      var clone = el.cloneNode(true);
+      // Inline computed styles on the clone
+      function inlineStyles(src, dst) {
+        var srcStyle = window.getComputedStyle(src);
+        for (var k = 0; k < srcStyle.length; k++) {
+          var p = srcStyle[k];
+          dst.style.setProperty(p, srcStyle.getPropertyValue(p));
+        }
+        var srcChildren = src.children;
+        var dstChildren = dst.children;
+        for (var c = 0; c < srcChildren.length && c < dstChildren.length; c++) {
+          inlineStyles(srcChildren[c], dstChildren[c]);
+        }
+      }
+      inlineStyles(el, clone);
+
+      var w = Math.ceil(rect.width);
+      var h = Math.ceil(rect.height);
+      var svgNs = 'http://www.w3.org/2000/svg';
+      var xhtmlNs = 'http://www.w3.org/1999/xhtml';
+      var svg = document.createElementNS(svgNs, 'svg');
+      svg.setAttribute('width', w);
+      svg.setAttribute('height', h);
+      var fo = document.createElementNS(svgNs, 'foreignObject');
+      fo.setAttribute('width', '100%');
+      fo.setAttribute('height', '100%');
+      var wrapper = document.createElementNS(xhtmlNs, 'div');
+      wrapper.setAttribute('xmlns', xhtmlNs);
+      wrapper.style.cssText = 'width:' + w + 'px;height:' + h + 'px;overflow:hidden;';
+      wrapper.appendChild(clone);
+      fo.appendChild(wrapper);
+      svg.appendChild(fo);
+
+      var svgData = new XMLSerializer().serializeToString(svg);
+      var img = new Image();
+      img.onload = function() {
+        try {
+          var canvas = document.createElement('canvas');
+          canvas.width = w * 2;
+          canvas.height = h * 2;
+          var ctx = canvas.getContext('2d');
+          ctx.scale(2, 2);
+          ctx.drawImage(img, 0, 0);
+          payload.screenshotDataUrl = canvas.toDataURL('image/png');
+        } catch(e) {}
+        window.parent.postMessage({ type: 'OPENCHAMBER_ELEMENT_SELECTED', data: payload }, '*');
+      };
+      img.onerror = function() {
+        window.parent.postMessage({ type: 'OPENCHAMBER_ELEMENT_SELECTED', data: payload }, '*');
+      };
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgData);
+    } catch(e) {
+      window.parent.postMessage({ type: 'OPENCHAMBER_ELEMENT_SELECTED', data: payload }, '*');
+    }
     cleanup();
   }
 
@@ -225,37 +377,132 @@ export const PreviewView: React.FC = () => {
     }
   }, []);
 
-  const handleElementSelected = useCallback(async (data: { tagName: string; text: string; outerHTML: string; attributes: Record<string, string> }) => {
+  interface ElementSelection {
+    tagName: string;
+    text: string;
+    outerHTML: string;
+    attributes: Record<string, string>;
+    page?: { url: string; path: string; title: string };
+    ancestry?: string;
+    nearestHeading?: string | null;
+    landmark?: string | null;
+    aria?: Record<string, string> | null;
+    formContext?: { action: string; method: string; name: string; id: string } | null;
+    dimensions?: { width: number; height: number };
+    computedStyles?: Record<string, string>;
+    boundingRect?: { top: number; left: number; width: number; height: number };
+    screenshotDataUrl?: string;
+  }
+
+  /** Convert a data URL (from iframe postMessage) to a File */
+  const dataUrlToFile = useCallback((dataUrl: string, fileName: string): File | null => {
+    try {
+      const [header, data] = dataUrl.split(',');
+      const mime = header.match(/:(.*?);/)?.[1] || 'image/png';
+      const bytes = atob(data);
+      const arr = new Uint8Array(bytes.length);
+      for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+      return new File([arr], fileName, { type: mime });
+    } catch {
+      return null;
+    }
+  }, []);
+
+  const handleElementSelected = useCallback(async (data: ElementSelection) => {
     setIsSelectMode(false);
     const lines: string[] = [];
-    lines.push(`# Selected Element: <${data.tagName}>`);
+
+    // Header with element identity
+    const label = data.attributes.id ? `#${data.attributes.id}` : data.text?.substring(0, 40) || data.tagName;
+    lines.push(`# UI Element: <${data.tagName}> "${label}"`);
+    lines.push('');
+
+    // Page context — where on the site this element lives
+    if (data.page) {
+      lines.push('## Page Context');
+      lines.push(`URL: ${data.page.url}`);
+      lines.push(`Path: ${data.page.path}`);
+      if (data.page.title) lines.push(`Page Title: ${data.page.title}`);
+      lines.push('');
+    }
+
+    // Location in DOM — ancestry breadcrumb + landmark + heading
+    lines.push('## Location');
+    if (data.ancestry) lines.push(`DOM Path: ${data.ancestry}`);
+    if (data.landmark) lines.push(`Landmark: ${data.landmark}`);
+    if (data.nearestHeading) lines.push(`Section: "${data.nearestHeading}"`);
+    lines.push('');
+
+    // Element identity
+    lines.push('## Element');
+    lines.push(`Tag: <${data.tagName}>`);
     if (data.attributes.id) lines.push(`ID: #${data.attributes.id}`);
     if (data.attributes.class) lines.push(`Classes: .${data.attributes.class.split(' ').filter(Boolean).join('.')}`);
+    if (data.dimensions) lines.push(`Size: ${data.dimensions.width}×${data.dimensions.height}px`);
     lines.push('');
+
+    // Computed styles — most relevant ones for UI work
+    if (data.computedStyles && Object.keys(data.computedStyles).length > 0) {
+      lines.push('## Computed Styles');
+      for (const [prop, val] of Object.entries(data.computedStyles)) {
+        lines.push(`${prop}: ${val}`);
+      }
+      lines.push('');
+    }
+
+    // Accessibility / semantics
+    if (data.aria && Object.keys(data.aria).length > 0) {
+      lines.push('## Accessibility');
+      for (const [key, value] of Object.entries(data.aria)) {
+        lines.push(`${key}: ${value}`);
+      }
+      lines.push('');
+    }
+
+    // Text content
     if (data.text) {
       lines.push('## Text Content');
       lines.push(data.text);
       lines.push('');
     }
+
+    // Form context
+    if (data.formContext) {
+      lines.push('## Form Context');
+      if (data.formContext.name || data.formContext.id) lines.push(`Form: ${data.formContext.name || data.formContext.id}`);
+      if (data.formContext.action) lines.push(`Action: ${data.formContext.action}`);
+      lines.push(`Method: ${data.formContext.method.toUpperCase()}`);
+      lines.push('');
+    }
+
+    // HTML source
     lines.push('## HTML');
     lines.push('```html');
     lines.push(data.outerHTML);
     lines.push('```');
 
     const content = lines.join('\n');
-    const blob = new Blob([content], { type: 'text/markdown' });
+    const mdBlob = new Blob([content], { type: 'text/markdown' });
     const fileName = `element-${data.tagName}${data.attributes.id ? `-${data.attributes.id}` : ''}-${Date.now()}.md`;
-    const file = new File([blob], fileName, { type: 'text/markdown' });
+    const mdFile = new File([mdBlob], fileName, { type: 'text/markdown' });
 
     try {
-      await addAttachedFile(file);
+      // Attach markdown context
+      await addAttachedFile(mdFile);
+
+      // Attach screenshot if provided (from picker script via html2canvas)
+      if (data.screenshotDataUrl) {
+        const screenshot = dataUrlToFile(data.screenshotDataUrl, `element-screenshot-${Date.now()}.png`);
+        if (screenshot) await addAttachedFile(screenshot);
+      }
+
       toast.success('Element attached to chat', {
         description: `<${data.tagName}>${data.attributes.id ? ` #${data.attributes.id}` : ''} selected`,
       });
     } catch {
       toast.error('Failed to attach element');
     }
-  }, [addAttachedFile]);
+  }, [addAttachedFile, dataUrlToFile]);
 
   // Listen for postMessage from iframe picker
   React.useEffect(() => {

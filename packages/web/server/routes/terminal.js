@@ -411,8 +411,17 @@ export function register(app, ctx) {
         res.send(Buffer.from(await response.arrayBuffer()));
       }
     } catch (error) {
-      if (error.name === 'AbortError') return res.status(504).json({ error: 'Request timeout' });
-      res.status(500).json({ error: 'Failed to proxy request' });
+      const reason = error.name === 'AbortError'
+        ? 'Request timed out'
+        : error.code === 'ECONNREFUSED'
+          ? `Connection refused — is anything running on ${new URL(targetUrl).host}?`
+          : error.message || 'Failed to fetch';
+      const status = error.name === 'AbortError' ? 504 : 502;
+      res.status(status).set('Content-Type', 'text/html; charset=utf-8').send(`<!DOCTYPE html>
+<html><head><style>body{display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;font-family:system-ui,sans-serif;background:#1a1a2e;color:#e0e0e0}
+.box{text-align:center;max-width:400px;padding:2rem}.icon{font-size:2rem;margin-bottom:1rem;opacity:0.5}
+p{color:#aaa;font-size:0.85rem;margin-top:0.5rem}</style></head>
+<body><div class="box"><div class="icon">&#x26A0;</div><h3 style="margin:0">${reason}</h3><p>${targetUrl}</p></div></body></html>`);
     }
   });
 }
