@@ -7,7 +7,8 @@ import { useChatStore } from '@/stores/useChatStore';
 import { useProjectsStore } from '@/stores/useProjectsStore';
 import { useConfigStore } from '@/stores/useConfigStore';
 import { useDirectoryStore } from '@/stores/useDirectoryStore';
-import { gitFetch, deleteGitBranch } from '@/lib/gitApi';
+import { usePaneStore } from '@/stores/usePaneStore';
+import { gitFetch, deleteGitBranch, fetchPRBranch } from '@/lib/gitApi';
 import { generateUniqueBranchName } from '@/lib/git/branchNameGenerator';
 import {
   createWorktree,
@@ -111,16 +112,18 @@ function runSetupCommandsWithToasts(
 /**
  * Core logic: given worktree metadata, create a session, apply defaults, and run setup.
  * Returns the session or null if session creation failed.
+ *
+ * Optimized for speed: session creation and UI navigation happen first,
+ * then background tasks (status check, session list refresh) run afterward.
  */
 async function initializeWorktreeSession(
   metadata: WorktreeMetadata,
   projectDirectory: string,
   branchName: string,
 ): Promise<{ id: string } | null> {
-  const status = await getWorktreeStatus(metadata.path).catch(() => undefined);
-  const createdMetadata = status ? { ...metadata, status } : metadata;
-
   const sessionStore = useChatStore.getState();
+
+  // Create session first (critical path)
   const sessionId = await sessionStore.createAndLoadSession(metadata.path);
   if (!sessionId) {
     await removeWorktree({ projectDirectory, path: metadata.path, force: true }).catch(() => undefined);
@@ -130,31 +133,31 @@ async function initializeWorktreeSession(
     return null;
   }
 
+  // Set session directory immediately (needed for chat to work)
   sessionStore.setSessionDirectory(sessionId, metadata.path);
-  sessionStore.setWorktreeMetadata(sessionId, createdMetadata);
+  sessionStore.setWorktreeMetadata(sessionId, metadata);
 
+  // Apply defaults and navigate (critical path)
   try {
     applySessionDefaults(sessionId);
   } catch {
     // Non-critical
   }
 
+  // Initialize panes and add chat tab BEFORE switching directories.
+  // This ensures the pane state is ready when the UI re-renders after setDirectory.
+  const paneStore = usePaneStore.getState();
+  paneStore.initializeWorktree(metadata.path);
+  paneStore.addTab(metadata.path, 'left', {
+    type: 'chat',
+    title: 'Chat',
+    sessionId,
+  });
+
+  // Now switch to the new directory - the UI will re-render with the panes already set up
   useDirectoryStore.getState().setDirectory(metadata.path, { showOverlay: false });
 
-  try {
-    await sessionStore.loadAllSessions();
-  } catch {
-    // Ignore
-  }
-
-  // Refresh worktree list so the sidebar picks up the new worktree
-  try {
-    await sessionStore.refreshWorktrees();
-  } catch {
-    // Non-critical
-  }
-
-  // Run setup commands
+  // Show success toast early so user knows worktree is ready
   const setupCommands = await getWorktreeSetupCommands(projectDirectory);
   const commandsToRun = setupCommands.filter((cmd) => cmd.trim().length > 0);
 
@@ -162,12 +165,35 @@ async function initializeWorktreeSession(
     toast.success('Worktree created', {
       description: `Branch: ${branchName}. Running ${commandsToRun.length} setup command${commandsToRun.length === 1 ? '' : 's'}...`,
     });
-    runSetupCommandsWithToasts(metadata.path, projectDirectory, commandsToRun);
   } else {
     toast.success('Worktree created', {
       description: `Branch: ${branchName}`,
     });
   }
+
+  // Run background tasks (non-blocking) to update UI and get additional info
+  // These run in the background so the worktree is usable immediately
+  Promise.all([
+    // Update worktree metadata with status (for UI indicators)
+    getWorktreeStatus(metadata.path).then((status) => {
+      if (status) {
+        sessionStore.setWorktreeMetadata(sessionId, { ...metadata, status });
+      }
+    }).catch(() => undefined),
+
+    // Refresh session list for sidebar
+    sessionStore.loadAllSessions().catch(() => undefined),
+
+    // Refresh worktree list so the sidebar picks up the new worktree
+    sessionStore.refreshWorktrees().catch(() => undefined),
+
+    // Run setup commands (already non-blocking)
+    commandsToRun.length > 0
+      ? runSetupCommandsWithToasts(metadata.path, projectDirectory, commandsToRun)
+      : Promise.resolve(),
+  ]).catch(() => {
+    // Ignore background task errors
+  });
 
   return { id: sessionId };
 }
@@ -175,12 +201,37 @@ async function initializeWorktreeSession(
 /**
  * Create a worktree from a remote branch, handling the case where
  * a stale local branch already exists.
+ *
+ * @param projectDirectory - The project directory (main clone)
+ * @param branchName - The branch name to create the worktree for
+ * @param worktreeSlug - The slug for the worktree directory
+ * @param prNumber - Optional PR number. If provided, fetches using `pull/<number>/head` refspec
+ *                   which is necessary for PRs from forks where the branch doesn't exist on origin.
  */
 async function createWorktreeFromRemote(
   projectDirectory: string,
   branchName: string,
   worktreeSlug: string,
+  prNumber?: number,
 ): Promise<WorktreeMetadata> {
+  // If a PR number is provided, fetch the PR branch first
+  // This is necessary for PRs from forks where the branch doesn't exist on origin
+  if (prNumber) {
+    try {
+      await fetchPRBranch(projectDirectory, prNumber, branchName);
+      // Now create the worktree from the local branch we just fetched
+      return await createWorktree({
+        projectDirectory,
+        worktreeSlug,
+        branch: branchName,
+        createBranch: false, // Branch already exists from fetchPRBranch
+      });
+    } catch (error) {
+      // If PR fetch fails, fall through to try the regular approach
+      console.warn('Failed to fetch PR branch, trying regular approach:', error);
+    }
+  }
+
   try {
     return await createWorktree({
       projectDirectory,
@@ -270,10 +321,16 @@ export function isCreatingWorktree(): boolean {
 /**
  * Create a new session with a worktree for a specific branch.
  * Fetches from origin and creates the worktree from the latest remote state.
+ *
+ * @param projectDirectory - The project directory (main clone)
+ * @param branchName - The branch name to create the worktree for
+ * @param prNumber - Optional PR number. If provided, uses `pull/<number>/head` refspec to fetch
+ *                   the branch, which is necessary for PRs from forks.
  */
 export async function createWorktreeSessionForBranch(
   projectDirectory: string,
   branchName: string,
+  prNumber?: number,
 ): Promise<{ id: string } | null> {
   if (isCreatingWorktreeSession) return null;
 
@@ -287,6 +344,7 @@ export async function createWorktreeSessionForBranch(
       projectDirectory,
       branchName,
       sanitizeWorktreeSlug(branchName),
+      prNumber,
     );
 
     return await initializeWorktreeSession(metadata, projectDirectory, branchName);

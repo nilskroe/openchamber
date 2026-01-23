@@ -70,7 +70,7 @@ export const parseUrlsFromText = (text: string): DetectedUrl[] => {
 export const useAppRunnerStore = create<AppRunnerStore>()(
   persist(
     (set, get) => ({
-      enabled: false,
+      enabled: true,
       command: 'bun run dev',
       directoryStates: {},
 

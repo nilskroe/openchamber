@@ -9,6 +9,7 @@ import type { DesktopSettings } from '@/lib/desktop';
 import { isDesktopRuntime, isVSCodeRuntime } from '@/lib/desktop';
 import { CSSVariableGenerator } from '@/lib/theme/cssGenerator';
 import { updateDesktopSettings } from '@/lib/persistence';
+import { getSettingsValue, setSettingsValue } from '@/lib/settingsStorage';
 import {
   themes,
   getThemeById,
@@ -71,12 +72,12 @@ const buildInitialPreferences = (defaultThemeId?: string): ThemePreferences => {
   let themeMode: ThemeMode = 'system';
 
   if (typeof window !== 'undefined') {
-    const storedMode = localStorage.getItem('themeMode');
-    const storedLightId = localStorage.getItem('lightThemeId');
-    const storedDarkId = localStorage.getItem('darkThemeId');
-    const legacyUseSystem = localStorage.getItem('useSystemTheme');
-    const legacyThemeId = localStorage.getItem('selectedThemeId');
-    const legacyVariant = localStorage.getItem('selectedThemeVariant');
+    const storedMode = getSettingsValue('themeMode');
+    const storedLightId = getSettingsValue('lightThemeId');
+    const storedDarkId = getSettingsValue('darkThemeId');
+    const legacyUseSystem = getSettingsValue('useSystemTheme');
+    const legacyThemeId = getSettingsValue('selectedThemeId');
+    const legacyVariant = getSettingsValue('selectedThemeVariant');
 
     if (storedMode === 'light' || storedMode === 'dark' || storedMode === 'system') {
       themeMode = storedMode;
@@ -265,12 +266,12 @@ export function ThemeSystemProvider({ children, defaultThemeId }: ThemeSystemPro
       return;
     }
 
-    localStorage.setItem('themeMode', preferences.themeMode);
-    localStorage.setItem('lightThemeId', preferences.lightThemeId);
-    localStorage.setItem('darkThemeId', preferences.darkThemeId);
-    localStorage.setItem('useSystemTheme', String(preferences.themeMode === 'system'));
-    localStorage.setItem('selectedThemeId', currentTheme.metadata.id);
-    localStorage.setItem(
+    setSettingsValue('themeMode', preferences.themeMode);
+    setSettingsValue('lightThemeId', preferences.lightThemeId);
+    setSettingsValue('darkThemeId', preferences.darkThemeId);
+    setSettingsValue('useSystemTheme', String(preferences.themeMode === 'system'));
+    setSettingsValue('selectedThemeId', currentTheme.metadata.id);
+    setSettingsValue(
       'selectedThemeVariant',
       currentTheme.metadata.variant === 'light' ? 'light' : 'dark',
     );

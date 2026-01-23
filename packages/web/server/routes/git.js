@@ -432,6 +432,27 @@ export function register(app, ctx) {
     }
   });
 
+  app.post('/api/git/fetch-pr', async (req, res) => {
+    const { fetchPRBranch } = await getGitLibraries();
+    try {
+      const directory = req.query.directory;
+      if (!directory) {
+        return res.status(400).json({ error: 'directory parameter is required' });
+      }
+
+      const { prNumber, localBranch, remote } = req.body;
+      if (!prNumber || !localBranch) {
+        return res.status(400).json({ error: 'prNumber and localBranch are required' });
+      }
+
+      const result = await fetchPRBranch(directory, prNumber, localBranch, remote);
+      res.json(result);
+    } catch (error) {
+      console.error('Failed to fetch PR branch:', error);
+      res.status(500).json({ error: error.message || 'Failed to fetch PR branch' });
+    }
+  });
+
   app.post('/api/git/commit', async (req, res) => {
     const { commit } = await getGitLibraries();
     try {
@@ -779,6 +800,111 @@ export function register(app, ctx) {
     } catch (error) {
       console.error('Failed to get commit files:', error);
       res.status(500).json({ error: error.message || 'Failed to get commit files' });
+    }
+  });
+
+  /**
+   * Clone a repository using the bare repository pattern.
+   * POST /api/git/clone-bare
+   * Body: { url: string, targetDir: string }
+   */
+  app.post('/api/git/clone-bare', async (req, res) => {
+    const { cloneBare } = await getGitLibraries();
+    try {
+      const { url, targetDir } = req.body;
+      if (!url || typeof url !== 'string') {
+        return res.status(400).json({ error: 'url is required' });
+      }
+      if (!targetDir || typeof targetDir !== 'string') {
+        return res.status(400).json({ error: 'targetDir is required' });
+      }
+
+      const result = await cloneBare(url, targetDir);
+      res.json(result);
+    } catch (error) {
+      console.error('Failed to clone bare repository:', error);
+      res.status(500).json({ error: error.message || 'Failed to clone repository' });
+    }
+  });
+
+  /**
+   * Check if a directory is a bare repository setup.
+   * GET /api/git/is-bare-setup?directory=...
+   */
+  app.get('/api/git/is-bare-setup', async (req, res) => {
+    const { isBareRepoSetup } = await getGitLibraries();
+    try {
+      const { directory } = req.query;
+      if (!directory || typeof directory !== 'string') {
+        return res.status(400).json({ error: 'directory parameter is required' });
+      }
+
+      const isBare = await isBareRepoSetup(directory);
+      res.json({ isBareSetup: isBare });
+    } catch (error) {
+      console.error('Failed to check bare repo setup:', error);
+      res.status(500).json({ error: error.message || 'Failed to check bare repo setup' });
+    }
+  });
+
+  /**
+   * Get the project root from any worktree or project directory.
+   * GET /api/git/project-root?directory=...
+   */
+  app.get('/api/git/project-root', async (req, res) => {
+    const { getProjectRoot } = await getGitLibraries();
+    try {
+      const { directory } = req.query;
+      if (!directory || typeof directory !== 'string') {
+        return res.status(400).json({ error: 'directory parameter is required' });
+      }
+
+      const result = await getProjectRoot(directory);
+      res.json(result);
+    } catch (error) {
+      console.error('Failed to get project root:', error);
+      res.status(500).json({ error: error.message || 'Failed to get project root' });
+    }
+  });
+
+  /**
+   * List worktrees for a bare repo setup.
+   * GET /api/git/bare-worktrees?directory=...
+   */
+  app.get('/api/git/bare-worktrees', async (req, res) => {
+    const { listBareRepoWorktrees } = await getGitLibraries();
+    try {
+      const { directory } = req.query;
+      if (!directory || typeof directory !== 'string') {
+        return res.status(400).json({ error: 'directory parameter is required' });
+      }
+
+      const worktrees = await listBareRepoWorktrees(directory);
+      res.json(worktrees);
+    } catch (error) {
+      console.error('Failed to list bare repo worktrees:', error);
+      res.status(500).json({ error: error.message || 'Failed to list worktrees' });
+    }
+  });
+
+  /**
+   * Migrate an existing repository to the bare repo pattern.
+   * POST /api/git/migrate-to-bare
+   * Body: { mainClonePath: string }
+   */
+  app.post('/api/git/migrate-to-bare', async (req, res) => {
+    const { migrateToBareBareRepo } = await getGitLibraries();
+    try {
+      const { mainClonePath } = req.body;
+      if (!mainClonePath || typeof mainClonePath !== 'string') {
+        return res.status(400).json({ error: 'mainClonePath is required' });
+      }
+
+      const result = await migrateToBareBareRepo(mainClonePath);
+      res.json(result);
+    } catch (error) {
+      console.error('Failed to migrate to bare repo:', error);
+      res.status(500).json({ error: error.message || 'Failed to migrate repository' });
     }
   });
 }

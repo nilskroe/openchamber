@@ -22,8 +22,10 @@ import { filterVisibleParts } from './message/partUtils';
 import { flattenAssistantTextParts } from '@/lib/messages/messageText';
 import { FadeInOnReveal } from './message/FadeInOnReveal';
 import type { TurnGroupingContext } from './hooks/useTurnGrouping';
+import { LazyLoadErrorBoundary, lazyWithRetry } from '@/components/ui/LazyLoadErrorBoundary';
 
-const ToolOutputDialog = React.lazy(() => import('./message/ToolOutputDialog'));
+// Use lazyWithRetry for automatic retry on chunk load failures (stale cache)
+const ToolOutputDialog = lazyWithRetry(() => import('./message/ToolOutputDialog'));
 
 const DETAILED_DEFAULT_TOOLS = new Set(['task', 'edit', 'multiedit', 'write', 'bash']);
 
@@ -905,14 +907,16 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
                     )}
                 </div>
             </div>
-            <React.Suspense fallback={null}>
-                <ToolOutputDialog
-                    popup={popupContent}
-                    onOpenChange={handlePopupChange}
-                    syntaxTheme={syntaxTheme}
-                    isMobile={isMobile}
-                />
-            </React.Suspense>
+            <LazyLoadErrorBoundary silent>
+                <React.Suspense fallback={null}>
+                    <ToolOutputDialog
+                        popup={popupContent}
+                        onOpenChange={handlePopupChange}
+                        syntaxTheme={syntaxTheme}
+                        isMobile={isMobile}
+                    />
+                </React.Suspense>
+            </LazyLoadErrorBoundary>
         </>
     );
 };

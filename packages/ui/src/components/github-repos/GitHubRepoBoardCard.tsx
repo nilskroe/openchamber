@@ -1,3 +1,4 @@
+import React from 'react';
 import { RiFolderTransferLine } from '@remixicon/react';
 import type { BoardItem, PullRequest } from '@/lib/github-repos/types';
 
@@ -23,7 +24,7 @@ function getStatusColor(status?: string | null): string {
   }
 }
 
-export function GitHubRepoBoardCard({ item, onClick, onCreateWorktree, isCreatingWorktree }: GitHubRepoBoardCardProps) {
+export const GitHubRepoBoardCard = React.memo(function GitHubRepoBoardCard({ item, onClick, onCreateWorktree, isCreatingWorktree }: GitHubRepoBoardCardProps) {
   if (item.type === 'branch') {
     return (
       <div
@@ -95,4 +96,4 @@ export function GitHubRepoBoardCard({ item, onClick, onCreateWorktree, isCreatin
       </div>
     </div>
   );
-}
+});

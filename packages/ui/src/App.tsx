@@ -12,6 +12,7 @@ import { useMenuActions } from '@/hooks/useMenuActions';
 import { useMessageSync } from '@/hooks/useMessageSync';
 import { useSessionStatusBootstrap } from '@/hooks/useSessionStatusBootstrap';
 import { useSessionAutoCleanup } from '@/hooks/useSessionAutoCleanup';
+import { useChunkErrorHandler } from '@/hooks/useChunkErrorHandler';
 import { useRouter } from '@/hooks/useRouter';
 import { usePushVisibilityBeacon } from '@/hooks/usePushVisibilityBeacon';
 import { GitPollingProvider } from '@/hooks/useGitPolling';
@@ -47,9 +48,30 @@ type AppProps = {
   apis: RuntimeAPIs;
 };
 
+/**
+ * Check if a directory is a valid worktree by looking through all known worktrees.
+ */
+function isValidWorktreeDirectory(directory: string, worktreesByProject: Map<string, unknown[]>): boolean {
+  if (!directory) return false;
+  const normalizedDir = directory.replace(/\\/g, '/').replace(/\/+$/, '');
+  for (const worktrees of worktreesByProject.values()) {
+    for (const wt of worktrees as Array<{ path?: string }>) {
+      if (wt.path) {
+        const normalizedWtPath = wt.path.replace(/\\/g, '/').replace(/\/+$/, '');
+        if (normalizedWtPath === normalizedDir) {
+          return true;
+        }
+      }
+    }
+  }
+  return false;
+}
+
 function App({ apis }: AppProps) {
   const { initializeApp, isInitialized, isConnected } = useConfigStore();
-  const { loadSession } = useChatStore();
+  const { loadSession, clearSession } = useChatStore();
+  const availableWorktreesByProject = useChatStore((s) => s.availableWorktreesByProject);
+  const worktreesLoaded = useChatStore((s) => s.worktreesLoaded);
   const currentDirectory = useDirectoryStore((state) => state.currentDirectory);
   const isSwitchingDirectory = useDirectoryStore((state) => state.isSwitchingDirectory);
 
@@ -133,10 +155,12 @@ function App({ apis }: AppProps) {
       // Initialize file-based settings storage (~/openchamber/settings.json)
       await initSettingsStorage();
       await initializeApp();
-      // Discover projects from the filesystem (~/openchamber/)
-      await useProjectsStore.getState().discoverProjects();
-      // Discover worktrees for each project from the filesystem
-      await useChatStore.getState().refreshWorktrees();
+      // Discover projects and worktrees in background - cached data shows instantly
+      // Don't await these to allow the UI to render immediately with cached data
+      void useProjectsStore.getState().discoverProjects().then(() => {
+        // Refresh worktrees after projects are discovered
+        void useChatStore.getState().refreshWorktrees();
+      });
     };
 
     init();
@@ -156,13 +180,27 @@ function App({ apis }: AppProps) {
       if (!isConnected) {
         return;
       }
-      opencodeClient.setDirectory(currentDirectory);
 
+      // Don't validate/clear until worktrees have been loaded from git
+      // This prevents race conditions where the session is cleared before worktree data is available
+      if (!worktreesLoaded) {
+        return;
+      }
+
+      // Only load a session if currentDirectory is a valid worktree
+      // This prevents orphan sessions for arbitrary directories
+      if (!isValidWorktreeDirectory(currentDirectory, availableWorktreesByProject)) {
+        // Not a valid worktree - clear any existing session
+        clearSession();
+        return;
+      }
+
+      opencodeClient.setDirectory(currentDirectory);
       await loadSession(currentDirectory);
     };
 
     syncDirectoryAndSessions();
-  }, [currentDirectory, isSwitchingDirectory, loadSession, isConnected, isVSCodeRuntime]);
+  }, [currentDirectory, isSwitchingDirectory, loadSession, clearSession, isConnected, isVSCodeRuntime, availableWorktreesByProject, worktreesLoaded]);
 
   useEventStream();
 
@@ -178,6 +216,7 @@ function App({ apis }: AppProps) {
 
   useSessionStatusBootstrap();
   useSessionAutoCleanup();
+  useChunkErrorHandler();
 
 
   const handleCliAvailable = React.useCallback(() => {

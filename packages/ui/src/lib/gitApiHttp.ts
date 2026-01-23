@@ -376,6 +376,24 @@ export async function gitFetch(
   return response.json();
 }
 
+export async function fetchPRBranch(
+  directory: string,
+  prNumber: number,
+  localBranch: string,
+  remote?: string
+): Promise<{ success: boolean; branch: string }> {
+  const response = await fetch(buildUrl(`${API_BASE}/fetch-pr`, directory), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ prNumber, localBranch, remote }),
+  });
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(error.error || 'Failed to fetch PR branch');
+  }
+  return response.json();
+}
+
 export async function checkoutBranch(directory: string, branch: string): Promise<{ success: boolean; branch: string }> {
   const response = await fetch(buildUrl(`${API_BASE}/checkout`, directory), {
     method: 'POST',
@@ -590,5 +608,39 @@ export async function getPrStatus(directory: string): Promise<GetPrStatusResult>
     const error = await response.json().catch(() => ({ error: response.statusText }));
     return { success: false, error: error.error || 'Failed to get PR status' };
   }
+  return response.json();
+}
+
+// ============================================================================
+// Bare Repository Pattern APIs
+// ============================================================================
+
+export interface CloneBareResult {
+  success: boolean;
+  path: string;
+  defaultBranch: string;
+  worktreePath: string;
+}
+
+/**
+ * Clone a repository using the bare repository pattern.
+ * Creates: <targetDir>/.bare/ (bare repo) + <targetDir>/.git (file) + <targetDir>/<defaultBranch>/ (worktree)
+ */
+export async function cloneBare(url: string, targetDir: string): Promise<CloneBareResult> {
+  if (!url || !targetDir) {
+    throw new Error('url and targetDir are required');
+  }
+
+  const response = await fetch(buildUrl(`${API_BASE}/clone-bare`, null), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url, targetDir }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(error.error || 'Failed to clone repository');
+  }
+
   return response.json();
 }

@@ -3,6 +3,7 @@ import { devtools } from 'zustand/middleware';
 import { opencodeClient } from '@/lib/opencode/client';
 import type { ProjectEntry, WorktreeDefaults } from '@/lib/api/types';
 import { getSettingsValue, setSettingsValue, removeSettingsValue } from '@/lib/settingsStorage';
+import { getInstantCache, setInstantCache, INSTANT_CACHE_KEYS } from '@/lib/instantCache';
 import { useDirectoryStore } from './useDirectoryStore';
 import { streamDebugEnabled } from '@/stores/utils/streamDebug';
 import { checkIsGitRepository, getRemoteUrl } from '@/lib/gitApi';
@@ -10,8 +11,7 @@ import { parseGitHubRemoteUrl } from '@/lib/github-repos/utils';
 import { normalizePath, joinPath } from '@/lib/paths';
 
 const OPENCHAMBER_DIR = 'openchamber';
-const MAIN_DIR = 'main';
-const ACTIVE_PROJECT_KEY = 'activeProjectId';
+const BARE_DIR = '.bare';
 const WORKTREE_DEFAULTS_PREFIX = 'worktreeDefaults:';
 
 /**
@@ -27,11 +27,9 @@ const getHomeDirectory = (): string => {
     // Store might not be initialized yet
   }
 
-  if (typeof window !== 'undefined' && window.localStorage) {
-    const stored = window.localStorage.getItem('homeDirectory');
-    if (stored && stored !== '/') {
-      return normalizePath(stored);
-    }
+  const stored = getSettingsValue('homeDirectory');
+  if (stored && stored !== '/') {
+    return normalizePath(stored);
   }
 
   return '';
@@ -85,6 +83,53 @@ const writeWorktreeDefaults = (projectId: string, defaults: WorktreeDefaults | u
   }
 };
 
+/**
+ * Cached project entry shape (minimal fields for fast loading).
+ */
+interface CachedProject {
+  id: string;
+  path: string;
+  owner: string;
+  repo: string;
+  label?: string;
+}
+
+/**
+ * Read cached projects from localStorage for INSTANT loading.
+ * This is synchronous and available immediately at module load time.
+ */
+const readCachedProjects = (): ProjectEntry[] => {
+  const cached = getInstantCache<CachedProject[]>(INSTANT_CACHE_KEYS.PROJECTS);
+  if (!cached || !Array.isArray(cached)) return [];
+
+  return cached.map((entry) => {
+    if (!entry.id || !entry.path) return null;
+    return {
+      id: entry.id,
+      path: entry.path,
+      owner: entry.owner || '',
+      repo: entry.repo || '',
+      label: entry.label,
+      // Note: worktreeDefaults loaded separately via settingsStorage (async is OK for this)
+    } as ProjectEntry;
+  }).filter((p): p is ProjectEntry => p !== null);
+};
+
+/**
+ * Write projects to localStorage for instant loading on next startup.
+ */
+const writeCachedProjects = (projects: ProjectEntry[]) => {
+  // Only cache essential fields for fast loading
+  const toCache: CachedProject[] = projects.map(({ id, path, owner, repo, label }) => ({
+    id,
+    path,
+    owner,
+    repo,
+    label,
+  }));
+  setInstantCache(INSTANT_CACHE_KEYS.PROJECTS, toCache);
+};
+
 interface ProjectsStore {
   projects: ProjectEntry[];
   activeProjectId: string | null;
@@ -100,29 +145,25 @@ interface ProjectsStore {
 }
 
 /**
- * Read the persisted active project ID from localStorage.
+ * Read the persisted active project ID from localStorage (instant).
  */
 const readActiveProjectId = (): string | null => {
-  try {
-    const raw = getSettingsValue(ACTIVE_PROJECT_KEY);
-    if (typeof raw === 'string' && raw.trim().length > 0) {
-      return raw.trim();
-    }
-  } catch {
-    // ignored
+  const cached = getInstantCache<string>(INSTANT_CACHE_KEYS.ACTIVE_PROJECT_ID);
+  if (typeof cached === 'string' && cached.trim().length > 0) {
+    return cached.trim();
   }
   return null;
 };
 
+/**
+ * Persist active project ID to localStorage for instant loading.
+ */
 const persistActiveProjectId = (id: string | null) => {
-  try {
-    if (id) {
-      setSettingsValue(ACTIVE_PROJECT_KEY, id);
-    } else {
-      removeSettingsValue(ACTIVE_PROJECT_KEY);
-    }
-  } catch {
-    // ignored
+  if (id) {
+    setInstantCache(INSTANT_CACHE_KEYS.ACTIVE_PROJECT_ID, id);
+  } else {
+    // Clear by setting empty
+    setInstantCache(INSTANT_CACHE_KEYS.ACTIVE_PROJECT_ID, '');
   }
 };
 
@@ -157,15 +198,19 @@ const getVSCodeWorkspaceProject = (): { projects: ProjectEntry[]; activeProjectI
 
 const vscodeWorkspace = getVSCodeWorkspaceProject();
 const initialActiveProjectId = vscodeWorkspace?.activeProjectId ?? readActiveProjectId();
+// Load cached projects for instant sidebar display
+const cachedProjects = vscodeWorkspace ? [] : readCachedProjects();
 
 export const useProjectsStore = create<ProjectsStore>()(
   devtools((set, get) => ({
-    projects: vscodeWorkspace?.projects ?? [],
+    // Use cached projects for instant display, will be refreshed by discoverProjects
+    projects: vscodeWorkspace?.projects ?? cachedProjects,
     activeProjectId: initialActiveProjectId,
     isDiscovering: false,
 
     /**
-     * Scan ~/openchamber/ for repo directories containing a main/ git clone.
+     * Scan ~/openchamber/ for repo directories with bare repo structure.
+     * Structure: ~/openchamber/<repo-name>/.bare + worktrees
      * Derives owner/repo from git remote. Does NOT navigate — users must select a worktree.
      */
     discoverProjects: async () => {
@@ -185,32 +230,39 @@ export const useProjectsStore = create<ProjectsStore>()(
         const entries = await opencodeClient.listLocalDirectory(openchamberRoot);
         const repoDirs = entries.filter((e) => e.isDirectory);
 
+        const results = await Promise.allSettled(
+          repoDirs.map(async (repoDir) => {
+            const repoName = repoDir.name;
+            const repoDirPath = joinPath(openchamberRoot, repoName);
+
+            // Check if this is a valid bare repo setup
+            const isGit = await checkIsGitRepository(repoDirPath).catch(() => false);
+            if (!isGit) return null;
+
+            const remoteUrl = await getRemoteUrl(repoDirPath, 'origin').catch(() => null);
+            if (!remoteUrl) return null;
+
+            const info = parseGitHubRemoteUrl(remoteUrl);
+            if (!info) return null;
+
+            const id = buildProjectId(info.owner, info.repo);
+            const entry: ProjectEntry = {
+              id,
+              path: repoDirPath,
+              owner: info.owner,
+              repo: info.repo,
+              label: `${info.owner}/${info.repo}`,
+              worktreeDefaults: readWorktreeDefaults(id),
+            };
+            return entry;
+          })
+        );
+
         const discovered: ProjectEntry[] = [];
-
-        for (const repoDir of repoDirs) {
-          const repoName = repoDir.name;
-          const repoDirPath = joinPath(openchamberRoot, repoName);
-          const mainPath = normalizePath(joinPath(repoDirPath, MAIN_DIR));
-
-          const isGit = await checkIsGitRepository(mainPath).catch(() => false);
-          if (!isGit) continue;
-
-          const remoteUrl = await getRemoteUrl(mainPath, 'origin').catch(() => null);
-          if (!remoteUrl) continue;
-
-          const info = parseGitHubRemoteUrl(remoteUrl);
-          if (!info) continue;
-
-          const id = buildProjectId(info.owner, info.repo);
-
-          discovered.push({
-            id,
-            path: mainPath,
-            owner: info.owner,
-            repo: info.repo,
-            label: `${info.owner}/${info.repo}`,
-            worktreeDefaults: readWorktreeDefaults(id),
-          });
+        for (const result of results) {
+          if (result.status === 'fulfilled' && result.value !== null) {
+            discovered.push(result.value);
+          }
         }
 
         if (streamDebugEnabled()) {
@@ -231,6 +283,8 @@ export const useProjectsStore = create<ProjectsStore>()(
         }
 
         set({ projects: discovered, activeProjectId: nextActiveId, isDiscovering: false });
+        // Cache projects for instant loading on next startup
+        writeCachedProjects(discovered);
         // Navigation is handled by worktree selection in the sidebar, not here
       } catch (error) {
         if (streamDebugEnabled()) {

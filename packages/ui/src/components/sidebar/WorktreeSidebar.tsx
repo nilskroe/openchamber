@@ -30,15 +30,23 @@ import { useDirectoryStore } from '@/stores/useDirectoryStore';
 import { useUIStore } from '@/stores/useUIStore';
 import { sessionEvents } from '@/lib/sessionEvents';
 import { BranchPickerDialog } from '@/components/session/BranchPickerDialog';
+import { createWorktreeSession } from '@/lib/worktreeSessionCreator';
 import type { WorktreeMetadata } from '@/types/worktree';
 import { SIDEBAR_SECTIONS, type SidebarSection } from '@/constants/sidebar';
 import { isVSCodeRuntime } from '@/lib/desktop';
 import { useAutoReviewStore } from '@/stores/useAutoReviewStore';
+import { prefetchGitHubPRs } from '@/hooks/useGitHubRepoPRs';
+import { getInstantCache, setInstantCache, INSTANT_CACHE_KEYS } from '@/lib/instantCache';
+import { normalizePath as sharedNormalizePath } from '@/lib/paths';
 
+/**
+ * Normalize a path for consistent Map key lookup.
+ * Uses the same normalization as useChatStore.refreshWorktrees() for key consistency.
+ */
 const normalizePath = (value?: string | null): string | null => {
   if (!value) return null;
-  const normalized = value.replace(/\\/g, '/').replace(/\/+$/, '');
-  return normalized.length === 0 ? '/' : normalized;
+  const result = sharedNormalizePath(value);
+  return result || null;
 };
 
 const formatRelativeTime = (timestamp: number): string => {
@@ -65,7 +73,6 @@ interface WorktreeStats {
 interface WorktreeItemProps {
   worktree: WorktreeMetadata;
   isActive: boolean;
-  isMain: boolean;
   stats: WorktreeStats;
   onSelect: () => void;
   onClose?: () => void;
@@ -73,31 +80,38 @@ interface WorktreeItemProps {
   isAutoReviewEnabled?: boolean;
 }
 
+const formatCompactNumber = (num: number): string => {
+  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}m`;
+  if (num >= 1000) return `${(num / 1000).toFixed(1)}k`;
+  return num.toString();
+};
+
 const WorktreeItem: React.FC<WorktreeItemProps> = ({
   worktree,
   isActive,
-  isMain,
   stats,
   onSelect,
   onClose,
   onOpenInFinder,
   isAutoReviewEnabled,
 }) => {
-  const branchLabel = isMain ? 'main' : (worktree.branch || 'worktree');
-  const primaryLabel = stats.sessionTitle || (isMain ? 'main' : (worktree.label || worktree.branch || 'worktree'));
+  const branchLabel = worktree.label || worktree.branch || 'worktree';
   const hasChanges = stats.additions > 0 || stats.deletions > 0;
-  const showActions = onOpenInFinder || (!isMain && onClose);
+  const showActions = onOpenInFinder || onClose;
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   // Show streaming indicator only for the active worktree
   const activityPhase = useChatStore((s) => s.activityPhase);
   const isStreaming = isActive && (activityPhase === 'busy' || activityPhase === 'cooldown');
-  
+
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     if (!showActions) return;
     e.preventDefault();
     setDropdownOpen(true);
   }, [showActions]);
+
+  // Build secondary info line: worktree ID (relativePath)
+  const secondaryInfo = worktree.relativePath || null;
 
   return (
     <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
@@ -112,24 +126,18 @@ const WorktreeItem: React.FC<WorktreeItemProps> = ({
         onClick={onSelect}
         onContextMenu={handleContextMenu}
       >
+        {/* Row 1: Branch icon + branch name + indicators + diff stats badge */}
         <div className="flex items-center gap-2">
           <RiGitBranchLine className={cn(
             'h-4 w-4 shrink-0',
             isActive ? 'text-primary' : 'text-muted-foreground'
           )} />
-          <div className="flex-1 min-w-0">
-            <span className={cn(
-              'block truncate text-sm',
-              isActive ? 'text-primary font-medium' : 'text-foreground'
-            )}>
-              {primaryLabel}
-            </span>
-            {stats.sessionTitle && !isMain && (
-              <span className="block truncate text-xs text-muted-foreground">
-                {branchLabel}
-              </span>
-            )}
-          </div>
+          <span className={cn(
+            'flex-1 min-w-0 truncate text-sm',
+            isActive ? 'text-primary font-medium' : 'text-foreground'
+          )}>
+            {branchLabel}
+          </span>
           {isStreaming && (
             <GridLoader size="xs" className="text-primary shrink-0" />
           )}
@@ -141,8 +149,14 @@ const WorktreeItem: React.FC<WorktreeItemProps> = ({
               <TooltipContent side="right" className="text-xs">Auto-review enabled</TooltipContent>
             </Tooltip>
           )}
-          {worktree.status?.isDirty && !isStreaming && !isAutoReviewEnabled && (
+          {worktree.status?.isDirty && !isStreaming && !isAutoReviewEnabled && !hasChanges && (
             <span className="h-2 w-2 rounded-full bg-warning shrink-0" title="Uncommitted changes" />
+          )}
+          {hasChanges && (
+            <span className="flex items-center gap-1.5 shrink-0 rounded-md border border-border/50 px-1.5 py-0.5 text-xs font-mono">
+              <span className="text-[color:var(--status-success)]">+{formatCompactNumber(stats.additions)}</span>
+              <span className="text-destructive">-{formatCompactNumber(stats.deletions)}</span>
+            </span>
           )}
           {showActions && (
             <DropdownMenuTrigger asChild>
@@ -156,19 +170,11 @@ const WorktreeItem: React.FC<WorktreeItemProps> = ({
             </DropdownMenuTrigger>
           )}
         </div>
-        
-        {hasChanges && (
-          <div className="flex items-center gap-2 pl-6 text-xs text-muted-foreground">
-            <span className="flex items-center gap-0.5">
-              <span className="text-[color:var(--status-success)]">+{stats.additions}</span>
-              <span>/</span>
-              <span className="text-destructive">-{stats.deletions}</span>
-            </span>
-            {stats.lastUpdated && (
-              <span className="text-muted-foreground/70">
-                {formatRelativeTime(stats.lastUpdated)}
-              </span>
-            )}
+
+        {/* Row 2: Secondary info (session title · time ago) */}
+        {secondaryInfo && (
+          <div className="flex items-center pl-6 text-xs text-muted-foreground truncate">
+            {secondaryInfo}
           </div>
         )}
       </div>
@@ -213,13 +219,14 @@ interface ProjectSectionProps {
   onClose: () => void;
   onCloseWorktree?: (worktreePath: string) => void;
   onOpenInFinder?: (worktreePath: string) => void;
+  onQuickCreateWorktree?: () => void;
   onOpenBranchPicker?: () => void;
   onOpenGitHubBoard?: () => void;
-  getWorktreeStats: (worktreePath: string) => WorktreeStats;
+  worktreeStatsMap: Map<string, WorktreeStats>;
   autoReviewDirectory: string | null;
 }
 
-const ProjectSection: React.FC<ProjectSectionProps> = ({
+const ProjectSection: React.FC<ProjectSectionProps> = React.memo(({
   project,
   isActive,
   worktrees,
@@ -230,14 +237,19 @@ const ProjectSection: React.FC<ProjectSectionProps> = ({
   onClose,
   onCloseWorktree,
   onOpenInFinder,
+  onQuickCreateWorktree,
   onOpenBranchPicker,
   onOpenGitHubBoard,
-  getWorktreeStats,
+  worktreeStatsMap,
   autoReviewDirectory,
 }) => {
   const projectLabel = project.label || formatDirectoryName(project.path);
   const normalizedProjectPath = project.normalizedPath;
-  
+
+  // Check if the GitHub detail page is open for this project
+  const githubRepoDetailPage = useUIStore((s) => s.githubRepoDetailPage);
+  const isDetailPageOpen = githubRepoDetailPage?.owner === project.owner && githubRepoDetailPage?.repo === project.repo;
+
   const actualWorktrees = useMemo(() => {
     return worktrees.filter(w => normalizePath(w.path) !== normalizedProjectPath);
   }, [worktrees, normalizedProjectPath]);
@@ -248,16 +260,19 @@ const ProjectSection: React.FC<ProjectSectionProps> = ({
     let lastUpdated: number | null = null;
 
     actualWorktrees.forEach(wt => {
-      const stats = getWorktreeStats(wt.path);
-      totalAdditions += stats.additions;
-      totalDeletions += stats.deletions;
-      if (stats.lastUpdated && (!lastUpdated || stats.lastUpdated > lastUpdated)) {
-        lastUpdated = stats.lastUpdated;
+      const key = normalizePath(wt.path);
+      const stats = key ? worktreeStatsMap.get(key) : undefined;
+      if (stats) {
+        totalAdditions += stats.additions;
+        totalDeletions += stats.deletions;
+        if (stats.lastUpdated && (!lastUpdated || stats.lastUpdated > lastUpdated)) {
+          lastUpdated = stats.lastUpdated;
+        }
       }
     });
 
     return { totalAdditions, totalDeletions, lastUpdated };
-  }, [actualWorktrees, getWorktreeStats]);
+  }, [actualWorktrees, worktreeStatsMap]);
 
   return (
     <div className="mb-2">
@@ -267,22 +282,36 @@ const ProjectSection: React.FC<ProjectSectionProps> = ({
           'hover:bg-muted/30 transition-colors'
         )}
       >
+        {/* Chevron button - toggles collapse */}
         <button
           type="button"
           onClick={onToggleCollapse}
-          className="flex flex-1 items-center gap-1.5 text-left min-w-0"
+          className="h-6 w-6 flex items-center justify-center shrink-0 text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
+          aria-label={isCollapsed ? 'Expand' : 'Collapse'}
         >
           {isCollapsed ? (
-            <RiArrowRightSLine className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <RiArrowRightSLine className="h-4 w-4" />
           ) : (
-            <RiArrowDownSLine className="h-4 w-4 shrink-0 text-muted-foreground" />
+            <RiArrowDownSLine className="h-4 w-4" />
           )}
-          <span className={cn(
-            'flex-1 truncate text-base font-medium',
-            isActive ? 'text-foreground' : 'text-muted-foreground'
-          )}>
-            {projectLabel}
-          </span>
+        </button>
+
+        {/* Repo name - opens detail page on click */}
+        <button
+          type="button"
+          onClick={() => onOpenGitHubBoard?.()}
+          onMouseEnter={() => prefetchGitHubPRs(project.owner, project.repo)}
+          className={cn(
+            'flex-1 text-left min-w-0 truncate text-base font-medium transition-colors rounded-md px-1.5 py-0.5',
+            onOpenGitHubBoard ? 'cursor-pointer hover:text-foreground' : 'cursor-default',
+            isDetailPageOpen
+              ? 'text-primary'
+              : isActive
+                ? 'text-foreground'
+                : 'text-muted-foreground hover:text-foreground'
+          )}
+        >
+          {projectLabel}
         </button>
 
         <DropdownMenu>
@@ -296,6 +325,12 @@ const ProjectSection: React.FC<ProjectSectionProps> = ({
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="min-w-[160px]">
+            {onOpenBranchPicker && (
+              <DropdownMenuItem onClick={onOpenBranchPicker}>
+                <RiGitBranchLine className="mr-1.5 h-4 w-4" />
+                Browse Branches
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem
               onClick={onClose}
               className="text-destructive focus:text-destructive"
@@ -315,6 +350,7 @@ const ProjectSection: React.FC<ProjectSectionProps> = ({
                   e.stopPropagation();
                   onOpenGitHubBoard();
                 }}
+                onMouseEnter={() => prefetchGitHubPRs(project.owner, project.repo)}
                 className="h-6 w-6 flex items-center justify-center rounded-md text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-foreground hover:bg-muted/50 transition-all"
                 aria-label="Pull Requests"
               >
@@ -325,32 +361,31 @@ const ProjectSection: React.FC<ProjectSectionProps> = ({
           </Tooltip>
         )}
 
-        {onOpenBranchPicker && (
+        {onQuickCreateWorktree && (
           <Tooltip delayDuration={700}>
             <TooltipTrigger asChild>
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onOpenBranchPicker();
+                  onQuickCreateWorktree();
                 }}
                 className="h-6 w-6 flex items-center justify-center rounded-md text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-foreground hover:bg-muted/50 transition-all"
-                aria-label="Browse branches"
+                aria-label="New Worktree"
               >
-                <RiGitRepositoryLine className="h-4 w-4" />
+                <RiAddLine className="h-4 w-4" />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="bottom">Browse branches</TooltipContent>
+            <TooltipContent side="bottom">New Worktree</TooltipContent>
           </Tooltip>
         )}
       </div>
 
       {isCollapsed && (projectStats.totalAdditions > 0 || projectStats.totalDeletions > 0) && (
         <div className="flex items-center gap-2 px-2 py-1 text-xs text-muted-foreground ml-5">
-          <span className="flex items-center gap-0.5">
-            <span className="text-[color:var(--status-success)]">+{projectStats.totalAdditions}</span>
-            <span>/</span>
-            <span className="text-destructive">-{projectStats.totalDeletions}</span>
+          <span className="flex items-center gap-1.5 rounded-md border border-border/50 px-1.5 py-0.5 font-mono">
+            <span className="text-[color:var(--status-success)]">+{formatCompactNumber(projectStats.totalAdditions)}</span>
+            <span className="text-destructive">-{formatCompactNumber(projectStats.totalDeletions)}</span>
           </span>
           {projectStats.lastUpdated && (
             <span className="text-muted-foreground/70">
@@ -370,7 +405,7 @@ const ProjectSection: React.FC<ProjectSectionProps> = ({
             actualWorktrees.map((worktree) => {
               const worktreePath = normalizePath(worktree.path);
               const isWorktreeActive = worktreePath === activeWorktreePath;
-              const stats = getWorktreeStats(worktree.path);
+              const stats = worktreePath ? (worktreeStatsMap.get(worktreePath) ?? { additions: 0, deletions: 0, lastUpdated: null, sessionTitle: null }) : { additions: 0, deletions: 0, lastUpdated: null, sessionTitle: null };
               const isAutoReviewEnabled = autoReviewDirectory !== null && worktreePath === autoReviewDirectory;
               
               return (
@@ -378,7 +413,6 @@ const ProjectSection: React.FC<ProjectSectionProps> = ({
                   key={worktree.path}
                   worktree={worktree}
                   isActive={isWorktreeActive}
-                  isMain={false}
                   stats={stats}
                   onSelect={() => onSelectWorktree(worktree.path)}
                   onClose={onCloseWorktree ? () => onCloseWorktree(worktree.path) : undefined}
@@ -392,7 +426,7 @@ const ProjectSection: React.FC<ProjectSectionProps> = ({
       )}
     </div>
   );
-};
+});
 
 interface WorktreeSidebarProps {
   mobileVariant?: boolean;
@@ -401,6 +435,7 @@ interface WorktreeSidebarProps {
 export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
   const projects = useProjectsStore((s) => s.projects);
   const activeProjectId = useProjectsStore((s) => s.activeProjectId);
+  const isDiscovering = useProjectsStore((s) => s.isDiscovering);
   const removeProject = useProjectsStore((s) => s.removeProject);
   const setActiveProject = useProjectsStore((s) => s.setActiveProject);
   
@@ -432,7 +467,11 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
     return openChamberSection ? [openChamberSection, ...otherSections] : sections;
   }, [isVSCode]);
 
-  const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set());
+  // Load collapsed projects from instant cache (synchronous, available immediately)
+  const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(() => {
+    const cached = getInstantCache<string[]>(INSTANT_CACHE_KEYS.COLLAPSED_PROJECTS);
+    return cached ? new Set(cached) : new Set();
+  });
   const [branchPickerOpen, setBranchPickerOpen] = useState(false);
 
   const [isDesktopRuntime] = useState(() => {
@@ -444,27 +483,19 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
     return normalizePath(currentDirectory);
   }, [currentDirectory]);
 
-  const getWorktreeStats = useCallback((worktreePath: string): WorktreeStats => {
-    const normalizedPath = normalizePath(worktreePath);
-    if (!normalizedPath) {
-      return { additions: 0, deletions: 0, lastUpdated: null, sessionTitle: null };
+  const worktreeStatsMap = useMemo(() => {
+    const map = new Map<string, WorktreeStats>();
+    for (const session of allSessions) {
+      const dir = ((session as { directory?: string | null }).directory ?? '').replace(/\\/g, '/').replace(/\/+$/, '');
+      if (!dir) continue;
+      map.set(dir, {
+        additions: (session as any).summary?.additions ?? 0,
+        deletions: (session as any).summary?.deletions ?? 0,
+        lastUpdated: session.time?.updated ?? session.time?.created ?? null,
+        sessionTitle: session.title || null,
+      });
     }
-
-    const session = allSessions.find((s) => {
-      const dir = ((s as { directory?: string | null }).directory ?? '').replace(/\\/g, '/').replace(/\/+$/, '');
-      return dir === normalizedPath;
-    });
-
-    if (!session) {
-      return { additions: 0, deletions: 0, lastUpdated: null, sessionTitle: null };
-    }
-
-    return {
-      additions: (session as any).summary?.additions ?? 0,
-      deletions: (session as any).summary?.deletions ?? 0,
-      lastUpdated: session.time?.updated ?? session.time?.created ?? null,
-      sessionTitle: session.title || null,
-    };
+    return map;
   }, [allSessions]);
 
   const toggleProject = useCallback((projectId: string) => {
@@ -475,6 +506,8 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
       } else {
         next.add(projectId);
       }
+      // Persist to instant cache for instant loading on next app start
+      setInstantCache(INSTANT_CACHE_KEYS.COLLAPSED_PROJECTS, Array.from(next));
       return next;
     });
   }, []);
@@ -560,6 +593,19 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
     setBranchPickerOpen(true);
   }, []);
 
+  const refreshWorktrees = useChatStore((s) => s.refreshWorktrees);
+
+  const handleQuickCreateWorktree = useCallback(async (projectId: string) => {
+    // Set the project as active so createWorktreeSession uses it
+    if (projectId !== activeProjectId) {
+      setActiveProject(projectId);
+    }
+    const result = await createWorktreeSession();
+    if (result) {
+      await refreshWorktrees();
+    }
+  }, [activeProjectId, setActiveProject, refreshWorktrees]);
+
   const openGitHubRepoDetail = useUIStore((state) => state.openGitHubRepoDetail);
 
   const handleOpenGitHubBoard = useCallback((projectId: string) => {
@@ -639,6 +685,9 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
           <TooltipContent side="bottom">Close Sidebar</TooltipContent>
         </Tooltip>
         <span className="text-sm font-medium text-muted-foreground">Repositories</span>
+        {isDiscovering && (
+          <GridLoader size="xs" className="text-muted-foreground" />
+        )}
       </div>
       <Tooltip>
         <TooltipTrigger asChild>
@@ -713,7 +762,8 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
 
       <ScrollableOverlay className="flex-1 overflow-y-auto p-2">
         {normalizedProjects.map((project) => {
-          const worktrees = availableWorktreesByProject.get(project.normalizedPath) ?? [];
+          // Look up worktrees by project.id (e.g., "owner/repo") - simple string, no normalization needed
+          const worktrees = availableWorktreesByProject.get(project.id) ?? [];
           const isActive = project.id === activeProjectId;
           const isCollapsed = collapsedProjects.has(project.id);
 
@@ -730,9 +780,10 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
               onClose={() => handleCloseProject(project.id)}
               onCloseWorktree={handleCloseWorktree}
               onOpenInFinder={handleOpenInFinder}
+              onQuickCreateWorktree={() => handleQuickCreateWorktree(project.id)}
               onOpenBranchPicker={handleOpenBranchPicker}
               onOpenGitHubBoard={() => handleOpenGitHubBoard(project.id)}
-              getWorktreeStats={getWorktreeStats}
+              worktreeStatsMap={worktreeStatsMap}
               autoReviewDirectory={normalizedAutoReviewDirectory}
             />
           );

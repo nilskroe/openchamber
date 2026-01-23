@@ -15,6 +15,7 @@ import { useDeviceInfo } from '@/lib/device';
 import { isDesktopRuntime, getDesktopSettings } from '@/lib/desktop';
 import type { DesktopSettings } from '@/lib/desktop';
 import { updateDesktopSettings } from '@/lib/persistence';
+import { getSettingsValue } from '@/lib/settingsStorage';
 import { useFileSystemAccess } from '@/hooks/useFileSystemAccess';
 import { ScrollableOverlay } from '@/components/ui/ScrollableOverlay';
 
@@ -230,7 +231,7 @@ export const DirectoryTree: React.FC<DirectoryTreeProps> = ({
 
     const loadFromLocalStorage = () => {
       try {
-        const raw = localStorage.getItem('pinnedDirectories');
+        const raw = getSettingsValue('pinnedDirectories');
         if (!raw) {
           return;
         }

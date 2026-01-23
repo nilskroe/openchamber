@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { devtools, persist, createJSONStorage } from 'zustand/middleware';
 import type { SidebarSection } from '@/constants/sidebar';
 import { settingsFileStorage } from '@/lib/settingsStorage';
+import { getInstantCache, setInstantCache, INSTANT_CACHE_KEYS } from '@/lib/instantCache';
 import { SEMANTIC_TYPOGRAPHY, getTypographyVariable, type SemanticTypographyKey } from '@/lib/typography';
 
 export type MainTab = 'chat' | 'git' | 'diff' | 'terminal' | 'files' | 'repo';
@@ -191,14 +192,18 @@ export const useUIStore = create<UIStore>()(
         notificationMode: 'hidden-only',
         isGlobalResizing: false,
         defaultLeftPaneTabs: ['files', 'diff', 'terminal', 'git'],
-        defaultRightPaneTabs: [],
+        defaultRightPaneTabs: ['preview'],
         defaultRightPaneVisible: true,
 
-        githubRepoDetailPage: null,
+        // Load from instant cache for instant restoration on app start
+        githubRepoDetailPage: getInstantCache<{ owner: string; repo: string; projectDirectory?: string }>(INSTANT_CACHE_KEYS.GITHUB_DETAIL_PAGE),
         openGitHubRepoDetail: (owner, repo, projectDirectory) => {
-          set({ githubRepoDetailPage: { owner, repo, projectDirectory } });
+          const page = { owner, repo, projectDirectory };
+          setInstantCache(INSTANT_CACHE_KEYS.GITHUB_DETAIL_PAGE, page);
+          set({ githubRepoDetailPage: page });
         },
         closeGitHubRepoDetail: () => {
+          setInstantCache(INSTANT_CACHE_KEYS.GITHUB_DETAIL_PAGE, null);
           set({ githubRepoDetailPage: null });
         },
 

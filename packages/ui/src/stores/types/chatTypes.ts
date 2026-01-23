@@ -99,6 +99,7 @@ export interface ChatState {
   // Session listing (for sidebar/management views, not the active chat)
   allSessions: Session[];
   availableWorktreesByProject: Map<string, WorktreeMetadata[]>;
+  worktreesLoaded: boolean; // True after first successful refreshWorktrees() call
   worktreeMetadata: Map<string, WorktreeMetadata>;
   sessionDirectories: Map<string, string>;
 }

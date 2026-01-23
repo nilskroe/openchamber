@@ -13,6 +13,7 @@ import { useDeviceInfo } from '@/lib/device';
 import { Button } from '@/components/ui/button';
 import { OverlayScrollbar } from '@/components/ui/OverlayScrollbar';
 import { TimelineDialog } from './TimelineDialog';
+import { ConnectionStatusBanner } from '@/components/ui/ConnectionStatusIndicator';
 
 export const ChatContainer: React.FC = () => {
     const currentSessionId = useChatStore((s) => s.currentSessionId);
@@ -196,6 +197,7 @@ export const ChatContainer: React.FC = () => {
             className="flex flex-col h-full bg-background"
             style={isMobile ? { paddingBottom: 'var(--oc-keyboard-inset, 0px)' } : undefined}
         >
+            <ConnectionStatusBanner />
             <div className="relative flex-1 min-h-0">
                 <div className="absolute inset-0">
                     <ScrollShadow

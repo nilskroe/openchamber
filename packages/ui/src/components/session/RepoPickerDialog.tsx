@@ -21,7 +21,8 @@ import { useProjectsStore } from '@/stores/useProjectsStore';
 import { useChatStore } from '@/stores/useChatStore';
 import { useDirectoryStore } from '@/stores/useDirectoryStore';
 import { toast } from 'sonner';
-import { normalizePath, joinPath } from '@/lib/paths';
+import { joinPath } from '@/lib/paths';
+import { cloneBare } from '@/lib/gitApi';
 
 interface RepoPickerDialogProps {
   open: boolean;
@@ -75,9 +76,14 @@ export function RepoPickerDialog({ open, onOpenChange }: RepoPickerDialogProps) 
     return new Set(projects.map((p) => `${p.owner}/${p.repo}`));
   }, [projects]);
 
+  /**
+   * Get the target directory for cloning a repo using the bare pattern.
+   * Server expects the repo root: ~/openchamber/<repo-name>
+   * The server will create .bare/, .git file, and initial worktree at this location.
+   */
   const getCloneTargetDir = (repo: GitHubRepo): string => {
     const home = homeDirectory || '';
-    return joinPath(joinPath(joinPath(home, 'openchamber'), repo.name), 'main');
+    return joinPath(joinPath(home, 'openchamber'), repo.name);
   };
 
   const handleSelectRepo = async (repo: GitHubRepo) => {
@@ -99,11 +105,11 @@ export function RepoPickerDialog({ open, onOpenChange }: RepoPickerDialogProps) 
 
     try {
       const targetDir = getCloneTargetDir(repo);
-      const result = await opencodeClient.cloneGitHubRepo(repo.cloneUrl, targetDir);
+      const result = await cloneBare(repo.cloneUrl, targetDir);
 
       if (result.success) {
-        const path = normalizePath(result.path) || targetDir;
-        const added = addProject(path, { owner, repo: repoName });
+        // cloneBare returns the repo root path directly
+        const added = addProject(result.path, { owner, repo: repoName });
         if (added) {
           toast.success(`Added ${repo.fullName}`);
           // Refresh worktree list for the sidebar

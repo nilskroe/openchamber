@@ -20,10 +20,11 @@ import { isEditPermissionType, getAgentDefaultEditPermission } from "./utils/per
 import { extractTokensFromMessage } from "./utils/tokenUtils";
 import { calculateContextUsage } from "./utils/contextUtils";
 import { settingsFileStorage } from "@/lib/settingsStorage";
+import { getInstantCache, setInstantCache, INSTANT_CACHE_KEYS } from "@/lib/instantCache";
 import { useFileStore } from "./fileStore";
-import { normalizePath } from "@/lib/paths";
 import { listWorktrees, mapWorktreeToMetadata } from "@/lib/git/worktreeService";
 import { useProjectsStore } from "./useProjectsStore";
+import type { WorktreeMetadata } from "@/types/worktree";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -31,6 +32,28 @@ const ZOMBIE_TIMEOUT = 10 * 60 * 1000;
 const STREAMING_TIMEOUT = 30_000;
 const BATCH_INTERVAL = 50;
 const EDIT_PERMISSION_SEQUENCE: EditPermissionMode[] = ['ask', 'allow', 'full'];
+
+/**
+ * Read cached worktrees from localStorage for INSTANT loading.
+ * This is synchronous and available immediately at module load time.
+ */
+const readCachedWorktrees = (): Map<string, WorktreeMetadata[]> => {
+  const cached = getInstantCache<[string, WorktreeMetadata[]][]>(INSTANT_CACHE_KEYS.WORKTREES);
+  if (!cached || !Array.isArray(cached)) {
+    return new Map();
+  }
+  return new Map(cached);
+};
+
+/**
+ * Write worktrees to localStorage for instant loading on next startup.
+ */
+const writeCachedWorktrees = (worktrees: Map<string, WorktreeMetadata[]>) => {
+  setInstantCache(INSTANT_CACHE_KEYS.WORKTREES, Array.from(worktrees.entries()));
+};
+
+// Load cached worktrees for instant sidebar display (SYNCHRONOUS - happens at module load)
+const cachedWorktrees = readCachedWorktrees();
 
 const computePartsTextLength = (parts: Part[]): number => {
   return parts.reduce((sum, part) => {
@@ -180,7 +203,9 @@ const initialState: ChatState = {
   abortPromptExpiresAt: null,
 
   allSessions: [],
-  availableWorktreesByProject: new Map(),
+  // Use cached worktrees for instant display, will be refreshed by refreshWorktrees
+  availableWorktreesByProject: cachedWorktrees,
+  worktreesLoaded: false, // Will be set to true after first refreshWorktrees() completes
   worktreeMetadata: new Map(),
   sessionDirectories: new Map(),
 };
@@ -1498,26 +1523,29 @@ export const useChatStore = create<ChatStore>()(
           const projects = useProjectsStore.getState().projects;
           if (projects.length === 0) return;
 
-          const nextMap = new Map<string, import("@/types/worktree").WorktreeMetadata[]>();
+          // Filter to valid projects with both id and path
+          const validProjects = projects.filter((p) => p.id && p.path);
+          if (validProjects.length === 0) return;
 
-          for (const project of projects) {
-            if (!project.path) continue;
-            const normalizedProjectPath = normalizePath(project.path);
-            if (!normalizedProjectPath) continue;
-
-            try {
+          const results = await Promise.allSettled(
+            validProjects.map(async (project) => {
               const worktreeInfos = await listWorktrees(project.path);
               const mapped = worktreeInfos.map((info) =>
                 mapWorktreeToMetadata(project.path, info)
               );
-              nextMap.set(normalizedProjectPath, mapped);
-            } catch {
-              // If listing fails (e.g., path doesn't exist), set empty array
-              nextMap.set(normalizedProjectPath, []);
+              return { projectId: project.id, worktrees: mapped };
+            })
+          );
+
+          const nextMap = new Map<string, WorktreeMetadata[]>();
+          for (const result of results) {
+            if (result.status === 'fulfilled') {
+              nextMap.set(result.value.projectId, result.value.worktrees);
             }
           }
 
-          set({ availableWorktreesByProject: nextMap });
+          set({ availableWorktreesByProject: nextMap, worktreesLoaded: true });
+          writeCachedWorktrees(nextMap);
         },
 
         // ─── Cleanup ────────────────────────────────────────────────────────

@@ -86,8 +86,8 @@ const DraggableTabItem: React.FC<DraggableTabItemProps> = ({
   return (
     <div
       onClick={onActivate}
-      draggable={isClosable}
-      onDragStart={isClosable ? handleDragStart : undefined}
+      draggable
+      onDragStart={handleDragStart}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={(e) => onDrop(e, tab.id)}

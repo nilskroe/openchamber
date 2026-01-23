@@ -1,5 +1,6 @@
 import { isVSCodeRuntime } from '@/lib/desktop';
 import { useDirectoryStore } from '@/stores/useDirectoryStore';
+import { getSettingsValue } from '@/lib/settingsStorage';
 
 export const applyPersistedDirectoryPreferences = async (): Promise<void> => {
   if (typeof window === 'undefined') {
@@ -10,8 +11,8 @@ export const applyPersistedDirectoryPreferences = async (): Promise<void> => {
   let savedDirectory: string | null = null;
 
   try {
-    savedHome = window.localStorage.getItem('homeDirectory');
-    savedDirectory = window.localStorage.getItem('lastDirectory');
+    savedHome = getSettingsValue('homeDirectory');
+    savedDirectory = getSettingsValue('lastDirectory');
   } catch (error) {
     console.warn('Failed to read saved directory preferences:', error);
   }

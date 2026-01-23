@@ -1,9 +1,19 @@
-import { addGitWorktree, deleteGitBranch, deleteRemoteBranch, getGitStatus, listGitWorktrees, removeGitWorktree, type GitAddWorktreePayload, type GitWorktreeInfo } from '@/lib/gitApi';
+import {
+  addGitWorktree,
+  deleteGitBranch,
+  deleteRemoteBranch,
+  getGitStatus,
+  listGitWorktrees,
+  removeGitWorktree,
+  type GitAddWorktreePayload,
+  type GitWorktreeInfo,
+} from '@/lib/gitApi';
 import { opencodeClient } from '@/lib/opencode/client';
 import type { WorktreeMetadata } from '@/types/worktree';
 import type { FilesAPI, RuntimeAPIs } from '@/lib/api/types';
 import { getWorktreeSetupCommands, substituteCommandVariables } from '@/lib/openchamberConfig';
 import { useDirectoryStore } from '@/stores/useDirectoryStore';
+import { getSettingsValue } from '@/lib/settingsStorage';
 import { normalizePath as normalize, joinPath } from '@/lib/paths';
 
 const OPENCHAMBER_ROOT = 'openchamber';
@@ -15,25 +25,14 @@ const DEFAULT_BASE_URL = import.meta.env.VITE_OPENCODE_URL || '/api';
 function getRuntimeFilesAPI(): FilesAPI | null {
   if (typeof window === 'undefined') return null;
   const apis = (window as typeof window & { __OPENCHAMBER_RUNTIME_APIS__?: RuntimeAPIs }).__OPENCHAMBER_RUNTIME_APIS__;
-  if (apis?.files) {
-    return apis.files;
-  }
-  return null;
+  return apis?.files ?? null;
 }
 
 const shortBranchLabel = (branch?: string): string => {
-  if (!branch) {
-    return '';
-  }
-  if (branch.startsWith('refs/heads/')) {
-    return branch.substring('refs/heads/'.length);
-  }
-  if (branch.startsWith('heads/')) {
-    return branch.substring('heads/'.length);
-  }
-  if (branch.startsWith('refs/')) {
-    return branch.substring('refs/'.length);
-  }
+  if (!branch) return '';
+  if (branch.startsWith('refs/heads/')) return branch.substring('refs/heads/'.length);
+  if (branch.startsWith('heads/')) return branch.substring('heads/'.length);
+  if (branch.startsWith('refs/')) return branch.substring('refs/'.length);
   return branch;
 };
 
@@ -41,25 +40,16 @@ const shortBranchLabel = (branch?: string): string => {
  * Get the home directory from the directory store or fallback sources.
  */
 const getHomeDirectory = (): string => {
-  // Try to get from Zustand store
   try {
     const storeHome = useDirectoryStore.getState().homeDirectory;
-    if (storeHome && storeHome !== '/') {
-      return normalize(storeHome);
-    }
+    if (storeHome && storeHome !== '/') return normalize(storeHome);
   } catch {
     // Store might not be initialized yet
   }
 
-  // Try localStorage fallback
-  if (typeof window !== 'undefined' && window.localStorage) {
-    const stored = window.localStorage.getItem('homeDirectory');
-    if (stored && stored !== '/') {
-      return normalize(stored);
-    }
-  }
+  const stored = getSettingsValue('homeDirectory');
+  if (stored && stored !== '/') return normalize(stored);
 
-  // Fallback to process.env.HOME for Node environments
   if (typeof process !== 'undefined' && process.env?.HOME) {
     return normalize(process.env.HOME);
   }
@@ -68,65 +58,37 @@ const getHomeDirectory = (): string => {
 };
 
 /**
- * Extract repository name from a project path.
- * Takes the last segment of the path as the repo name.
- * e.g., "/Users/user/projects/my-repo" -> "my-repo"
- */
-export const extractRepoName = (projectDirectory: string): string => {
-  const normalized = normalize(projectDirectory);
-  if (!normalized || normalized === '/') {
-    return 'unnamed-repo';
-  }
-  const segments = normalized.split('/').filter(Boolean);
-  return segments[segments.length - 1] || 'unnamed-repo';
-};
-
-/**
  * Get the global openchamber root directory.
  * Returns: ~/openchamber
  */
 export const getOpenchamberRoot = (): string => {
   const home = getHomeDirectory();
-  if (!home) {
-    throw new Error('Could not determine home directory for openchamber');
-  }
+  if (!home) throw new Error('Could not determine home directory for openchamber');
   return joinPath(home, OPENCHAMBER_ROOT);
 };
 
 /**
- * Get the workspace directory for a specific repository.
- * Structure: ~/openchamber/<repo-name>/
- *   main/           ← the initial clone (project directory)
- *   <worktree-slug>/ ← worktrees
- *
- * Since projectDirectory is ~/openchamber/<repo-name>/main,
- * this returns its parent: ~/openchamber/<repo-name>
+ * Extract repository name from a project path.
+ * e.g., "/Users/user/openchamber/my-repo" -> "my-repo"
  */
-export const getRepoWorkspaceDir = (projectDirectory: string): string => {
+export const extractRepoName = (projectDirectory: string): string => {
   const normalized = normalize(projectDirectory);
-  if (!normalized || normalized === '/') {
-    throw new Error('Invalid project directory');
-  }
-  const lastSlash = normalized.lastIndexOf('/');
-  if (lastSlash <= 0) return normalized;
-  return normalized.substring(0, lastSlash);
+  if (!normalized || normalized === '/') return 'unnamed-repo';
+  const segments = normalized.split('/').filter(Boolean);
+  return segments[segments.length - 1] || 'unnamed-repo';
 };
 
 const ensureDirectory = async (path: string) => {
   try {
     await opencodeClient.createDirectory(path);
   } catch (error) {
-
-    if (error instanceof Error) {
-      if (/exist/i.test(error.message)) {
-        return;
-      }
-    }
+    if (error instanceof Error && /exist/i.test(error.message)) return;
     throw error;
   }
 };
 
 export interface CreateWorktreeOptions {
+  /** The repo root directory: ~/openchamber/<repo-name> */
   projectDirectory: string;
   worktreeSlug: string;
   branch: string;
@@ -154,20 +116,19 @@ export interface ArchiveWorktreeOptions {
  * Structure: ~/openchamber/<repo-name>/<worktree-slug>
  */
 export async function resolveWorktreePath(projectDirectory: string, worktreeSlug: string): Promise<string> {
-  const repoWorkspaceDir = getRepoWorkspaceDir(projectDirectory);
-  const openchamberRoot = getOpenchamberRoot();
-
-  await ensureDirectory(openchamberRoot);
-  await ensureDirectory(repoWorkspaceDir);
-
-  return joinPath(repoWorkspaceDir, worktreeSlug);
+  const repoRoot = normalize(projectDirectory);
+  await ensureDirectory(repoRoot);
+  return joinPath(repoRoot, worktreeSlug);
 }
 
+/**
+ * Create a new worktree in the repo.
+ * All worktrees are siblings in the repo root directory.
+ */
 export async function createWorktree(options: CreateWorktreeOptions): Promise<WorktreeMetadata> {
   const { projectDirectory, worktreeSlug, branch, createBranch, startPoint } = options;
-  const normalizedProject = normalize(projectDirectory);
-  const worktreePath = await resolveWorktreePath(normalizedProject, worktreeSlug);
-  const repoWorkspaceDir = getRepoWorkspaceDir(normalizedProject);
+  const repoRoot = normalize(projectDirectory);
+  const worktreePath = await resolveWorktreePath(repoRoot, worktreeSlug);
 
   const payload: GitAddWorktreePayload = {
     path: worktreePath,
@@ -176,41 +137,36 @@ export async function createWorktree(options: CreateWorktreeOptions): Promise<Wo
     startPoint: startPoint?.trim() || undefined,
   };
 
-  await addGitWorktree(normalizedProject, payload);
+  await addGitWorktree(repoRoot, payload);
 
   return {
     path: worktreePath,
     branch,
     label: shortBranchLabel(branch),
-    projectDirectory: normalizedProject,
-    relativePath: worktreePath.startsWith(`${repoWorkspaceDir}/`)
-      ? worktreePath.slice(repoWorkspaceDir.length + 1)
-      : worktreeSlug,
+    projectDirectory: repoRoot,
+    relativePath: worktreeSlug,
   };
 }
 
 export async function removeWorktree(options: RemoveWorktreeOptions): Promise<void> {
   const { projectDirectory, path, force } = options;
-  const normalizedProject = normalize(projectDirectory);
-  await removeGitWorktree(normalizedProject, { path, force });
+  await removeGitWorktree(normalize(projectDirectory), { path, force });
 }
 
 export async function archiveWorktree(options: ArchiveWorktreeOptions): Promise<void> {
   const { projectDirectory, path, branch, force, deleteRemote, remote } = options;
-  const normalizedProject = normalize(projectDirectory);
+  const repoRoot = normalize(projectDirectory);
   const normalizedBranch = branch.startsWith('refs/heads/')
     ? branch.substring('refs/heads/'.length)
     : branch;
 
-  await removeGitWorktree(normalizedProject, { path, force });
+  await removeGitWorktree(repoRoot, { path, force });
+
   if (normalizedBranch) {
-    await deleteGitBranch(normalizedProject, { branch: normalizedBranch, force: true });
+    await deleteGitBranch(repoRoot, { branch: normalizedBranch, force: true });
     if (deleteRemote) {
       try {
-        await deleteRemoteBranch(normalizedProject, {
-          branch: normalizedBranch,
-          remote,
-        });
+        await deleteRemoteBranch(repoRoot, { branch: normalizedBranch, remote });
       } catch (error) {
         console.warn('Failed to delete remote branch during worktree archive:', error);
       }
@@ -218,14 +174,16 @@ export async function archiveWorktree(options: ArchiveWorktreeOptions): Promise<
   }
 }
 
+/**
+ * List all worktrees for a repo.
+ * Works from any worktree or the repo root since they share the same .git database.
+ */
 export async function listWorktrees(projectDirectory: string): Promise<GitWorktreeInfo[]> {
-  const normalizedProject = normalize(projectDirectory);
-  return listGitWorktrees(normalizedProject);
+  return listGitWorktrees(normalize(projectDirectory));
 }
 
 export async function getWorktreeStatus(worktreePath: string): Promise<WorktreeMetadata['status']> {
-  const normalizedPath = normalize(worktreePath);
-  const status = await getGitStatus(normalizedPath);
+  const status = await getGitStatus(normalize(worktreePath));
   return {
     isDirty: !status.isClean,
     ahead: status.ahead,
@@ -234,26 +192,29 @@ export async function getWorktreeStatus(worktreePath: string): Promise<WorktreeM
   };
 }
 
+/**
+ * Map a GitWorktreeInfo to WorktreeMetadata.
+ * @param projectDirectory - The repo root: ~/openchamber/<repo-name>
+ * @param info - The worktree info from git
+ */
 export function mapWorktreeToMetadata(projectDirectory: string, info: GitWorktreeInfo): WorktreeMetadata {
-  const normalizedProject = normalize(projectDirectory);
-  const normalizedPath = normalize(info.worktree);
-  const repoWorkspaceDir = getRepoWorkspaceDir(normalizedProject);
-  
+  const repoRoot = normalize(projectDirectory);
+  const worktreePath = normalize(info.worktree);
+
+  // Get relative path from repo root
   let relativePath: string;
-  if (normalizedPath.startsWith(`${repoWorkspaceDir}/`)) {
-    relativePath = normalizedPath.slice(repoWorkspaceDir.length + 1);
-  } else if (normalizedPath.startsWith(`${normalizedProject}/`)) {
-    relativePath = normalizedPath.slice(normalizedProject.length + 1);
+  if (worktreePath.startsWith(`${repoRoot}/`)) {
+    relativePath = worktreePath.slice(repoRoot.length + 1);
   } else {
-    const segments = normalizedPath.split('/').filter(Boolean);
-    relativePath = segments[segments.length - 1] || normalizedPath;
+    const segments = worktreePath.split('/').filter(Boolean);
+    relativePath = segments[segments.length - 1] || worktreePath;
   }
-  
+
   return {
-    path: normalizedPath,
+    path: worktreePath,
     branch: info.branch ?? '',
     label: shortBranchLabel(info.branch ?? ''),
-    projectDirectory: normalizedProject,
+    projectDirectory: repoRoot,
     relativePath,
   };
 }
@@ -272,12 +233,6 @@ export interface WorktreeSetupResult {
 
 /**
  * Run worktree setup commands in the background.
- * This does not block - it returns a promise that resolves when all commands complete.
- * 
- * @param worktreePath - The path to the new worktree where commands will run
- * @param projectDirectory - The root project directory (for $ROOT_WORKTREE_PATH substitution)
- * @param commands - Optional commands to run. If not provided, reads from config.
- * @returns Promise resolving to setup results
  */
 export async function runWorktreeSetupCommands(
   worktreePath: string,
@@ -285,51 +240,26 @@ export async function runWorktreeSetupCommands(
   commands?: string[]
 ): Promise<WorktreeSetupResult> {
   const commandsToRun = commands ?? await getWorktreeSetupCommands(projectDirectory);
-  
+
   if (commandsToRun.length === 0) {
     return { success: true, results: [] };
   }
 
-  // Substitute variables in commands
-  const substitutedCommands = commandsToRun.map(cmd => 
+  const substitutedCommands = commandsToRun.map(cmd =>
     substituteCommandVariables(cmd, { rootWorktreePath: projectDirectory })
   );
 
-  console.log('[worktreeService] Running setup commands:', { worktreePath, projectDirectory, commands: substitutedCommands });
-
   try {
-    // Try runtime API first (Desktop/VSCode)
     const runtimeFiles = getRuntimeFilesAPI();
     if (runtimeFiles?.execCommands) {
-      console.log('[worktreeService] Using runtime API for exec');
-      try {
-        // Don't use background mode - we want actual results for toast notifications
-        // The bridge now uses async exec (not execSync) so it won't block other operations
-        const result = await runtimeFiles.execCommands(substitutedCommands, worktreePath);
-        console.log('[worktreeService] Runtime exec result:', result);
-        return result as WorktreeSetupResult;
-      } catch (error) {
-        console.error('[worktreeService] Runtime exec error:', error);
-        return {
-          success: false,
-          results: substitutedCommands.map(cmd => ({
-            command: cmd,
-            success: false,
-            error: error instanceof Error ? error.message : 'Unknown error',
-          })),
-        };
-      }
+      const result = await runtimeFiles.execCommands(substitutedCommands, worktreePath);
+      return result as WorktreeSetupResult;
     }
 
     // Fall back to web API
-    console.log('[worktreeService] Using web API for exec');
-
     const startResponse = await fetch(`${DEFAULT_BASE_URL}/fs/exec`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      // Use background job so we don't hold long-lived HTTP connections.
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         commands: substitutedCommands,
         cwd: worktreePath,
@@ -339,7 +269,7 @@ export async function runWorktreeSetupCommands(
 
     const startPayload = await startResponse.json().catch(() => null);
 
-    if (startResponse.status === 202 && startPayload && typeof startPayload.jobId === 'string') {
+    if (startResponse.status === 202 && startPayload?.jobId) {
       const jobId = startPayload.jobId as string;
       const pollIntervalMs = 800;
       const timeoutMs = Math.max(5 * 60_000, substitutedCommands.length * 60_000);
@@ -347,28 +277,25 @@ export async function runWorktreeSetupCommands(
 
       while (Date.now() - startedAt < timeoutMs) {
         await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
-
-        const pollResponse = await fetch(`${DEFAULT_BASE_URL}/fs/exec/${jobId}`, {
-          method: 'GET',
-        });
-
+        const pollResponse = await fetch(`${DEFAULT_BASE_URL}/fs/exec/${jobId}`);
         const pollPayload = await pollResponse.json().catch(() => null);
+
         if (!pollResponse.ok) {
           return {
             success: false,
             results: substitutedCommands.map((cmd) => ({
               command: cmd,
               success: false,
-              error: (pollPayload && pollPayload.error) || 'Failed to poll exec job',
+              error: pollPayload?.error || 'Failed to poll exec job',
             })),
           };
         }
 
-        const status = pollPayload?.status;
-        if (status === 'done') {
-          const results = Array.isArray(pollPayload?.results) ? pollPayload.results : [];
-          const success = pollPayload?.success === true;
-          return { success, results } as WorktreeSetupResult;
+        if (pollPayload?.status === 'done') {
+          return {
+            success: pollPayload?.success === true,
+            results: Array.isArray(pollPayload?.results) ? pollPayload.results : [],
+          };
         }
       }
 
@@ -383,23 +310,18 @@ export async function runWorktreeSetupCommands(
     }
 
     if (!startResponse.ok) {
-      const error = (startPayload && startPayload.error) || 'Request failed';
-      console.error('[worktreeService] Web exec failed:', startPayload);
       return {
         success: false,
         results: substitutedCommands.map((cmd) => ({
           command: cmd,
           success: false,
-          error,
+          error: startPayload?.error || 'Request failed',
         })),
       };
     }
 
-    // Back-compat: older servers may still return results synchronously.
-    console.log('[worktreeService] Web exec result:', startPayload);
     return startPayload as WorktreeSetupResult;
   } catch (error) {
-    console.error('[worktreeService] Exec exception:', error);
     return {
       success: false,
       results: substitutedCommands.map(cmd => ({
@@ -418,4 +340,3 @@ export async function hasWorktreeSetupCommands(projectDirectory: string): Promis
   const commands = await getWorktreeSetupCommands(projectDirectory);
   return commands.length > 0;
 }
-

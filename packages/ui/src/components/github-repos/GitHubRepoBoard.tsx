@@ -1,10 +1,13 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
 import { RiRefreshLine, RiGitBranchLine } from '@remixicon/react';
 import { toast } from 'sonner';
 import { useGitHubRepoPRs } from '@/hooks/useGitHubRepoPRs';
 import { createWorktreeSessionForBranch } from '@/lib/worktreeSessionCreator';
-import { GitHubRepoBoardColumn } from './GitHubRepoBoardColumn';
+import { GitHubRepoBoardColumn, GitHubRepoBoardColumnSkeleton } from './GitHubRepoBoardColumn';
 import type { PullRequest } from '@/lib/github-repos/types';
+
+// Column labels for skeleton display
+const SKELETON_COLUMNS = ['Behind', 'Draft', 'Pending', 'Failing', 'In Review', 'Ready'];
 
 interface GitHubRepoBoardProps {
   owner: string;
@@ -13,8 +16,9 @@ interface GitHubRepoBoardProps {
 }
 
 export function GitHubRepoBoard({ owner, repo, projectDirectory }: GitHubRepoBoardProps) {
-  const { columns, isLoading, error, refresh } = useGitHubRepoPRs(owner, repo);
+  const { columns, isLoading, error, refresh, isRevalidating } = useGitHubRepoPRs(owner, repo);
   const [creatingWorktreeFor, setCreatingWorktreeFor] = useState<number | null>(null);
+  const creatingRef = useRef(false);
 
   const handleCreateWorktree = useCallback(async (pr: PullRequest) => {
     if (!projectDirectory) {
@@ -24,15 +28,22 @@ export function GitHubRepoBoard({ owner, repo, projectDirectory }: GitHubRepoBoa
       return;
     }
 
-    if (creatingWorktreeFor !== null) return;
+    if (creatingRef.current) return;
 
+    creatingRef.current = true;
     setCreatingWorktreeFor(pr.number);
     try {
       await createWorktreeSessionForBranch(projectDirectory, pr.headRefName);
     } finally {
+      creatingRef.current = false;
       setCreatingWorktreeFor(null);
     }
-  }, [projectDirectory, creatingWorktreeFor]);
+  }, [projectDirectory]);
+
+  const totalPRs = useMemo(
+    () => columns.reduce((sum, col) => sum + col.items.length, 0),
+    [columns]
+  );
 
   if (error) {
     return (
@@ -52,18 +63,41 @@ export function GitHubRepoBoard({ owner, repo, projectDirectory }: GitHubRepoBoa
     );
   }
 
+  // Show skeleton columns while loading (instead of just a spinner)
   if (isLoading) {
     return (
-      <div className="flex h-full items-center justify-center">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-          Loading PRs...
+      <div className="flex h-full flex-col">
+        {/* Header skeleton */}
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <div className="flex items-center gap-3">
+            <RiGitBranchLine className="h-5 w-5 text-muted-foreground" />
+            <h2 className="text-base font-semibold text-foreground">
+              {owner}/{repo}
+            </h2>
+            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+              Loading...
+            </span>
+          </div>
+          <button
+            disabled
+            className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground opacity-50"
+          >
+            <RiRefreshLine className="h-4 w-4 animate-spin" />
+            Loading...
+          </button>
+        </div>
+
+        {/* Skeleton columns */}
+        <div className="flex-1 overflow-x-auto overflow-y-hidden">
+          <div className="flex h-full gap-3 p-4">
+            {SKELETON_COLUMNS.map((label) => (
+              <GitHubRepoBoardColumnSkeleton key={label} label={label} />
+            ))}
+          </div>
         </div>
       </div>
     );
   }
-
-  const totalPRs = columns.reduce((sum, col) => sum + col.items.length, 0);
 
   if (totalPRs === 0) {
     return (
@@ -81,6 +115,8 @@ export function GitHubRepoBoard({ owner, repo, projectDirectory }: GitHubRepoBoa
     );
   }
 
+  const onCreateWorktree = projectDirectory ? handleCreateWorktree : undefined;
+
   return (
     <div className="flex h-full flex-col">
       {/* Header */}
@@ -96,10 +132,11 @@ export function GitHubRepoBoard({ owner, repo, projectDirectory }: GitHubRepoBoa
         </div>
         <button
           onClick={refresh}
-          className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground hover:bg-accent"
+          disabled={isRevalidating}
+          className="inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-1.5 text-sm font-medium text-foreground hover:bg-accent disabled:opacity-50 transition-colors"
         >
-          <RiRefreshLine className="h-4 w-4" />
-          Refresh
+          <RiRefreshLine className={`h-4 w-4 ${isRevalidating ? 'animate-spin' : ''}`} />
+          {isRevalidating ? 'Updating...' : 'Refresh'}
         </button>
       </div>
 
@@ -110,7 +147,7 @@ export function GitHubRepoBoard({ owner, repo, projectDirectory }: GitHubRepoBoa
             <GitHubRepoBoardColumn
               key={column.id}
               column={column}
-              onCreateWorktree={projectDirectory ? handleCreateWorktree : undefined}
+              onCreateWorktree={onCreateWorktree}
               creatingWorktreeFor={creatingWorktreeFor}
             />
           ))}

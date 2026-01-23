@@ -31,6 +31,7 @@ export async function isGitRepository(directory) {
   }
 
   const gitDir = path.join(directoryPath, '.git');
+  // .git can be a directory (regular clone) or a file (worktree/bare repo setup)
   return fs.existsSync(gitDir);
 }
 
@@ -40,9 +41,22 @@ export async function ensureOpenChamberIgnored(directory) {
     return false;
   }
 
-  const gitDir = path.join(directoryPath, '.git');
-  if (!fs.existsSync(gitDir)) {
+  const gitPath = path.join(directoryPath, '.git');
+  if (!fs.existsSync(gitPath)) {
     return false;
+  }
+
+  // Resolve the actual git directory
+  // .git can be a directory (regular clone) or a file (worktree pointing to bare repo)
+  let gitDir = gitPath;
+  const stats = fs.statSync(gitPath);
+  if (stats.isFile()) {
+    // It's a file pointing to the actual git dir (e.g., "gitdir: ../.bare")
+    const content = fs.readFileSync(gitPath, 'utf8').trim();
+    const match = content.match(/^gitdir:\s*(.+)$/);
+    if (match) {
+      gitDir = path.resolve(directoryPath, match[1]);
+    }
   }
 
   const infoDir = path.join(gitDir, 'info');
@@ -702,6 +716,37 @@ export async function fetch(directory, options = {}) {
   }
 }
 
+/**
+ * Fetch a PR branch from origin using the PR ref.
+ * This is necessary for PRs from forks where the branch doesn't exist on origin.
+ * @param {string} directory - The git repository directory
+ * @param {number} prNumber - The PR number
+ * @param {string} localBranch - The local branch name to create
+ * @param {string} remote - The remote name (default: 'origin')
+ */
+export async function fetchPRBranch(directory, prNumber, localBranch, remote = 'origin') {
+  const git = simpleGit(normalizeDirectoryPath(directory));
+
+  try {
+    // First, try to delete any existing local branch with this name
+    try {
+      await git.branch(['-D', localBranch]);
+    } catch {
+      // Branch might not exist, ignore
+    }
+
+    // Fetch the PR ref to a local branch using git.raw() for proper refspec handling
+    // The refspec format pull/N/head:localBranch creates a local branch from the PR head
+    const refspec = `pull/${prNumber}/head:${localBranch}`;
+    await git.raw(['fetch', remote, refspec]);
+
+    return { success: true, branch: localBranch };
+  } catch (error) {
+    console.error('Failed to fetch PR branch:', error);
+    throw error;
+  }
+}
+
 export async function commit(directory, message, options = {}) {
   const git = simpleGit(normalizeDirectoryPath(directory));
 
@@ -1127,4 +1172,392 @@ export async function renameBranch(directory, oldName, newName) {
     console.error('Failed to rename branch:', error);
     throw error;
   }
+}
+
+/**
+ * Clone a repository using the bare repository pattern.
+ * This creates:
+ * - <targetDir>/.bare/       - The bare git repository
+ * - <targetDir>/.git         - A file pointing to .bare
+ * - <targetDir>/<branch>/    - The initial worktree for the default branch
+ *
+ * @param {string} url - The repository URL to clone
+ * @param {string} targetDir - The target directory (e.g., ~/openchamber/owner-repo)
+ * @returns {Promise<{success: boolean, path: string, defaultBranch: string, worktreePath: string}>}
+ */
+export async function cloneBare(url, targetDir) {
+  const normalizedTarget = normalizeDirectoryPath(targetDir);
+  if (!normalizedTarget) {
+    throw new Error('Invalid target directory');
+  }
+
+  const bareDir = path.join(normalizedTarget, '.bare');
+  const gitFile = path.join(normalizedTarget, '.git');
+
+  // Step 1: Create target directory
+  await fsp.mkdir(normalizedTarget, { recursive: true });
+
+  // Step 2: Clone as bare repository into .bare
+  try {
+    await execFileAsync('git', ['clone', '--bare', url, bareDir], {
+      cwd: normalizedTarget,
+      timeout: 300000, // 5 minutes for large repos
+    });
+  } catch (error) {
+    // Clean up on failure
+    await fsp.rm(normalizedTarget, { recursive: true, force: true }).catch(() => {});
+    throw new Error(`Failed to clone repository: ${error.message || error}`);
+  }
+
+  // Step 3: Create .git file pointing to .bare
+  await fsp.writeFile(gitFile, 'gitdir: ./.bare\n', 'utf8');
+
+  // Step 4: Configure fetch refspec for proper remote tracking
+  // Bare repos don't fetch by default, we need to set this up
+  const git = simpleGit(normalizedTarget);
+  await git.raw(['config', 'remote.origin.fetch', '+refs/heads/*:refs/remotes/origin/*']);
+
+  // Step 5: Fetch all remote refs
+  await git.fetch('origin');
+
+  // Step 6: Determine the default branch
+  let defaultBranch = 'main';
+  try {
+    // Try to get the default branch from remote HEAD
+    const remoteHead = await git.raw(['symbolic-ref', 'refs/remotes/origin/HEAD']);
+    const match = remoteHead.trim().match(/refs\/remotes\/origin\/(.+)/);
+    if (match) {
+      defaultBranch = match[1];
+    }
+  } catch {
+    // Fallback: check if main or master exists
+    try {
+      await git.raw(['rev-parse', '--verify', 'refs/remotes/origin/main']);
+      defaultBranch = 'main';
+    } catch {
+      try {
+        await git.raw(['rev-parse', '--verify', 'refs/remotes/origin/master']);
+        defaultBranch = 'master';
+      } catch {
+        // Use the first available remote branch
+        const branches = await git.raw(['branch', '-r']);
+        const firstBranch = branches.split('\n')
+          .map(b => b.trim())
+          .filter(b => b.startsWith('origin/') && !b.includes('HEAD'))
+          .map(b => b.replace('origin/', ''))[0];
+        if (firstBranch) {
+          defaultBranch = firstBranch;
+        }
+      }
+    }
+  }
+
+  // Step 7: Create the initial worktree for the default branch
+  const worktreePath = path.join(normalizedTarget, defaultBranch);
+  await git.raw(['worktree', 'add', worktreePath, `origin/${defaultBranch}`]);
+
+  return {
+    success: true,
+    path: normalizedTarget,
+    defaultBranch,
+    worktreePath,
+  };
+}
+
+/**
+ * Check if a directory is a bare repository setup (has .bare directory).
+ * @param {string} directory - The directory to check
+ * @returns {Promise<boolean>}
+ */
+export async function isBareRepoSetup(directory) {
+  const normalizedDir = normalizeDirectoryPath(directory);
+  if (!normalizedDir) return false;
+
+  const bareDir = path.join(normalizedDir, '.bare');
+  const gitFile = path.join(normalizedDir, '.git');
+
+  try {
+    const [bareStat, gitStat] = await Promise.all([
+      fsp.stat(bareDir).catch(() => null),
+      fsp.stat(gitFile).catch(() => null),
+    ]);
+
+    // It's a bare repo setup if:
+    // - .bare exists and is a directory
+    // - .git exists and is a file (not a directory)
+    return bareStat?.isDirectory() && gitStat?.isFile();
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Get the project root from any worktree or the project directory itself.
+ * For bare repo setups, returns the parent of the worktree.
+ * For regular repos, returns the repo directory.
+ *
+ * @param {string} directory - A worktree path or project directory
+ * @returns {Promise<{projectRoot: string, isBareSetup: boolean}>}
+ */
+export async function getProjectRoot(directory) {
+  const normalizedDir = normalizeDirectoryPath(directory);
+  if (!normalizedDir) {
+    throw new Error('Invalid directory');
+  }
+
+  // First check if this directory itself is a bare repo setup
+  if (await isBareRepoSetup(normalizedDir)) {
+    return { projectRoot: normalizedDir, isBareSetup: true };
+  }
+
+  // Check if it's a worktree by looking at .git file
+  const gitPath = path.join(normalizedDir, '.git');
+  try {
+    const gitStat = await fsp.stat(gitPath);
+
+    if (gitStat.isFile()) {
+      // This is a worktree - read the .git file to find the common dir
+      const gitContent = await fsp.readFile(gitPath, 'utf8');
+      const match = gitContent.match(/gitdir:\s*(.+)/);
+      if (match) {
+        let gitDir = match[1].trim();
+        // Resolve relative path
+        if (!path.isAbsolute(gitDir)) {
+          gitDir = path.resolve(normalizedDir, gitDir);
+        }
+
+        // For bare repo setups, gitdir points to .bare/worktrees/<name>
+        // The project root is two levels up from .bare
+        if (gitDir.includes('.bare/worktrees/')) {
+          const bareDir = gitDir.split('.bare/worktrees/')[0] + '.bare';
+          const projectRoot = path.dirname(bareDir);
+          return { projectRoot, isBareSetup: true };
+        }
+      }
+    }
+
+    // Regular git repository
+    return { projectRoot: normalizedDir, isBareSetup: false };
+  } catch {
+    // No .git at all - not a git repo
+    throw new Error('Not a git repository');
+  }
+}
+
+/**
+ * List all worktrees for a bare repo setup.
+ * Returns worktree info with paths relative to project root.
+ *
+ * @param {string} projectDir - The project directory (with .bare)
+ * @returns {Promise<Array<{path: string, branch: string, head: string}>>}
+ */
+export async function listBareRepoWorktrees(projectDir) {
+  const normalizedDir = normalizeDirectoryPath(projectDir);
+  if (!normalizedDir) {
+    return [];
+  }
+
+  const isBare = await isBareRepoSetup(normalizedDir);
+  if (!isBare) {
+    // Fall back to regular worktree list
+    return getWorktrees(normalizedDir);
+  }
+
+  const git = simpleGit(normalizedDir);
+
+  try {
+    const result = await git.raw(['worktree', 'list', '--porcelain']);
+    const worktrees = [];
+    const lines = result.split('\n');
+    let current = {};
+
+    for (const line of lines) {
+      if (line.startsWith('worktree ')) {
+        if (current.worktree) {
+          worktrees.push(current);
+        }
+        current = { worktree: line.substring(9) };
+      } else if (line.startsWith('HEAD ')) {
+        current.head = line.substring(5);
+      } else if (line.startsWith('branch ')) {
+        current.branch = cleanBranchName(line.substring(7));
+      } else if (line === 'bare') {
+        // Skip the bare repo entry itself
+        current = {};
+      } else if (line === '') {
+        if (current.worktree) {
+          worktrees.push(current);
+          current = {};
+        }
+      }
+    }
+
+    if (current.worktree) {
+      worktrees.push(current);
+    }
+
+    return worktrees;
+  } catch (error) {
+    console.warn('Failed to list bare repo worktrees:', error?.message || error);
+    return [];
+  }
+}
+
+/**
+ * Migrate an existing repository to the bare repo pattern.
+ *
+ * Current structure:
+ *   ~/openchamber/<repo-name>/
+ *     main/            ← Regular clone (the project directory)
+ *     <worktree-slug>/ ← Existing worktrees
+ *
+ * Target structure:
+ *   ~/openchamber/<repo-name>/
+ *     .bare/           ← Bare repository
+ *     .git             ← File pointing to .bare
+ *     main/            ← Worktree (equal to others)
+ *     <worktree-slug>/ ← Existing worktrees (unchanged)
+ *
+ * Steps:
+ * 1. Move main/.git to .bare
+ * 2. Create .git file in repo root pointing to .bare
+ * 3. Create worktree config for main/ in .bare/worktrees
+ * 4. Create .git file in main/ pointing to .bare/worktrees/main
+ * 5. Update fetch refspec
+ *
+ * @param {string} mainClonePath - Path to the main/ clone (e.g., ~/openchamber/repo/main)
+ * @returns {Promise<{success: boolean, projectRoot: string}>}
+ */
+export async function migrateToBareBareRepo(mainClonePath) {
+  const normalizedMain = normalizeDirectoryPath(mainClonePath);
+  if (!normalizedMain) {
+    throw new Error('Invalid main clone path');
+  }
+
+  // Derive the repo root (parent of main)
+  const repoRoot = path.dirname(normalizedMain);
+  const mainDirName = path.basename(normalizedMain);
+  const bareDir = path.join(repoRoot, '.bare');
+  const rootGitFile = path.join(repoRoot, '.git');
+  const mainGitDir = path.join(normalizedMain, '.git');
+
+  // Verify main/.git exists and is a directory (not already migrated)
+  const mainGitStat = await fsp.stat(mainGitDir).catch(() => null);
+  if (!mainGitStat?.isDirectory()) {
+    throw new Error('main/.git is not a directory - already migrated or invalid repository');
+  }
+
+  // Check if already migrated
+  const bareExists = await fsp.stat(bareDir).catch(() => null);
+  if (bareExists?.isDirectory()) {
+    throw new Error('Repository already migrated (.bare exists)');
+  }
+
+  // Step 1: Move main/.git to .bare
+  await fsp.rename(mainGitDir, bareDir);
+
+  // Step 2: Create .git file in repo root
+  await fsp.writeFile(rootGitFile, 'gitdir: ./.bare\n', 'utf8');
+
+  // Step 3: Set up worktrees directory in .bare
+  const worktreesDir = path.join(bareDir, 'worktrees');
+  await fsp.mkdir(worktreesDir, { recursive: true });
+
+  // Create worktree config for main/
+  const mainWorktreeDir = path.join(worktreesDir, mainDirName);
+  await fsp.mkdir(mainWorktreeDir, { recursive: true });
+
+  // Write gitdir file for the main worktree
+  await fsp.writeFile(
+    path.join(mainWorktreeDir, 'gitdir'),
+    `${normalizedMain}/.git\n`,
+    'utf8'
+  );
+
+  // Write the main/.git file pointing to the worktree
+  await fsp.writeFile(
+    mainGitDir,
+    `gitdir: ${mainWorktreeDir}\n`,
+    'utf8'
+  );
+
+  // Get the current branch in main
+  const git = simpleGit(normalizedMain);
+  let currentBranch = 'main';
+  try {
+    const status = await git.status();
+    if (status.current) {
+      currentBranch = status.current;
+    }
+  } catch {
+    // Fall back to main
+  }
+
+  // Write HEAD file for the worktree
+  await fsp.writeFile(
+    path.join(mainWorktreeDir, 'HEAD'),
+    `ref: refs/heads/${currentBranch}\n`,
+    'utf8'
+  );
+
+  // Step 4: Configure fetch refspec for bare repo
+  const bareGit = simpleGit(repoRoot);
+  await bareGit.raw(['config', 'remote.origin.fetch', '+refs/heads/*:refs/remotes/origin/*']);
+
+  // Step 5: Update existing worktrees' gitdir files to point to .bare
+  try {
+    const entries = await fsp.readdir(repoRoot, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      if (entry.name === '.bare' || entry.name === mainDirName) continue;
+
+      const worktreePath = path.join(repoRoot, entry.name);
+      const worktreeGitPath = path.join(worktreePath, '.git');
+
+      try {
+        const gitFileStat = await fsp.stat(worktreeGitPath);
+        if (gitFileStat.isFile()) {
+          // This is an existing worktree - update its gitdir reference
+          const content = await fsp.readFile(worktreeGitPath, 'utf8');
+          // Update path from pointing to main/.git/worktrees/X to .bare/worktrees/X
+          const updated = content.replace(
+            new RegExp(`${mainDirName}/\\.git/worktrees/`, 'g'),
+            '.bare/worktrees/'
+          );
+          if (updated !== content) {
+            await fsp.writeFile(worktreeGitPath, updated, 'utf8');
+          }
+        }
+      } catch {
+        // Not a worktree or couldn't read - ignore
+      }
+    }
+
+    // Also update the worktree configs in .bare/worktrees to use new paths
+    const worktreeEntries = await fsp.readdir(worktreesDir, { withFileTypes: true }).catch(() => []);
+    for (const wt of worktreeEntries) {
+      if (!wt.isDirectory()) continue;
+      const gitdirPath = path.join(worktreesDir, wt.name, 'gitdir');
+      try {
+        const content = await fsp.readFile(gitdirPath, 'utf8');
+        // Update if it still points to old location
+        const updated = content.replace(
+          new RegExp(`${mainDirName}/\\.git/worktrees/`, 'g'),
+          '.bare/worktrees/'
+        );
+        if (updated !== content) {
+          await fsp.writeFile(gitdirPath, updated, 'utf8');
+        }
+      } catch {
+        // Skip
+      }
+    }
+  } catch {
+    // Non-critical - existing worktrees may need manual fixup
+  }
+
+  return {
+    success: true,
+    projectRoot: repoRoot,
+  };
 }

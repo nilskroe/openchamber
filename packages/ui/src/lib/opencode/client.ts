@@ -1,6 +1,7 @@
 import { createOpencodeClient, OpencodeClient } from "@opencode-ai/sdk/v2";
 import type { FilesAPI, RuntimeAPIs } from "../api/types";
 import { getDesktopHomeDirectory } from "../desktop";
+import { getSettingsValue } from "../settingsStorage";
 import type {
   Session,
   Message,
@@ -315,14 +316,8 @@ class OpencodeService {
 
     addCandidate(this.currentDirectory);
 
-    if (typeof window !== 'undefined') {
-      try {
-        addCandidate(window.localStorage.getItem('lastDirectory'));
-        addCandidate(window.localStorage.getItem('homeDirectory'));
-      } catch {
-        // Access to storage failed (e.g. privacy mode)
-      }
-    }
+    addCandidate(getSettingsValue('lastDirectory'));
+    addCandidate(getSettingsValue('homeDirectory'));
 
     if (!candidates.size && typeof process !== 'undefined' && typeof process.cwd === 'function') {
       addCandidate(process.cwd());

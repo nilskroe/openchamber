@@ -86,40 +86,96 @@ export function register(app, ctx) {
         return res.status(400).json({ error: 'Target directory is required' });
       }
 
+      // targetDirectory is ~/openchamber/<repo-name>/main
+      // We need to create the bare repo structure in the parent directory
       const expandedPath = normalizeDirectoryPath(targetDirectory);
-      const resolvedPath = path.resolve(expandedPath);
+      const mainWorktreePath = path.resolve(expandedPath);
+      const repoDir = path.dirname(mainWorktreePath); // ~/openchamber/<repo-name>
+      const bareDir = path.join(repoDir, '.bare');
+      const gitFile = path.join(repoDir, '.git');
 
-      let finalPath = resolvedPath;
-      if (fs.existsSync(finalPath)) {
-        let suffix = 2;
-        while (fs.existsSync(`${resolvedPath}-${suffix}`)) {
-          suffix++;
-          if (suffix > 100) {
-            return res.status(400).json({ error: 'Too many directories with similar names exist' });
-          }
-        }
-        finalPath = `${resolvedPath}-${suffix}`;
+      // Check if repo already exists
+      if (fs.existsSync(bareDir) || fs.existsSync(mainWorktreePath)) {
+        return res.status(400).json({ error: 'Repository already exists at this location' });
       }
 
-      const parentDir = path.dirname(finalPath);
-      if (!fs.existsSync(parentDir)) {
-        fs.mkdirSync(parentDir, { recursive: true });
+      // Create parent directory if needed
+      if (!fs.existsSync(repoDir)) {
+        fs.mkdirSync(repoDir, { recursive: true });
       }
 
-      const result = spawnSync('git', ['clone', '--depth', '1', '--single-branch', cloneUrl, finalPath], {
+      // Step 1: Clone as bare repository into .bare
+      const cloneResult = spawnSync('git', ['clone', '--bare', cloneUrl, bareDir], {
         encoding: 'utf8',
         timeout: 300000
       });
 
-      if (result.error) {
-        return res.status(500).json({ error: result.error.message || 'Git clone failed' });
+      if (cloneResult.error) {
+        return res.status(500).json({ error: cloneResult.error.message || 'Git clone failed' });
       }
 
-      if (result.status !== 0) {
-        return res.status(500).json({ error: result.stderr || 'Git clone failed' });
+      if (cloneResult.status !== 0) {
+        return res.status(500).json({ error: cloneResult.stderr || 'Git clone failed' });
       }
 
-      res.json({ success: true, path: finalPath });
+      // Step 2: Create .git file pointing to .bare
+      fs.writeFileSync(gitFile, 'gitdir: ./.bare\n', 'utf8');
+
+      // Step 3: Configure fetch to get all remote branches
+      const configResult = spawnSync('git', [
+        '--git-dir', bareDir,
+        'config', 'remote.origin.fetch', '+refs/heads/*:refs/remotes/origin/*'
+      ], { encoding: 'utf8', timeout: 30000 });
+
+      if (configResult.status !== 0) {
+        console.warn('Failed to configure remote fetch:', configResult.stderr);
+      }
+
+      // Step 4: Fetch all branches
+      const fetchResult = spawnSync('git', [
+        '--git-dir', bareDir,
+        'fetch', 'origin'
+      ], { encoding: 'utf8', timeout: 120000 });
+
+      if (fetchResult.status !== 0) {
+        console.warn('Failed to fetch branches:', fetchResult.stderr);
+      }
+
+      // Step 5: Determine the default branch
+      let defaultBranch = 'main';
+      const headResult = spawnSync('git', [
+        '--git-dir', bareDir,
+        'symbolic-ref', 'refs/remotes/origin/HEAD'
+      ], { encoding: 'utf8', timeout: 10000 });
+
+      if (headResult.status === 0 && headResult.stdout) {
+        // Output is like "refs/remotes/origin/main"
+        const ref = headResult.stdout.trim();
+        const match = ref.match(/refs\/remotes\/origin\/(.+)/);
+        if (match) {
+          defaultBranch = match[1];
+        }
+      }
+
+      // Step 6: Create the main worktree
+      const worktreeResult = spawnSync('git', [
+        '--git-dir', bareDir,
+        'worktree', 'add', mainWorktreePath, defaultBranch
+      ], { encoding: 'utf8', timeout: 60000 });
+
+      if (worktreeResult.error) {
+        // Clean up on failure
+        fs.rmSync(repoDir, { recursive: true, force: true });
+        return res.status(500).json({ error: worktreeResult.error.message || 'Failed to create main worktree' });
+      }
+
+      if (worktreeResult.status !== 0) {
+        // Clean up on failure
+        fs.rmSync(repoDir, { recursive: true, force: true });
+        return res.status(500).json({ error: worktreeResult.stderr || 'Failed to create main worktree' });
+      }
+
+      res.json({ success: true, path: mainWorktreePath });
     } catch (error) {
       console.error('Failed to clone repository:', error);
       res.status(500).json({ error: error.message || 'Failed to clone repository' });

@@ -170,6 +170,17 @@ export async function gitFetch(
   return gitHttp.gitFetch(directory, options);
 }
 
+export async function fetchPRBranch(
+  directory: string,
+  prNumber: number,
+  localBranch: string,
+  remote?: string
+): Promise<{ success: boolean; branch: string }> {
+  // For now, only HTTP implementation is available
+  // Runtime API can be added later if needed
+  return gitHttp.fetchPRBranch(directory, prNumber, localBranch, remote);
+}
+
 export async function checkoutBranch(directory: string, branch: string): Promise<{ success: boolean; branch: string }> {
   const runtime = getRuntimeGit();
   if (runtime) return runtime.checkoutBranch(directory, branch);
@@ -279,4 +290,17 @@ export async function getRemoteUrl(directory: string, remote?: string): Promise<
 
 export async function getPrStatus(directory: string): Promise<import('./api/types').GetPrStatusResult> {
   return gitHttp.getPrStatus(directory);
+}
+
+// ============================================================================
+// Bare Repository Pattern
+// ============================================================================
+
+export type { CloneBareResult } from './gitApiHttp';
+
+/**
+ * Clone a repository using the bare repository pattern.
+ */
+export async function cloneBare(url: string, targetDir: string): Promise<import('./gitApiHttp').CloneBareResult> {
+  return gitHttp.cloneBare(url, targetDir);
 }
