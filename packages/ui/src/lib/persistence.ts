@@ -5,6 +5,7 @@ import { useMessageQueueStore } from '@/stores/messageQueueStore';
 import { useAppRunnerStore } from '@/stores/useAppRunnerStore';
 import { loadAppearancePreferences, applyAppearancePreferences } from '@/lib/appearancePersistence';
 import { getRegisteredRuntimeAPIs } from '@/contexts/runtimeAPIRegistry';
+import { setSettingsValue, removeSettingsValue } from '@/lib/settingsStorage';
 
 const persistToLocalStorage = (settings: DesktopSettings) => {
   if (typeof window === 'undefined') {
@@ -12,37 +13,37 @@ const persistToLocalStorage = (settings: DesktopSettings) => {
   }
 
   if (settings.themeId) {
-    localStorage.setItem('selectedThemeId', settings.themeId);
+    setSettingsValue('selectedThemeId', settings.themeId);
   }
   if (settings.themeVariant) {
-    localStorage.setItem('selectedThemeVariant', settings.themeVariant);
+    setSettingsValue('selectedThemeVariant', settings.themeVariant);
   }
   if (settings.lightThemeId) {
-    localStorage.setItem('lightThemeId', settings.lightThemeId);
+    setSettingsValue('lightThemeId', settings.lightThemeId);
   }
   if (settings.darkThemeId) {
-    localStorage.setItem('darkThemeId', settings.darkThemeId);
+    setSettingsValue('darkThemeId', settings.darkThemeId);
   }
   if (typeof settings.useSystemTheme === 'boolean') {
-    localStorage.setItem('useSystemTheme', String(settings.useSystemTheme));
+    setSettingsValue('useSystemTheme', String(settings.useSystemTheme));
   }
   if (settings.lastDirectory) {
-    localStorage.setItem('lastDirectory', settings.lastDirectory);
+    setSettingsValue('lastDirectory', settings.lastDirectory);
   }
   if (settings.homeDirectory) {
-    localStorage.setItem('homeDirectory', settings.homeDirectory);
+    setSettingsValue('homeDirectory', settings.homeDirectory);
     window.__OPENCHAMBER_HOME__ = settings.homeDirectory;
   }
   // Projects are discovered from filesystem (~/openchamber/repos/) - no persistence needed.
   if (Array.isArray(settings.pinnedDirectories) && settings.pinnedDirectories.length > 0) {
-    localStorage.setItem('pinnedDirectories', JSON.stringify(settings.pinnedDirectories));
+    setSettingsValue('pinnedDirectories', JSON.stringify(settings.pinnedDirectories));
   } else {
-    localStorage.removeItem('pinnedDirectories');
+    removeSettingsValue('pinnedDirectories');
   }
   if (typeof settings.gitmojiEnabled === 'boolean') {
-    localStorage.setItem('gitmojiEnabled', String(settings.gitmojiEnabled));
+    setSettingsValue('gitmojiEnabled', String(settings.gitmojiEnabled));
   } else {
-    localStorage.removeItem('gitmojiEnabled');
+    removeSettingsValue('gitmojiEnabled');
   }
 };
 

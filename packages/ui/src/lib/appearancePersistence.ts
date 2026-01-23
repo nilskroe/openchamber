@@ -1,5 +1,6 @@
 import { isDesktopRuntime } from '@/lib/desktop';
 import { useUIStore } from '@/stores/useUIStore';
+import { getSettingsValue } from '@/lib/settingsStorage';
 
 export interface AppearancePreferences {
   showReasoningTraces?: boolean;
@@ -84,7 +85,7 @@ export const loadAppearancePreferences = async (): Promise<AppearancePreferences
     }
   }
 
-  const stored = localStorage.getItem('appearance-preferences');
+  const stored = getSettingsValue('appearance-preferences');
   if (!stored) {
     return null;
   }
