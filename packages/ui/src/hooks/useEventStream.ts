@@ -25,7 +25,6 @@ declare global {
   }
 }
 
-const ENABLE_EMPTY_RESPONSE_DETECTION = false;
 const TEXT_SHRINK_TOLERANCE = 50;
 const RESYNC_DEBOUNCE_MS = 750;
 
@@ -151,7 +150,6 @@ export const useEventStream = () => {
   const unsubscribeRef = React.useRef<(() => void) | null>(null);
   const reconnectTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const reconnectAttemptsRef = React.useRef(0);
-  const emptyResponseToastShownRef = React.useRef<Set<string>>(new Set());
   const isCleaningUpRef = React.useRef(false);
   const resyncInFlightRef = React.useRef<Promise<void> | null>(null);
   const lastResyncAtRef = React.useRef(0);
@@ -416,38 +414,6 @@ export const useEventStream = () => {
                 console.warn('[useEventStream] Text shrink detected, keeping existing parts');
               }
               break;
-            }
-          }
-
-          // Empty response detection
-          if (ENABLE_EMPTY_RESPONSE_DETECTION && finish === 'stop') {
-            const msgParts = existingMsg?.parts || [];
-            const incomingParts = Array.isArray(message.parts) ? message.parts as Part[] : [];
-            const combinedParts = [...msgParts];
-            for (const part of incomingParts) {
-              if (!part) continue;
-              const alreadyPresent = combinedParts.some((existing) =>
-                existing.id === part.id && existing.type === part.type
-              );
-              if (!alreadyPresent) combinedParts.push(part);
-            }
-
-            const hasMeaningfulContent = combinedParts.some(p => {
-              if (p.type === 'text') {
-                const text = (p as { text?: string }).text;
-                return typeof text === 'string' && text.trim().length > 0;
-              }
-              return p.type === 'tool' || p.type === 'reasoning' || p.type === 'file';
-            });
-
-            if (!hasMeaningfulContent && !emptyResponseToastShownRef.current.has(messageId)) {
-              emptyResponseToastShownRef.current.add(messageId);
-              import('sonner').then(({ toast }) => {
-                toast.info('Assistant response was empty', {
-                  description: 'Try sending your message again or rephrase it.',
-                  duration: 5000,
-                });
-              });
             }
           }
 

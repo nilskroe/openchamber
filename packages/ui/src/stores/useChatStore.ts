@@ -19,7 +19,7 @@ import { extractTextFromPart, normalizeStreamingPart } from "./utils/messageUtil
 import { isEditPermissionType, getAgentDefaultEditPermission } from "./utils/permissionUtils";
 import { extractTokensFromMessage } from "./utils/tokenUtils";
 import { calculateContextUsage } from "./utils/contextUtils";
-import { getSafeStorage } from "./utils/safeStorage";
+import { settingsFileStorage } from "@/lib/settingsStorage";
 import { useFileStore } from "./fileStore";
 import { normalizePath } from "@/lib/paths";
 import { listWorktrees, mapWorktreeToMetadata } from "@/lib/git/worktreeService";
@@ -154,12 +154,12 @@ const initialState: ChatState = {
 
   modelSelection: null,
   agentSelection: null,
-  agentModelSelections: new Map(),
-  agentModelVariantSelections: new Map(),
+  agentModelSelections: {},
+  agentModelVariantSelections: {},
   currentAgentContext: undefined,
   contextUsage: null,
 
-  agentEditModes: new Map(),
+  agentEditModes: {},
 
   activityPhase: 'idle',
   isLoading: false,
@@ -1001,46 +1001,40 @@ export const useChatStore = create<ChatStore>()(
         },
 
         saveAgentModelSelection: (agentName: string, providerId: string, modelId: string) => {
-          set((state) => {
-            const next = new Map(state.agentModelSelections);
-            next.set(agentName, { providerId, modelId });
-            return { agentModelSelections: next };
-          });
+          set((state) => ({
+            agentModelSelections: { ...state.agentModelSelections, [agentName]: { providerId, modelId } },
+          }));
         },
 
         getAgentModelSelection: (agentName: string) => {
-          return get().agentModelSelections.get(agentName) || null;
+          return get().agentModelSelections[agentName] || null;
         },
 
         saveAgentModelVariantSelection: (agentName: string, providerId: string, modelId: string, variant: string | undefined) => {
           set((state) => {
-            const next = new Map(state.agentModelVariantSelections);
-            let modelMap = next.get(agentName);
-            if (!modelMap) {
-              modelMap = new Map();
-            } else {
-              modelMap = new Map(modelMap);
-            }
             const modelKey = `${providerId}/${modelId}`;
+            const agentMap = state.agentModelVariantSelections[agentName] || {};
             if (variant === undefined) {
-              modelMap.delete(modelKey);
-              if (modelMap.size === 0) {
-                next.delete(agentName);
-              } else {
-                next.set(agentName, modelMap);
+              const { [modelKey]: _, ...rest } = agentMap;
+              if (Object.keys(rest).length === 0) {
+                const { [agentName]: __, ...outer } = state.agentModelVariantSelections;
+                return { agentModelVariantSelections: outer };
               }
-            } else {
-              modelMap.set(modelKey, variant);
-              next.set(agentName, modelMap);
+              return { agentModelVariantSelections: { ...state.agentModelVariantSelections, [agentName]: rest } };
             }
-            return { agentModelVariantSelections: next };
+            return {
+              agentModelVariantSelections: {
+                ...state.agentModelVariantSelections,
+                [agentName]: { ...agentMap, [modelKey]: variant },
+              },
+            };
           });
         },
 
         getAgentModelVariantSelection: (agentName: string, providerId: string, modelId: string) => {
-          const modelMap = get().agentModelVariantSelections.get(agentName);
-          if (!modelMap) return undefined;
-          return modelMap.get(`${providerId}/${modelId}`);
+          const agentMap = get().agentModelVariantSelections[agentName];
+          if (!agentMap) return undefined;
+          return agentMap[`${providerId}/${modelId}`];
         },
 
         updateContextUsage: (contextLimit: number, outputLimit: number) => {
@@ -1074,7 +1068,7 @@ export const useChatStore = create<ChatStore>()(
 
         analyzeAndSaveExternalSessionChoices: async (agents) => {
           const { messages, saveAgentModelSelection, saveAgentModelVariantSelection, currentAgentContext } = get();
-          const agentLastChoices = new Map<string, { providerId: string; modelId: string; timestamp: number }>();
+          const agentLastChoices: Record<string, { providerId: string; modelId: string; timestamp: number }> = {};
 
           const allMessages = messages
             .filter((m) => m.info.role === 'assistant' || m.info.role === 'user')
@@ -1110,15 +1104,15 @@ export const useChatStore = create<ChatStore>()(
                   saveAgentModelVariantSelection(agentName, info.providerID, info.modelID, pendingVariant);
                 }
                 const choice = { providerId: info.providerID, modelId: info.modelID, timestamp: info.time?.created ?? 0 };
-                const existing = agentLastChoices.get(agentName);
-                if (!existing || choice.timestamp > existing.timestamp) agentLastChoices.set(agentName, choice);
+                const existing = agentLastChoices[agentName];
+                if (!existing || choice.timestamp > existing.timestamp) agentLastChoices[agentName] = choice;
               }
             }
             pendingVariant = undefined;
             pendingUserModel = undefined;
           }
 
-          for (const [agentName, choice] of agentLastChoices) {
+          for (const [agentName, choice] of Object.entries(agentLastChoices)) {
             saveAgentModelSelection(agentName, choice.providerId, choice.modelId);
           }
           return agentLastChoices;
@@ -1128,8 +1122,7 @@ export const useChatStore = create<ChatStore>()(
 
         getAgentEditMode: (agentName: string | undefined, defaultMode: EditPermissionMode = getAgentDefaultEditPermission(agentName)) => {
           if (!agentName) return defaultMode;
-          const override = get().agentEditModes.get(agentName);
-          return override ?? defaultMode;
+          return get().agentEditModes[agentName] ?? defaultMode;
         },
 
         setAgentEditMode: (agentName: string | undefined, mode: EditPermissionMode, defaultMode: EditPermissionMode = getAgentDefaultEditPermission(agentName)) => {
@@ -1139,13 +1132,11 @@ export const useChatStore = create<ChatStore>()(
           if (!EDIT_PERMISSION_SEQUENCE.includes(mode)) return;
 
           set((state) => {
-            const next = new Map(state.agentEditModes);
             if (mode === normalizedDefault) {
-              next.delete(agentName);
-            } else {
-              next.set(agentName, mode);
+              const { [agentName]: _, ...rest } = state.agentEditModes;
+              return { agentEditModes: rest };
             }
-            return { agentEditModes: next };
+            return { agentEditModes: { ...state.agentEditModes, [agentName]: mode } };
           });
         },
 
@@ -1569,15 +1560,13 @@ export const useChatStore = create<ChatStore>()(
       }),
       {
         name: "chat-store",
-        storage: createJSONStorage(() => getSafeStorage()),
+        storage: createJSONStorage(() => settingsFileStorage),
         partialize: (state) => ({
           modelSelection: state.modelSelection,
           agentSelection: state.agentSelection,
-          agentModelSelections: Array.from(state.agentModelSelections.entries()),
-          agentModelVariantSelections: Array.from(state.agentModelVariantSelections.entries()).map(
-            ([agent, modelMap]) => [agent, Array.from(modelMap.entries())]
-          ),
-          agentEditModes: Array.from(state.agentEditModes.entries()),
+          agentModelSelections: state.agentModelSelections,
+          agentModelVariantSelections: state.agentModelVariantSelections,
+          agentEditModes: state.agentEditModes,
           lastUsedProvider: state.lastUsedProvider,
         }),
         merge: (persistedState: any, currentState) => {
@@ -1585,17 +1574,29 @@ export const useChatStore = create<ChatStore>()(
             return currentState;
           }
 
+          // Migrate old Map-serialized arrays to Records
+          const migrateToRecord = (val: any): Record<string, any> => {
+            if (Array.isArray(val)) return Object.fromEntries(val);
+            return val && typeof val === 'object' ? val : {};
+          };
+
+          const variantRaw = persistedState.agentModelVariantSelections;
+          let variants: Record<string, Record<string, string>> = {};
+          if (Array.isArray(variantRaw)) {
+            for (const [agent, entries] of variantRaw) {
+              variants[agent] = Array.isArray(entries) ? Object.fromEntries(entries) : (entries || {});
+            }
+          } else if (variantRaw && typeof variantRaw === 'object') {
+            variants = variantRaw;
+          }
+
           return {
             ...currentState,
             modelSelection: persistedState.modelSelection,
             agentSelection: persistedState.agentSelection,
-            agentModelSelections: new Map(persistedState.agentModelSelections || []),
-            agentModelVariantSelections: new Map(
-              (persistedState.agentModelVariantSelections || []).map(
-                ([agent, entries]: [string, any[]]) => [agent, new Map(entries)]
-              )
-            ),
-            agentEditModes: new Map(persistedState.agentEditModes || []),
+            agentModelSelections: migrateToRecord(persistedState.agentModelSelections),
+            agentModelVariantSelections: variants,
+            agentEditModes: migrateToRecord(persistedState.agentEditModes),
             lastUsedProvider: persistedState.lastUsedProvider,
           };
         },

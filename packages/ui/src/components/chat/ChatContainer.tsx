@@ -32,10 +32,6 @@ export const ChatContainer: React.FC = () => {
 
     const { isMobile } = useDeviceInfo();
 
-    const sessionBlockingCards = React.useMemo(() => {
-        return [...permissions, ...questions];
-    }, [permissions, questions]);
-
     const {
         scrollRef,
         handleMessageContentChange,

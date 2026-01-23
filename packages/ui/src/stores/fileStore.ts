@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { devtools, persist, createJSONStorage } from "zustand/middleware";
 import { opencodeClient } from "@/lib/opencode/client";
-import { getSafeStorage } from "./utils/safeStorage";
+import { settingsFileStorage } from "@/lib/settingsStorage";
 import { normalizePath } from "@/lib/paths";
 
 export interface AttachedFile {
@@ -295,7 +295,7 @@ export const useFileStore = create<FileStore>()(
             }),
             {
                 name: "file-store",
-                storage: createJSONStorage(() => getSafeStorage()),
+                storage: createJSONStorage(() => settingsFileStorage),
                 partialize: (state) => ({
                     attachedFiles: state.attachedFiles,
                 }),

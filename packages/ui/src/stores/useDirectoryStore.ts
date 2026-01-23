@@ -5,7 +5,7 @@ import { getDesktopHomeDirectory, isVSCodeRuntime } from '@/lib/desktop';
 import { updateDesktopSettings } from '@/lib/persistence';
 import { useFileSearchStore } from '@/stores/useFileSearchStore';
 import { streamDebugEnabled } from '@/stores/utils/streamDebug';
-import { getSafeStorage } from './utils/safeStorage';
+import { getSettingsValue, setSettingsValue } from '@/lib/settingsStorage';
 import { normalizePath, normalizePathOrNull } from '@/lib/paths';
 
 interface DirectoryStore {
@@ -27,8 +27,7 @@ interface DirectoryStore {
 }
 
 let cachedHomeDirectory: string | null = null;
-const safeStorage = getSafeStorage();
-const persistedLastDirectory = safeStorage.getItem('lastDirectory');
+const persistedLastDirectory = getSettingsValue('lastDirectory');
 const initialHasPersistedDirectory =
   typeof persistedLastDirectory === 'string' && persistedLastDirectory.length > 0;
 
@@ -63,8 +62,8 @@ const resolveDirectoryPath = (path: string, homeDir?: string | null): string => 
 const getHomeDirectory = () => {
 
   if (typeof window !== 'undefined') {
-    const storedHome = safeStorage.getItem('homeDirectory') || cachedHomeDirectory || null;
-    const saved = safeStorage.getItem('lastDirectory');
+    const storedHome = getSettingsValue('homeDirectory') || cachedHomeDirectory || null;
+    const saved = getSettingsValue('lastDirectory');
     if (saved && !isVSCodeRuntime()) {
       return resolveDirectoryPath(saved, storedHome);
     }
@@ -80,7 +79,7 @@ const getHomeDirectory = () => {
 
     if (desktopHome && desktopHome.length > 0) {
       cachedHomeDirectory = desktopHome;
-      safeStorage.setItem('homeDirectory', desktopHome);
+      setSettingsValue('homeDirectory', desktopHome);
       return desktopHome;
     }
 
@@ -101,7 +100,7 @@ const getHomeDirectory = () => {
 const persistResolvedHome = (resolved: string) => {
   cachedHomeDirectory = resolved;
   if (typeof window !== 'undefined') {
-    safeStorage.setItem('homeDirectory', resolved);
+    setSettingsValue('homeDirectory', resolved);
   }
   void updateDesktopSettings({ homeDirectory: resolved });
   return resolved;
@@ -184,7 +183,7 @@ export const useDirectoryStore = create<DirectoryStore>()(
 
       setDirectory: (path: string, options?: { showOverlay?: boolean }) => {
         void options;
-        const homeDir = cachedHomeDirectory || get().homeDirectory || safeStorage.getItem('homeDirectory');
+        const homeDir = cachedHomeDirectory || get().homeDirectory || getSettingsValue('homeDirectory');
         const resolvedPath = resolveDirectoryPath(path, homeDir);
         if (streamDebugEnabled()) {
           console.log('[DirectoryStore] setDirectory called with path:', resolvedPath);
@@ -196,7 +195,7 @@ export const useDirectoryStore = create<DirectoryStore>()(
         set((state) => {
           const newHistory = [...state.directoryHistory.slice(0, state.historyIndex + 1), resolvedPath];
 
-          safeStorage.setItem('lastDirectory', resolvedPath);
+          setSettingsValue('lastDirectory', resolvedPath);
           void updateDesktopSettings({ lastDirectory: resolvedPath });
 
           return {
@@ -219,7 +218,7 @@ export const useDirectoryStore = create<DirectoryStore>()(
           opencodeClient.setDirectory(newDirectory);
           invalidateFileSearchCache();
 
-          safeStorage.setItem('lastDirectory', newDirectory);
+          setSettingsValue('lastDirectory', newDirectory);
 
           void updateDesktopSettings({ lastDirectory: newDirectory });
 
@@ -242,7 +241,7 @@ export const useDirectoryStore = create<DirectoryStore>()(
           opencodeClient.setDirectory(newDirectory);
           invalidateFileSearchCache();
 
-          safeStorage.setItem('lastDirectory', newDirectory);
+          setSettingsValue('lastDirectory', newDirectory);
 
           void updateDesktopSettings({ lastDirectory: newDirectory });
 
@@ -292,7 +291,7 @@ export const useDirectoryStore = create<DirectoryStore>()(
         const resolvedHome = homePath;
         cachedHomeDirectory = resolvedHome;
         const needsUpdate = state.homeDirectory !== resolvedHome;
-        const savedLastDirectory = safeStorage.getItem('lastDirectory');
+        const savedLastDirectory = getSettingsValue('lastDirectory');
         const hasSavedLastDirectory = typeof savedLastDirectory === 'string' && savedLastDirectory.length > 0;
         const shouldReplaceCurrent =
           !hasSavedLastDirectory &&
@@ -342,7 +341,7 @@ export const useDirectoryStore = create<DirectoryStore>()(
           const nextDirectory = shouldReplaceCurrent ? resolvedHome : (resolvedCurrent as string);
           opencodeClient.setDirectory(nextDirectory);
           invalidateFileSearchCache();
-          safeStorage.setItem('lastDirectory', nextDirectory);
+          setSettingsValue('lastDirectory', nextDirectory);
           void updateDesktopSettings({ lastDirectory: nextDirectory });
 
         }

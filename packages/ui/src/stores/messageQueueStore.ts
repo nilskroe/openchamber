@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { devtools, persist, createJSONStorage } from 'zustand/middleware';
-import { getSafeStorage } from './utils/safeStorage';
+import { settingsFileStorage } from '@/lib/settingsStorage';
 import type { AttachedFile } from './types/chatTypes';
 import { updateDesktopSettings } from '@/lib/persistence';
 
@@ -164,7 +164,7 @@ export const useMessageQueueStore = create<MessageQueueStore>()(
             }),
             {
                 name: 'message-queue-store',
-                storage: createJSONStorage(() => getSafeStorage()),
+                storage: createJSONStorage(() => settingsFileStorage),
                 partialize: (state) => ({
                     queuedMessages: state.queuedMessages,
                     queueModeEnabled: state.queueModeEnabled,

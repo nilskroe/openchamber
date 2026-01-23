@@ -5,7 +5,7 @@ import type { Provider, Agent } from "@opencode-ai/sdk/v2";
 import { opencodeClient } from "@/lib/opencode/client";
 import { scopeMatches, subscribeToConfigChanges } from "@/lib/configSync";
 import type { ModelMetadata } from "@/types";
-import { getSafeStorage } from "./utils/safeStorage";
+import { settingsFileStorage } from "@/lib/settingsStorage";
 import { filterVisibleAgents } from "./useAgentsStore";
 import { useChatStore } from "./useChatStore";
 import { isDesktopRuntime, getDesktopSettings } from "@/lib/desktop";
@@ -1151,15 +1151,9 @@ export const useConfigStore = create<ConfigStore>()(
                     });
 
                     if (agentName) {
-                        const chatState = useChatStore.getState();
-                        if (chatState.currentSessionId) {
-                            useChatStore.setState({ currentAgentContext: agentName });
-                        }
-                    }
-
-                    if (agentName) {
                         const { currentSessionId, getAgentModelSelection } = useChatStore.getState();
                         if (currentSessionId) {
+                            useChatStore.setState({ currentAgentContext: agentName });
                             const existingAgentModel = getAgentModelSelection(agentName);
                             if (existingAgentModel) {
                                 return;
@@ -1372,7 +1366,7 @@ export const useConfigStore = create<ConfigStore>()(
             }),
             {
                 name: "config-store",
-                storage: createJSONStorage(() => getSafeStorage()),
+                storage: createJSONStorage(() => settingsFileStorage),
                 partialize: (state) => ({
                     activeDirectoryKey: state.activeDirectoryKey,
                     directoryScoped: state.directoryScoped,

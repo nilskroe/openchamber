@@ -20,6 +20,7 @@ import { useEdgeSwipe } from '@/hooks/useEdgeSwipe';
 import { cn } from '@/lib/utils';
 
 import { SettingsView, ChatView } from '@/components/views';
+import { GitHubRepoDetailPage } from '@/components/github-repos/GitHubRepoDetailPage';
 
 export const MainLayout: React.FC = () => {
     const {
@@ -32,6 +33,8 @@ export const MainLayout: React.FC = () => {
         multiRunLauncherPrefillPrompt,
         sidebarMode,
         focusedSessionId,
+        githubRepoDetailPage,
+        closeGitHubRepoDetail,
     } = useUIStore();
     
     const currentDirectory = useDirectoryStore((state) => state.currentDirectory);
@@ -355,7 +358,7 @@ export const MainLayout: React.FC = () => {
                         <div
                             className={cn(
                                 'flex flex-1 overflow-hidden bg-background',
-                                (isSettingsDialogOpen || isMultiRunLauncherOpen) && 'hidden'
+                                (isSettingsDialogOpen || isMultiRunLauncherOpen || githubRepoDetailPage) && 'hidden'
                             )}
                         >
                         <WorkspacePane
@@ -383,6 +386,19 @@ export const MainLayout: React.FC = () => {
                                 <ErrorBoundary><SettingsView onClose={() => setSettingsDialogOpen(false)} /></ErrorBoundary>
                             </div>
                         )}
+
+                        {githubRepoDetailPage && !isSettingsDialogOpen && (
+                            <div className="absolute inset-0 z-10 bg-background header-safe-area">
+                                <ErrorBoundary>
+                                    <GitHubRepoDetailPage
+                                        owner={githubRepoDetailPage.owner}
+                                        repo={githubRepoDetailPage.repo}
+                                        projectDirectory={githubRepoDetailPage.projectDirectory}
+                                        onClose={closeGitHubRepoDetail}
+                                    />
+                                </ErrorBoundary>
+                            </div>
+                        )}
                     </>
                 ) : (
                     <>
@@ -395,6 +411,18 @@ export const MainLayout: React.FC = () => {
                                 <div className="absolute inset-0 z-10 flex-1 overflow-hidden bg-background">
                                     <ErrorBoundary>
                                         <SettingsView integrated />
+                                    </ErrorBoundary>
+                                </div>
+                            )}
+                            {githubRepoDetailPage && !isSettingsActive && (
+                                <div className="absolute inset-0 z-10 flex-1 overflow-hidden bg-background">
+                                    <ErrorBoundary>
+                                        <GitHubRepoDetailPage
+                                            owner={githubRepoDetailPage.owner}
+                                            repo={githubRepoDetailPage.repo}
+                                            projectDirectory={githubRepoDetailPage.projectDirectory}
+                                            onClose={closeGitHubRepoDetail}
+                                        />
                                     </ErrorBoundary>
                                 </div>
                             )}

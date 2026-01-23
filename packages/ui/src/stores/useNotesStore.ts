@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { devtools, persist } from 'zustand/middleware';
+import { devtools, persist, createJSONStorage } from 'zustand/middleware';
+import { settingsFileStorage } from '@/lib/settingsStorage';
 
 interface NotesStore {
   notesByWorktree: Map<string, string>;
@@ -36,6 +37,7 @@ export const useNotesStore = create<NotesStore>()(
       }),
       {
         name: 'openchamber-notes-store',
+        storage: createJSONStorage(() => settingsFileStorage),
         partialize: (state) => ({
           notesByWorktree: Object.fromEntries(state.notesByWorktree),
         }),

@@ -8,7 +8,7 @@ import {
   updateConfigUpdateMessage,
 } from "@/lib/configUpdate";
 import { emitConfigChange, scopeMatches, subscribeToConfigChanges } from "@/lib/configSync";
-import { getSafeStorage } from "./utils/safeStorage";
+import { settingsFileStorage } from "@/lib/settingsStorage";
 import { useProjectsStore } from "@/stores/useProjectsStore";
 
 
@@ -374,7 +374,7 @@ export const useCommandsStore = create<CommandsStore>()(
       }),
       {
         name: "commands-store",
-        storage: createJSONStorage(() => getSafeStorage()),
+        storage: createJSONStorage(() => settingsFileStorage),
         partialize: (state) => ({
           selectedCommandName: state.selectedCommandName,
         }),

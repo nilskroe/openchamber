@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { create } from 'zustand';
-import { devtools, persist } from 'zustand/middleware';
+import { devtools, persist, createJSONStorage } from 'zustand/middleware';
+import { settingsFileStorage } from '@/lib/settingsStorage';
 import { useUIStore } from './useUIStore';
 import { type PaneTabType, getTabLabel } from '@/constants/tabs';
 
@@ -413,6 +414,7 @@ export const usePaneStore = create<PaneStore>()(
       }),
       {
         name: 'openchamber-pane-store',
+        storage: createJSONStorage(() => settingsFileStorage),
         partialize: (state) => ({
           panesByWorktree: Object.fromEntries(state.panesByWorktree),
           rightPaneVisible: state.rightPaneVisible,

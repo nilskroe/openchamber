@@ -195,7 +195,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBo
             if (!currentAgentName) {
                 return undefined;
             }
-            return state.agentEditModes.get(currentAgentName);
+            return state.agentEditModes[currentAgentName];
         }, [currentAgentName])
     );
 

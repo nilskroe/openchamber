@@ -572,11 +572,12 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                             return;
                         }
 
-                        if (discoveredChoices.size > 0) {
+                        const choiceEntries = Object.entries(discoveredChoices);
+                        if (choiceEntries.length > 0) {
                             let latestAgent: string | null = null;
                             let latestTimestamp = -Infinity;
 
-                            for (const [agentName, choice] of discoveredChoices) {
+                            for (const [agentName, choice] of choiceEntries) {
                                 if (choice.timestamp > latestTimestamp) {
                                     latestTimestamp = choice.timestamp;
                                     latestAgent = agentName;
@@ -589,7 +590,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                                     setAgent(latestAgent);
                                 }
 
-                                const latestChoice = discoveredChoices.get(latestAgent);
+                                const latestChoice = discoveredChoices[latestAgent];
                                 if (latestChoice) {
                                     const applyResult = tryApplyModelSelection(
                                         latestChoice.providerId,

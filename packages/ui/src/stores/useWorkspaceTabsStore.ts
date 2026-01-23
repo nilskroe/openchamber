@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { devtools, persist } from 'zustand/middleware';
+import { devtools, persist, createJSONStorage } from 'zustand/middleware';
+import { settingsFileStorage } from '@/lib/settingsStorage';
 
 export type WorkspaceTabType = 'chat' | 'file' | 'terminal';
 
@@ -305,6 +306,7 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsStore>()(
       }),
       {
         name: 'openchamber-workspace-tabs',
+        storage: createJSONStorage(() => settingsFileStorage),
         partialize: (state) => ({
           workspaces: Object.fromEntries(state.workspaces),
           rightSidebarCollapsed: state.rightSidebarCollapsed,

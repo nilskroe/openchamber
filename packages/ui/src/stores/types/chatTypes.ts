@@ -63,13 +63,13 @@ export interface ChatState {
   // Context & Model selections
   modelSelection: { providerId: string; modelId: string } | null;
   agentSelection: string | null;
-  agentModelSelections: Map<string, { providerId: string; modelId: string }>;
-  agentModelVariantSelections: Map<string, Map<string, string>>; // agentName → "providerId/modelId" → variant
+  agentModelSelections: Record<string, { providerId: string; modelId: string }>;
+  agentModelVariantSelections: Record<string, Record<string, string>>; // agentName → "providerId/modelId" → variant
   currentAgentContext: string | undefined;
   contextUsage: ContextUsage | null;
 
   // Edit permission modes (per-agent, not per-session)
-  agentEditModes: Map<string, EditPermissionMode>;
+  agentEditModes: Record<string, EditPermissionMode>;
 
   // Activity
   activityPhase: ActivityPhase;
@@ -151,7 +151,7 @@ export interface ChatActions {
   getAgentModelVariantSelection: (agentName: string, providerId: string, modelId: string) => string | undefined;
   updateContextUsage: (contextLimit: number, outputLimit: number) => void;
   setCurrentAgentContext: (agentName: string | undefined) => void;
-  analyzeAndSaveExternalSessionChoices: (agents: Array<{ name: string; [key: string]: unknown }>) => Promise<Map<string, { providerId: string; modelId: string; timestamp: number }>>;
+  analyzeAndSaveExternalSessionChoices: (agents: Array<{ name: string; [key: string]: unknown }>) => Promise<Record<string, { providerId: string; modelId: string; timestamp: number }>>;
 
   // Edit permission modes
   getAgentEditMode: (agentName: string | undefined, defaultMode?: EditPermissionMode) => EditPermissionMode;

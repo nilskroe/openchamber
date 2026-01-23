@@ -6,7 +6,7 @@ import {
   startConfigUpdate,
   finishConfigUpdate,
 } from "@/lib/configUpdate";
-import { getSafeStorage } from "./utils/safeStorage";
+import { settingsFileStorage } from "@/lib/settingsStorage";
 
 import { opencodeClient } from '@/lib/opencode/client';
 
@@ -383,7 +383,7 @@ export const useSkillsStore = create<SkillsStore>()(
       }),
       {
         name: "skills-store",
-        storage: createJSONStorage(() => getSafeStorage()),
+        storage: createJSONStorage(() => settingsFileStorage),
         partialize: (state) => ({
           selectedSkillName: state.selectedSkillName,
         }),

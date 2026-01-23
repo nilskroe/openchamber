@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { getSafeStorage } from './utils/safeStorage';
+import { settingsFileStorage } from '@/lib/settingsStorage';
 
 export type AppRunnerStatus = 'stopped' | 'starting' | 'running' | 'crashed';
 
@@ -145,7 +145,7 @@ export const useAppRunnerStore = create<AppRunnerStore>()(
     }),
     {
       name: 'openchamber-app-runner',
-      storage: createJSONStorage(() => getSafeStorage()),
+      storage: createJSONStorage(() => settingsFileStorage),
       partialize: (state) => ({
         enabled: state.enabled,
         command: state.command,

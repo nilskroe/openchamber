@@ -1,10 +1,10 @@
 import { create } from 'zustand';
 import { devtools, persist, createJSONStorage } from 'zustand/middleware';
 import type { SidebarSection } from '@/constants/sidebar';
-import { getSafeStorage } from './utils/safeStorage';
+import { settingsFileStorage } from '@/lib/settingsStorage';
 import { SEMANTIC_TYPOGRAPHY, getTypographyVariable, type SemanticTypographyKey } from '@/lib/typography';
 
-export type MainTab = 'chat' | 'git' | 'diff' | 'terminal' | 'files';
+export type MainTab = 'chat' | 'git' | 'diff' | 'terminal' | 'files' | 'repo';
 export type SidebarMode = 'projects' | 'sessions';
 
 export type MainTabGuard = (nextTab: MainTab) => boolean;
@@ -133,6 +133,10 @@ interface UIStore {
   setDefaultLeftPaneTabs: (tabs: Array<'files' | 'diff' | 'terminal' | 'git' | 'todo' | 'preview'>) => void;
   setDefaultRightPaneTabs: (tabs: Array<'files' | 'diff' | 'terminal' | 'git' | 'todo' | 'preview'>) => void;
   setDefaultRightPaneVisible: (visible: boolean) => void;
+
+  githubRepoDetailPage: { owner: string; repo: string; projectDirectory?: string } | null;
+  openGitHubRepoDetail: (owner: string, repo: string, projectDirectory?: string) => void;
+  closeGitHubRepoDetail: () => void;
 }
 
 export const useUIStore = create<UIStore>()(
@@ -189,6 +193,14 @@ export const useUIStore = create<UIStore>()(
         defaultLeftPaneTabs: ['files', 'diff', 'terminal', 'git'],
         defaultRightPaneTabs: [],
         defaultRightPaneVisible: true,
+
+        githubRepoDetailPage: null,
+        openGitHubRepoDetail: (owner, repo, projectDirectory) => {
+          set({ githubRepoDetailPage: { owner, repo, projectDirectory } });
+        },
+        closeGitHubRepoDetail: () => {
+          set({ githubRepoDetailPage: null });
+        },
 
         setGlobalResizing: (resizing) => {
           set({ isGlobalResizing: resizing });
@@ -590,7 +602,7 @@ export const useUIStore = create<UIStore>()(
       }),
       {
         name: 'ui-store',
-        storage: createJSONStorage(() => getSafeStorage()),
+        storage: createJSONStorage(() => settingsFileStorage),
         partialize: (state) => ({
           theme: state.theme,
           isSidebarOpen: state.isSidebarOpen,

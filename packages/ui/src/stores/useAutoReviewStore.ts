@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { useShallow } from 'zustand/react/shallow';
-import { getSafeStorage } from './utils/safeStorage';
+import { settingsFileStorage } from '@/lib/settingsStorage';
 import type { PrStatus, PrReviewThread, PrStatusCheck } from '@/lib/api/types';
 
 export interface AutoReviewItem {
@@ -317,7 +317,7 @@ A reviewer has left feedback that needs to be addressed:
     }),
     {
       name: 'openchamber-auto-review',
-      storage: createJSONStorage(() => getSafeStorage()),
+      storage: createJSONStorage(() => settingsFileStorage),
       partialize: (state) => ({
         enabled: state.enabled,
         activeDirectory: state.activeDirectory,

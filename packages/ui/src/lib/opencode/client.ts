@@ -129,6 +129,24 @@ export type GitHubRepo = {
   cloneUrl: string;
 };
 
+export type GitHubPullRequest = {
+  number: number;
+  title: string;
+  state: 'open' | 'closed' | 'merged';
+  isDraft: boolean;
+  author: string;
+  headRefName: string;
+  baseRefName: string;
+  additions: number;
+  deletions: number;
+  labels: string[];
+  createdAt: string;
+  updatedAt: string;
+  reviewDecision: 'APPROVED' | 'CHANGES_REQUESTED' | 'REVIEW_REQUIRED' | null;
+  statusCheckRollup: string | null;
+  mergeable: string;
+};
+
 const normalizeFsPath = (path: string): string => path.replace(/\\/g, "/");
 
 const getDesktopFilesApi = (): FilesAPI | null => {
@@ -1715,6 +1733,16 @@ class OpencodeService {
     }
 
     return response.json();
+  }
+
+  async listPullRequests(owner: string, repo: string): Promise<GitHubPullRequest[]> {
+    const response = await fetch(`${this.baseUrl}/github/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/prs`);
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ error: 'Failed to fetch pull requests' }));
+      throw new Error(error.error || 'Failed to fetch pull requests');
+    }
+    const data = await response.json();
+    return data.prs || [];
   }
 
   // File System Operations

@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 import { opencodeClient } from '@/lib/opencode/client';
 import type { ProjectEntry, WorktreeDefaults } from '@/lib/api/types';
-import { getSafeStorage } from './utils/safeStorage';
+import { getSettingsValue, setSettingsValue, removeSettingsValue } from '@/lib/settingsStorage';
 import { useDirectoryStore } from './useDirectoryStore';
 import { streamDebugEnabled } from '@/stores/utils/streamDebug';
 import { checkIsGitRepository, getRemoteUrl } from '@/lib/gitApi';
@@ -13,8 +13,6 @@ const OPENCHAMBER_DIR = 'openchamber';
 const MAIN_DIR = 'main';
 const ACTIVE_PROJECT_KEY = 'activeProjectId';
 const WORKTREE_DEFAULTS_PREFIX = 'worktreeDefaults:';
-
-const safeStorage = getSafeStorage();
 
 /**
  * Get the home directory from the directory store or fallback sources.
@@ -58,7 +56,7 @@ const buildProjectId = (owner: string, repo: string): string => `${owner}/${repo
  */
 const readWorktreeDefaults = (projectId: string): WorktreeDefaults | undefined => {
   try {
-    const raw = safeStorage.getItem(`${WORKTREE_DEFAULTS_PREFIX}${projectId}`);
+    const raw = getSettingsValue(`${WORKTREE_DEFAULTS_PREFIX}${projectId}`);
     if (!raw) return undefined;
     const parsed = JSON.parse(raw);
     if (typeof parsed !== 'object' || parsed === null) return undefined;
@@ -78,9 +76,9 @@ const readWorktreeDefaults = (projectId: string): WorktreeDefaults | undefined =
 const writeWorktreeDefaults = (projectId: string, defaults: WorktreeDefaults | undefined) => {
   try {
     if (!defaults || Object.keys(defaults).length === 0) {
-      safeStorage.removeItem(`${WORKTREE_DEFAULTS_PREFIX}${projectId}`);
+      removeSettingsValue(`${WORKTREE_DEFAULTS_PREFIX}${projectId}`);
     } else {
-      safeStorage.setItem(`${WORKTREE_DEFAULTS_PREFIX}${projectId}`, JSON.stringify(defaults));
+      setSettingsValue(`${WORKTREE_DEFAULTS_PREFIX}${projectId}`, JSON.stringify(defaults));
     }
   } catch {
     // ignored
@@ -106,7 +104,7 @@ interface ProjectsStore {
  */
 const readActiveProjectId = (): string | null => {
   try {
-    const raw = safeStorage.getItem(ACTIVE_PROJECT_KEY);
+    const raw = getSettingsValue(ACTIVE_PROJECT_KEY);
     if (typeof raw === 'string' && raw.trim().length > 0) {
       return raw.trim();
     }
@@ -119,9 +117,9 @@ const readActiveProjectId = (): string | null => {
 const persistActiveProjectId = (id: string | null) => {
   try {
     if (id) {
-      safeStorage.setItem(ACTIVE_PROJECT_KEY, id);
+      setSettingsValue(ACTIVE_PROJECT_KEY, id);
     } else {
-      safeStorage.removeItem(ACTIVE_PROJECT_KEY);
+      removeSettingsValue(ACTIVE_PROJECT_KEY);
     }
   } catch {
     // ignored

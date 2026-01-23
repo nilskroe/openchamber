@@ -30,6 +30,7 @@ import { OnboardingScreen } from '@/components/onboarding/OnboardingScreen';
 import { isCliAvailable } from '@/lib/desktop';
 import { useUIStore } from '@/stores/useUIStore';
 import { useProjectsStore } from '@/stores/useProjectsStore';
+import { initSettingsStorage } from '@/lib/settingsStorage';
 import type { RuntimeAPIs } from '@/lib/api/types';
 
 const AboutDialogWrapper: React.FC = () => {
@@ -129,6 +130,8 @@ function App({ apis }: AppProps) {
       if (isVSCodeRuntime) {
         return;
       }
+      // Initialize file-based settings storage (~/openchamber/settings.json)
+      await initSettingsStorage();
       await initializeApp();
       // Discover projects from the filesystem (~/openchamber/)
       await useProjectsStore.getState().discoverProjects();

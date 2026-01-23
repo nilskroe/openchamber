@@ -28,7 +28,6 @@ import { useProjectsStore } from '@/stores/useProjectsStore';
 import { useChatStore } from '@/stores/useChatStore';
 import { useDirectoryStore } from '@/stores/useDirectoryStore';
 import { useUIStore } from '@/stores/useUIStore';
-import { usePanes } from '@/stores/usePaneStore';
 import { sessionEvents } from '@/lib/sessionEvents';
 import { BranchPickerDialog } from '@/components/session/BranchPickerDialog';
 import type { WorktreeMetadata } from '@/types/worktree';
@@ -561,17 +560,13 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
     setBranchPickerOpen(true);
   }, []);
 
-  const { addTab } = usePanes(currentDirectory);
+  const openGitHubRepoDetail = useUIStore((state) => state.openGitHubRepoDetail);
 
   const handleOpenGitHubBoard = useCallback((projectId: string) => {
     const project = projects.find((p) => p.id === projectId);
     if (!project) return;
-    addTab('right', {
-      type: 'github-repo',
-      title: `${project.owner}/${project.repo}`,
-      metadata: { owner: project.owner, repo: project.repo, projectDirectory: project.path },
-    });
-  }, [addTab, projects]);
+    openGitHubRepoDetail(project.owner, project.repo, project.path);
+  }, [openGitHubRepoDetail, projects]);
 
   const normalizedProjects = useMemo(() => {
     return projects.map((p) => ({

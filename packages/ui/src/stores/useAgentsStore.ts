@@ -9,7 +9,7 @@ import {
   finishConfigUpdate,
   updateConfigUpdateMessage,
 } from "@/lib/configUpdate";
-import { getSafeStorage } from "./utils/safeStorage";
+import { settingsFileStorage } from "@/lib/settingsStorage";
 import { useConfigStore } from "@/stores/useConfigStore";
 import { useCommandsStore } from "@/stores/useCommandsStore";
 import { useProjectsStore } from "@/stores/useProjectsStore";
@@ -420,7 +420,7 @@ export const useAgentsStore = create<AgentsStore>()(
       }),
       {
         name: "agents-store",
-        storage: createJSONStorage(() => getSafeStorage()),
+        storage: createJSONStorage(() => settingsFileStorage),
         partialize: (state) => ({
           selectedAgentName: state.selectedAgentName,
         }),
