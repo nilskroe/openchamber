@@ -9,6 +9,7 @@ import { ThemeProvider } from './components/providers/ThemeProvider'
 import './lib/debug'
 import { syncDesktopSettings, initializeAppearancePreferences } from './lib/persistence'
 import { startAppearanceAutoSave } from './lib/appearanceAutoSave'
+import { startAppRunnerAutoSave } from './lib/appRunnerAutoSave'
 import { applyPersistedDirectoryPreferences } from './lib/directoryPersistence'
 import { startTypographyWatcher } from './lib/typographyWatcher'
 import type { RuntimeAPIs } from './lib/api/types'
@@ -26,6 +27,7 @@ const runtimeAPIs = (typeof window !== 'undefined' && window.__OPENCHAMBER_RUNTI
 await syncDesktopSettings();
 await initializeAppearancePreferences();
 startAppearanceAutoSave();
+startAppRunnerAutoSave();
 startTypographyWatcher();
 await applyPersistedDirectoryPreferences();
 

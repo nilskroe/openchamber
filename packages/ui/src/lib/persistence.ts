@@ -2,6 +2,7 @@ import { getDesktopSettings, updateDesktopSettings as updateDesktopSettingsApi, 
 import type { DesktopSettings } from '@/lib/desktop';
 import { useUIStore } from '@/stores/useUIStore';
 import { useMessageQueueStore } from '@/stores/messageQueueStore';
+import { useAppRunnerStore } from '@/stores/useAppRunnerStore';
 import { loadAppearancePreferences, applyAppearancePreferences } from '@/lib/appearancePersistence';
 import { getRegisteredRuntimeAPIs } from '@/contexts/runtimeAPIRegistry';
 
@@ -199,10 +200,18 @@ const applyDesktopUiPreferences = (settings: DesktopSettings) => {
   if (typeof settings.queueModeEnabled === 'boolean' && settings.queueModeEnabled !== queueStore.queueModeEnabled) {
     queueStore.setQueueMode(settings.queueModeEnabled);
   }
-  if (typeof settings.queueSendBehavior === 'string' && 
+  if (typeof settings.queueSendBehavior === 'string' &&
       (settings.queueSendBehavior === 'all' || settings.queueSendBehavior === 'first-only') &&
       settings.queueSendBehavior !== queueStore.queueSendBehavior) {
     queueStore.setQueueSendBehavior(settings.queueSendBehavior);
+  }
+
+  const appRunnerStore = useAppRunnerStore.getState();
+  if (typeof settings.appRunnerEnabled === 'boolean' && settings.appRunnerEnabled !== appRunnerStore.enabled) {
+    appRunnerStore.setEnabled(settings.appRunnerEnabled);
+  }
+  if (typeof settings.appRunnerCommand === 'string' && settings.appRunnerCommand.length > 0 && settings.appRunnerCommand !== appRunnerStore.command) {
+    appRunnerStore.setCommand(settings.appRunnerCommand);
   }
 };
 
@@ -306,6 +315,13 @@ const sanitizeWebSettings = (payload: unknown): DesktopSettings | null => {
   const skillCatalogs = sanitizeSkillCatalogs(candidate.skillCatalogs);
   if (skillCatalogs) {
     result.skillCatalogs = skillCatalogs;
+  }
+
+  if (typeof candidate.appRunnerEnabled === 'boolean') {
+    result.appRunnerEnabled = candidate.appRunnerEnabled;
+  }
+  if (typeof candidate.appRunnerCommand === 'string' && candidate.appRunnerCommand.length > 0) {
+    result.appRunnerCommand = candidate.appRunnerCommand;
   }
 
   return result;

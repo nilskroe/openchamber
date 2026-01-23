@@ -76,6 +76,10 @@ export type DesktopSettings = {
   memoryLimitActiveSession?: number; // Trim target for active session (default: 180)
 
   skillCatalogs?: SkillCatalogConfig[];
+
+  // App Runner
+  appRunnerEnabled?: boolean;
+  appRunnerCommand?: string;
 };
 
 export type DesktopSettingsApi = {
