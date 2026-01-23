@@ -18,6 +18,7 @@ import {
 import { cn } from '@/lib/utils';
 import { opencodeClient, type GitHubRepo } from '@/lib/opencode/client';
 import { useProjectsStore } from '@/stores/useProjectsStore';
+import { useChatStore } from '@/stores/useChatStore';
 import { useDirectoryStore } from '@/stores/useDirectoryStore';
 import { toast } from 'sonner';
 import { normalizePath, joinPath } from '@/lib/paths';
@@ -105,6 +106,8 @@ export function RepoPickerDialog({ open, onOpenChange }: RepoPickerDialogProps) 
         const added = addProject(path, { owner, repo: repoName });
         if (added) {
           toast.success(`Added ${repo.fullName}`);
+          // Refresh worktree list for the sidebar
+          void useChatStore.getState().refreshWorktrees();
           onOpenChange(false);
         } else {
           toast.error('Failed to add repository to projects');

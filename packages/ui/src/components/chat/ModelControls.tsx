@@ -24,7 +24,7 @@ import {
 import type { EditPermissionMode } from '@/stores/types/chatTypes';
 import type { ModelMetadata } from '@/types';
 import { formatTokens, formatCost, formatKnowledge } from '@/lib/modelFormatters';
-import { asPermissionRuleset, resolveWildcardPermissionAction, buildPermissionActionMap, type PermissionAction } from '@/lib/permissions/permissionRuleUtils';
+import { asPermissionRuleset, resolveWildcardPermissionAction, buildPermissionActionMap } from '@/lib/permissions/permissionRuleUtils';
 import {
     DropdownMenu,
     DropdownMenuContent,

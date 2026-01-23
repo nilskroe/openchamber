@@ -11,7 +11,7 @@ import { useDirectoryStore } from '@/stores/useDirectoryStore';
 import { opencodeClient } from '@/lib/opencode/client';
 import { RiAddLine, RiAiAgentFill, RiAiAgentLine, RiInformationLine, RiRobot2Line, RiRobotLine, RiSaveLine, RiSubtractLine, RiUser3Line, RiFolderLine } from '@remixicon/react';
 import { cn } from '@/lib/utils';
-import { asPermissionRuleset, type PermissionAction, type PermissionRule } from '@/lib/permissions/permissionRuleUtils';
+import { asPermissionRuleset, type PermissionAction } from '@/lib/permissions/permissionRuleUtils';
 import { ModelSelector } from './ModelSelector';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ScrollableOverlay } from '@/components/ui/ScrollableOverlay';

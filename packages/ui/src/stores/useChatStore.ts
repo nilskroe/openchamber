@@ -22,6 +22,8 @@ import { calculateContextUsage } from "./utils/contextUtils";
 import { getSafeStorage } from "./utils/safeStorage";
 import { useFileStore } from "./fileStore";
 import { normalizePath } from "@/lib/paths";
+import { listWorktrees, mapWorktreeToMetadata } from "@/lib/git/worktreeService";
+import { useProjectsStore } from "./useProjectsStore";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -1499,6 +1501,32 @@ export const useChatStore = create<ChatStore>()(
             newMap.set(sessionId, directory);
             return { sessionDirectories: newMap };
           });
+        },
+
+        refreshWorktrees: async () => {
+          const projects = useProjectsStore.getState().projects;
+          if (projects.length === 0) return;
+
+          const nextMap = new Map<string, import("@/types/worktree").WorktreeMetadata[]>();
+
+          for (const project of projects) {
+            if (!project.path) continue;
+            const normalizedProjectPath = normalizePath(project.path);
+            if (!normalizedProjectPath) continue;
+
+            try {
+              const worktreeInfos = await listWorktrees(project.path);
+              const mapped = worktreeInfos.map((info) =>
+                mapWorktreeToMetadata(project.path, info)
+              );
+              nextMap.set(normalizedProjectPath, mapped);
+            } catch {
+              // If listing fails (e.g., path doesn't exist), set empty array
+              nextMap.set(normalizedProjectPath, []);
+            }
+          }
+
+          set({ availableWorktreesByProject: nextMap });
         },
 
         // ─── Cleanup ────────────────────────────────────────────────────────

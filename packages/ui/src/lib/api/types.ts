@@ -380,8 +380,6 @@ export interface SettingsPayload {
   darkThemeId?: string;
   lastDirectory?: string;
   homeDirectory?: string;
-  projects?: ProjectEntry[];
-  activeProjectId?: string;
   approvedDirectories?: string[];
   securityScopedBookmarks?: string[];
   pinnedDirectories?: string[];

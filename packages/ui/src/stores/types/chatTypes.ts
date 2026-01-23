@@ -189,6 +189,7 @@ export interface ChatActions {
   getWorktreeMetadata: (sessionId: string) => WorktreeMetadata | undefined;
   setWorktreeMetadata: (sessionId: string, metadata: WorktreeMetadata) => void;
   setSessionDirectory: (sessionId: string, directory: string) => void;
+  refreshWorktrees: () => Promise<void>;
 
   // Internal (used by addStreamingPart batch processing)
   _addStreamingPartDirect: (messageId: string, part: Part, role?: string) => void;

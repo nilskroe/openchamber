@@ -147,6 +147,13 @@ async function initializeWorktreeSession(
     // Ignore
   }
 
+  // Refresh worktree list so the sidebar picks up the new worktree
+  try {
+    await sessionStore.refreshWorktrees();
+  } catch {
+    // Non-critical
+  }
+
   // Run setup commands
   const setupCommands = await getWorktreeSetupCommands(projectDirectory);
   const commandsToRun = setupCommands.filter((cmd) => cmd.trim().length > 0);

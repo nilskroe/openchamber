@@ -1,4 +1,4 @@
-import type { ProjectEntry } from '@/lib/api/types';
+
 
 export type AssistantNotificationPayload = {
   title?: string;
@@ -52,8 +52,6 @@ export type DesktopSettings = {
   darkThemeId?: string;
   lastDirectory?: string;
   homeDirectory?: string;
-  projects?: ProjectEntry[];
-  activeProjectId?: string;
   approvedDirectories?: string[];
   securityScopedBookmarks?: string[];
   pinnedDirectories?: string[];

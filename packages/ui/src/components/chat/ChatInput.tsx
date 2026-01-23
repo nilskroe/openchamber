@@ -16,7 +16,7 @@ import { useUIStore } from '@/stores/useUIStore';
 import { useMessageQueueStore, type QueuedMessage } from '@/stores/messageQueueStore';
 import type { AttachedFile, EditPermissionMode } from '@/stores/types/chatTypes';
 import { getEditModeColors } from '@/lib/permissions/editModeColors';
-import { asPermissionRuleset, resolveWildcardPermissionAction, buildPermissionActionMap, type PermissionAction } from '@/lib/permissions/permissionRuleUtils';
+import { resolveWildcardPermissionAction, buildPermissionActionMap } from '@/lib/permissions/permissionRuleUtils';
 import { AttachedFilesList } from './FileAttachment';
 import { QueuedMessageChips } from './QueuedMessageChips';
 import { FileMentionAutocomplete, type FileMentionHandle } from './FileMentionAutocomplete';

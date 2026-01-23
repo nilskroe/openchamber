@@ -132,6 +132,8 @@ function App({ apis }: AppProps) {
       await initializeApp();
       // Discover projects from the filesystem (~/openchamber/)
       await useProjectsStore.getState().discoverProjects();
+      // Discover worktrees for each project from the filesystem
+      await useChatStore.getState().refreshWorktrees();
     };
 
     init();
