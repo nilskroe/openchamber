@@ -3,7 +3,7 @@ import { RiCheckLine, RiCheckboxCircleFill, RiCircleLine, RiCloseLine, RiEditLin
 
 import { cn } from '@/lib/utils';
 import type { QuestionRequest } from '@/types/question';
-import { useSessionStore } from '@/stores/useSessionStore';
+import { useChatStore } from '@/stores/useChatStore';
 
 interface QuestionCardProps {
   question: QuestionRequest;
@@ -13,7 +13,7 @@ type TabKey = string;
 const SUMMARY_TAB = 'summary';
 
 export const QuestionCard: React.FC<QuestionCardProps> = ({ question }) => {
-  const { respondToQuestion, rejectQuestion } = useSessionStore();
+  const { respondToQuestion, rejectQuestion } = useChatStore();
   const [activeTab, setActiveTab] = React.useState<TabKey>('0');
   const [isResponding, setIsResponding] = React.useState(false);
   const [hasResponded, setHasResponded] = React.useState(false);
@@ -129,7 +129,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({ question }) => {
     setIsResponding(true);
     try {
       const answers = buildAnswersPayload();
-      await respondToQuestion(question.sessionID, question.id, answers);
+      await respondToQuestion(question.id, answers);
       setHasResponded(true);
     } catch {
       // ignored
@@ -141,14 +141,14 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({ question }) => {
   const handleDismiss = React.useCallback(async () => {
     setIsResponding(true);
     try {
-      await rejectQuestion(question.sessionID, question.id);
+      await rejectQuestion(question.id);
       setHasResponded(true);
     } catch {
       // ignored
     } finally {
       setIsResponding(false);
     }
-  }, [question.id, question.sessionID, rejectQuestion]);
+  }, [question.id, rejectQuestion]);
 
   if (hasResponded || questions.length === 0) {
     return null;

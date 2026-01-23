@@ -4,6 +4,7 @@ import type { WorktreeMetadata } from '@/types/worktree';
 import type { FilesAPI, RuntimeAPIs } from '@/lib/api/types';
 import { getWorktreeSetupCommands, substituteCommandVariables } from '@/lib/openchamberConfig';
 import { useDirectoryStore } from '@/stores/useDirectoryStore';
+import { normalizePath as normalize, joinPath } from '@/lib/paths';
 
 const OPENCHAMBER_ROOT = 'openchamber';
 const WORKSPACES_DIR = 'workspaces';
@@ -20,26 +21,6 @@ function getRuntimeFilesAPI(): FilesAPI | null {
   }
   return null;
 }
-
-const normalize = (value: string): string => {
-  if (!value) {
-    return '';
-  }
-  const replaced = value.replace(/\\/g, '/');
-  if (replaced === '/') {
-    return '/';
-  }
-  return replaced.replace(/\/+$/, '');
-};
-
-const joinPath = (base: string, segment: string): string => {
-  const normalizedBase = normalize(base);
-  const sanitizedSegment = segment.replace(/\\/g, '/').replace(/^\/+/, '').replace(/\/+$/, '');
-  if (!normalizedBase || normalizedBase === '/') {
-    return `/${sanitizedSegment}`;
-  }
-  return `${normalizedBase}/${sanitizedSegment}`;
-};
 
 const shortBranchLabel = (branch?: string): string => {
   if (!branch) {

@@ -370,6 +370,8 @@ export interface ProjectEntry {
   addedAt?: number;
   lastOpenedAt?: number;
   worktreeDefaults?: WorktreeDefaults;
+  owner?: string;
+  repo?: string;
 }
 
 export interface SettingsPayload {

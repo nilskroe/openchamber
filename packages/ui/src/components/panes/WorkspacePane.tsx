@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { usePanes, type PaneId, type PaneTab } from '@/stores/usePaneStore';
 import { getTabLabel, type PaneTabType } from '@/constants/tabs';
-import { useSessionStore } from '@/stores/useSessionStore';
+import { useChatStore } from '@/stores/useChatStore';
+import { useDirectoryStore } from '@/stores/useDirectoryStore';
 import { cn } from '@/lib/utils';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { PaneTabBar } from './PaneTabBar';
@@ -53,7 +54,8 @@ const WorkspacePaneComponent: React.FC<WorkspacePaneProps> = ({
     setRightBottomCollapsed,
   } = usePanes(worktreeId);
 
-  const { setCurrentSession, createSession } = useSessionStore();
+  const { createAndLoadSession } = useChatStore();
+  const currentDirectory = useDirectoryStore((s) => s.currentDirectory);
   const [isDragOver, setIsDragOver] = useState(false);
 
   const paneState = paneId === 'left' ? leftPane : paneId === 'right' ? rightPane : rightBottomPane;
@@ -70,12 +72,8 @@ const WorkspacePaneComponent: React.FC<WorkspacePaneProps> = ({
         setRightBottomCollapsed(false);
       }
       setActiveTab(paneId, tabId);
-      const tab = paneState.tabs.find((t) => t.id === tabId);
-      if (tab?.type === 'chat' && tab.sessionId) {
-        setCurrentSession(tab.sessionId);
-      }
     },
-    [paneId, setActiveTab, paneState.tabs, setCurrentSession, isBottomPane, rightBottomCollapsed, setRightBottomCollapsed]
+    [paneId, setActiveTab, isBottomPane, rightBottomCollapsed, setRightBottomCollapsed]
   );
 
   const handleToggleCollapse = useCallback(() => {
@@ -101,10 +99,11 @@ const WorkspacePaneComponent: React.FC<WorkspacePaneProps> = ({
   const handleAddTab = useCallback(
     async (type: PaneTabType) => {
       if (type === 'chat') {
-        const session = await createSession();
-        if (session) {
-          openChatSession(paneId, session.id, session.title);
-          setCurrentSession(session.id);
+        if (currentDirectory) {
+          const sessionId = await createAndLoadSession(currentDirectory);
+          if (sessionId) {
+            openChatSession(paneId, sessionId);
+          }
         }
       } else {
         addTab(paneId, {
@@ -114,7 +113,7 @@ const WorkspacePaneComponent: React.FC<WorkspacePaneProps> = ({
       }
       setFocusedPane(paneId);
     },
-    [paneId, createSession, openChatSession, setCurrentSession, addTab, setFocusedPane]
+    [paneId, currentDirectory, createAndLoadSession, openChatSession, addTab, setFocusedPane]
   );
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -165,14 +164,13 @@ const WorkspacePaneComponent: React.FC<WorkspacePaneProps> = ({
             directory: string;
           };
           openChatSession(paneId, sessionId, title);
-          setCurrentSession(sessionId);
           setFocusedPane(paneId);
         } catch {
           return;
         }
       }
     },
-    [paneId, openChatSession, setCurrentSession, setFocusedPane, moveTab]
+    [paneId, openChatSession, setFocusedPane, moveTab]
   );
 
   const activeTab = useMemo(() => {
@@ -181,19 +179,10 @@ const WorkspacePaneComponent: React.FC<WorkspacePaneProps> = ({
     return tab;
   }, [paneState.activeTabId, paneState.tabs]);
 
-  const currentSessionId = useSessionStore((s) => s.currentSessionId);
+  const currentSessionId = useChatStore((s) => s.currentSessionId);
   
-  useEffect(() => {
-    const tabSessionId = activeTab?.type === 'chat' ? activeTab.sessionId : null;
-    if (!tabSessionId) return;
-    
-    const isFocusedPaneWithMismatch = paneId === focusedPane && tabSessionId !== currentSessionId;
-    const isPageReloadOnLeftPane = currentSessionId === null && paneId === 'left';
-    
-    if (isFocusedPaneWithMismatch || isPageReloadOnLeftPane) {
-      setCurrentSession(tabSessionId);
-    }
-  }, [activeTab, currentSessionId, setCurrentSession, paneId, focusedPane]);
+  // Session sync is now handled by directory, not by tab activation
+  // No need to call setCurrentSession on tab focus
 
   const handleUpdateTabMetadata = useCallback(
     (tabId: string) => (metadata: Record<string, unknown>) => {
@@ -232,6 +221,7 @@ const WorkspacePaneComponent: React.FC<WorkspacePaneProps> = ({
         case 'github-repo': {
           const owner = tab.metadata?.owner as string | undefined;
           const repo = tab.metadata?.repo as string | undefined;
+          const projectDirectory = tab.metadata?.projectDirectory as string | undefined;
           if (!owner || !repo) {
             return (
               <div className="flex-1 flex items-center justify-center text-muted-foreground">
@@ -239,7 +229,7 @@ const WorkspacePaneComponent: React.FC<WorkspacePaneProps> = ({
               </div>
             );
           }
-          return <GitHubRepoBoard owner={owner} repo={repo} />;
+          return <GitHubRepoBoard owner={owner} repo={repo} projectDirectory={projectDirectory} />;
         }
         default:
           return (

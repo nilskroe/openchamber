@@ -1,8 +1,19 @@
 import { create } from "zustand";
 import { devtools, persist, createJSONStorage } from "zustand/middleware";
 import { opencodeClient } from "@/lib/opencode/client";
-import type { AttachedFile } from "./types/sessionTypes";
 import { getSafeStorage } from "./utils/safeStorage";
+import { normalizePath } from "@/lib/paths";
+
+export interface AttachedFile {
+    id: string;
+    file: File;
+    dataUrl: string;
+    mimeType: string;
+    filename: string;
+    size: number;
+    source: "local" | "server";
+    serverPath?: string;
+}
 
 interface FileState {
     attachedFiles: AttachedFile[];
@@ -174,8 +185,7 @@ export const useFileStore = create<FileStore>()(
                             : rawDataUrl;
 
                         const extractFilename = (fullPath: string) => {
-
-                            const parts = fullPath.replace(/\\/g, "/").split("/");
+                            const parts = normalizePath(fullPath).split("/");
                             return parts[parts.length - 1] || fullPath;
                         };
 

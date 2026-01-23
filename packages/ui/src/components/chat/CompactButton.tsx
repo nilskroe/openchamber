@@ -11,9 +11,8 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { MobileOverlayPanel } from '@/components/ui/MobileOverlayPanel';
 import { cn } from '@/lib/utils';
-import { useSessionStore } from '@/stores/useSessionStore';
+import { useChatStore } from '@/stores/useChatStore';
 import { useConfigStore } from '@/stores/useConfigStore';
-import { useContextStore } from '@/stores/contextStore';
 import { toast } from 'sonner';
 
 interface CompactButtonProps {
@@ -32,13 +31,11 @@ export const CompactButton: React.FC<CompactButtonProps> = ({
     const [isCompacting, setIsCompacting] = React.useState(false);
     const [mobileOpen, setMobileOpen] = React.useState(false);
 
-    const currentSessionId = useSessionStore((state) => state.currentSessionId);
-    const sessionContextUsage = useContextStore((state) => state.sessionContextUsage);
+    const currentSessionId = useChatStore((state) => state.currentSessionId);
+    const contextUsage = useChatStore((state) => state.contextUsage);
 
     const currentProviderId = useConfigStore((state) => state.currentProviderId);
     const currentModelId = useConfigStore((state) => state.currentModelId);
-
-    const contextUsage = currentSessionId ? sessionContextUsage.get(currentSessionId) : null;
 
     const percentage = contextUsage?.percentage ?? 0;
     const totalTokens = contextUsage?.totalTokens ?? 0;

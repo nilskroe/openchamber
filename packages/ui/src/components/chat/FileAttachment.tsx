@@ -1,6 +1,6 @@
 import React, { useRef, memo } from 'react';
 import { RiAttachment2, RiCloseLine, RiComputerLine, RiFileImageLine, RiFileLine, RiFilePdfLine, RiFolder6Line, RiHardDrive3Line } from '@remixicon/react';
-import { useSessionStore, type AttachedFile } from '@/stores/useSessionStore';
+import { useFileStore, type AttachedFile } from '@/stores/fileStore';
 import { useUIStore } from '@/stores/useUIStore';
 import { toast } from '@/components/ui';
 import { cn } from '@/lib/utils';
@@ -8,11 +8,12 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useIsVSCodeRuntime } from '@/hooks/useRuntimeAPIs';
 import type { ToolPopupContent } from './message/types';
+import { normalizePath } from '@/lib/paths';
 
 export const FileAttachmentButton = memo(() => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const folderInputRef = useRef<HTMLInputElement>(null);
-  const { addAttachedFile } = useSessionStore();
+  const { addAttachedFile } = useFileStore();
   const { isMobile } = useUIStore();
   const isVSCodeRuntime = useIsVSCodeRuntime();
   const buttonSizeClass = isMobile ? 'h-9 w-9' : 'h-7 w-7';
@@ -22,10 +23,10 @@ export const FileAttachmentButton = memo(() => {
     let attachedCount = 0;
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      const sizeBefore = useSessionStore.getState().attachedFiles.length;
+      const sizeBefore = useFileStore.getState().attachedFiles.length;
       try {
         await addAttachedFile(file);
-        const sizeAfter = useSessionStore.getState().attachedFiles.length;
+        const sizeAfter = useFileStore.getState().attachedFiles.length;
         if (sizeAfter > sizeBefore) {
           attachedCount++;
         }
@@ -186,12 +187,9 @@ const FileChip = memo(({ file, onRemove }: FileChipProps) => {
   };
 
   const extractFilename = (path: string): string => {
-
-    const normalized = path.replace(/\\/g, '/');
-
+    const normalized = normalizePath(path);
     const parts = normalized.split('/');
     const filename = parts[parts.length - 1];
-
     return filename || path;
   };
 
@@ -228,7 +226,7 @@ const FileChip = memo(({ file, onRemove }: FileChipProps) => {
 });
 
 export const AttachedFilesList = memo(() => {
-  const { attachedFiles, removeAttachedFile } = useSessionStore();
+  const { attachedFiles, removeAttachedFile } = useFileStore();
 
   if (attachedFiles.length === 0) return null;
 
@@ -267,8 +265,7 @@ export const MessageFilesDisplay = memo(({ files, onShowPopup }: MessageFilesDis
 
   const extractFilename = (path?: string): string => {
     if (!path) return 'Unnamed file';
-
-    const normalized = path.replace(/\\/g, '/');
+    const normalized = normalizePath(path);
     const parts = normalized.split('/');
     return parts[parts.length - 1] || path;
   };

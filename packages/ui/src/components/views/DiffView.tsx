@@ -1,7 +1,7 @@
 import React from 'react';
 import { RiArrowDownSLine, RiArrowRightSLine, RiGitCommitLine, RiLoader4Line, RiTextWrap } from '@remixicon/react';
 
-import { useSessionStore } from '@/stores/useSessionStore';
+import { useChatStore } from '@/stores/useChatStore';
 import { useDirectoryStore } from '@/stores/useDirectoryStore';
 import { useUIStore } from '@/stores/useUIStore';
 import { useGitStore, useGitStatus, useIsGitRepo, useGitFileCount } from '@/stores/useGitStore';
@@ -794,14 +794,8 @@ const MultiFileDiffEntry = React.memo<MultiFileDiffEntryProps>(({
 });
 
 const useEffectiveDirectory = () => {
-    const { currentSessionId, sessions, worktreeMetadata: worktreeMap } = useSessionStore();
-    const { currentDirectory: fallbackDirectory } = useDirectoryStore();
-
-    const worktreeMetadata = currentSessionId ? worktreeMap.get(currentSessionId) ?? undefined : undefined;
-    const currentSession = sessions.find((session) => session.id === currentSessionId);
-    const sessionDirectory = (currentSession as Record<string, unknown>)?.directory as string | undefined;
-
-    return worktreeMetadata?.path ?? sessionDirectory ?? fallbackDirectory ?? undefined;
+    const { currentDirectory } = useDirectoryStore();
+    return currentDirectory ?? undefined;
 };
 
 export const DiffView: React.FC = () => {
@@ -1245,13 +1239,8 @@ export const DiffView: React.FC = () => {
 // eslint-disable-next-line react-refresh/only-export-components
 export const useDiffFileCount = (): number => {
     const { git } = useRuntimeAPIs();
-    const { currentSessionId, sessions, worktreeMetadata: worktreeMap } = useSessionStore();
-    const { currentDirectory: fallbackDirectory } = useDirectoryStore();
-
-    const worktreeMetadata = currentSessionId ? worktreeMap.get(currentSessionId) ?? undefined : undefined;
-    const currentSession = sessions.find((session) => session.id === currentSessionId);
-    const sessionDirectory = (currentSession as Record<string, unknown>)?.directory as string | undefined;
-    const effectiveDirectory = worktreeMetadata?.path ?? sessionDirectory ?? fallbackDirectory ?? undefined;
+    const { currentDirectory } = useDirectoryStore();
+    const effectiveDirectory = currentDirectory ?? undefined;
 
     const { setActiveDirectory, fetchStatus } = useGitStore();
     const fileCount = useGitFileCount(effectiveDirectory ?? null);

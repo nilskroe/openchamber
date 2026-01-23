@@ -9,7 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { checkIsGitRepository, getGitBranches } from '@/lib/gitApi';
+import { getGitBranches } from '@/lib/gitApi';
 
 export type WorktreeBaseOption = {
   value: string;
@@ -64,7 +64,8 @@ export function useBranchOptions(directory: string | null): BranchSelectorState 
 
     (async () => {
       try {
-        const isGit = await checkIsGitRepository(directory);
+        // Projects are guaranteed to be git repos
+        const isGit = true;
         if (cancelled) return;
 
         setIsGitRepository(isGit);

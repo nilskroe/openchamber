@@ -21,7 +21,7 @@ import {
     RiTimeLine,
     RiToolsLine,
 } from '@remixicon/react';
-import type { EditPermissionMode } from '@/stores/types/sessionTypes';
+import type { EditPermissionMode } from '@/stores/types/chatTypes';
 import type { ModelMetadata } from '@/types';
 import {
     DropdownMenu,
@@ -42,9 +42,8 @@ import { useDeviceInfo } from '@/lib/device';
 import { calculateEditPermissionUIState, type BashPermissionSetting } from '@/lib/permissions/editPermissionDefaults';
 import { getEditModeColors } from '@/lib/permissions/editModeColors';
 import { cn, fuzzyMatch } from '@/lib/utils';
-import { useContextStore } from '@/stores/contextStore';
 import { useConfigStore } from '@/stores/useConfigStore';
-import { useSessionStore } from '@/stores/useSessionStore';
+import { useChatStore } from '@/stores/useChatStore';
 import { useUIStore } from '@/stores/useUIStore';
 import { useModelLists } from '@/hooks/useModelLists';
 
@@ -294,18 +293,18 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
     const {
         currentSessionId,
         messages,
-        saveSessionAgentSelection,
-        getSessionAgentSelection,
-        saveAgentModelForSession,
-        getAgentModelForSession,
-        saveAgentModelVariantForSession,
-        getAgentModelVariantForSession,
+        saveAgentSelection,
+        agentSelection,
+        saveAgentModelSelection,
+        getAgentModelSelection,
+        saveAgentModelVariantSelection,
+        getAgentModelVariantSelection,
         analyzeAndSaveExternalSessionChoices,
-        getSessionAgentEditMode,
-        setSessionAgentEditMode,
-    } = useSessionStore();
+        getAgentEditMode,
+        setAgentEditMode,
+    } = useChatStore();
 
-    const contextHydrated = useContextStore((state) => state.hasHydrated);
+    const contextHydrated = true; // No hydration gate needed in unified store model
     const { toggleFavoriteModel, isFavoriteModel, addRecentModel, isModelSelectorOpen, setModelSelectorOpen } = useUIStore();
     const { favoriteModelsList, recentModelsList } = useModelLists();
 
@@ -418,7 +417,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
 
     const selectionContextReady = Boolean(currentSessionId && currentAgentName);
     const sessionMode = selectionContextReady && currentSessionId && currentAgentName
-        ? getSessionAgentEditMode(currentSessionId, currentAgentName, cascadeDefaultMode)
+        ? getAgentEditMode(currentAgentName, cascadeDefaultMode)
         : cascadeDefaultMode;
 
     const editModeShortLabels: Record<EditPermissionMode, string> = {
@@ -489,11 +488,11 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
         if (editToggleDisabled || !currentSessionId || !currentAgentName || isModeDisabled(mode)) {
             return;
         }
-        setSessionAgentEditMode(currentSessionId, currentAgentName, mode, cascadeDefaultMode);
+        setAgentEditMode(currentAgentName, mode, cascadeDefaultMode);
         setAgentMenuOpen(false);
         setMobileEditOptionsOpen(false);
         setDesktopEditOptionsOpen(false);
-    }, [cascadeDefaultMode, editToggleDisabled, currentSessionId, currentAgentName, setSessionAgentEditMode, setAgentMenuOpen, setDesktopEditOptionsOpen, isModeDisabled]);
+    }, [cascadeDefaultMode, editToggleDisabled, currentSessionId, currentAgentName, setAgentEditMode, setAgentMenuOpen, setDesktopEditOptionsOpen, isModeDisabled]);
 
     const currentProvider = getCurrentProvider();
     const models = Array.isArray(currentProvider?.models) ? currentProvider.models : [];
@@ -527,7 +526,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
 
     const prevAgentNameRef = React.useRef<string | undefined>(undefined);
 
-    const currentSessionMessageCount = currentSessionId ? (messages.get(currentSessionId)?.length ?? -1) : -1;
+    const currentSessionMessageCount = currentSessionId ? (messages.length) : -1;
 
     const sessionInitializationRef = React.useRef<{
         sessionId: string;
@@ -556,12 +555,12 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
             setModel(modelId);
 
             if (currentSessionId && agentName) {
-                saveAgentModelForSession(currentSessionId, agentName, providerId, modelId);
+                saveAgentModelSelection(agentName, providerId, modelId);
             }
 
             return 'applied';
         },
-        [providers, setProvider, setModel, currentSessionId, saveAgentModelForSession],
+        [providers, setProvider, setModel, currentSessionId, saveAgentModelSelection],
     );
 
     React.useEffect(() => {
@@ -597,13 +596,13 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
         };
 
         const applySavedSelections = (): 'resolved' | 'waiting' | 'continue' => {
-            const savedAgentName = getSessionAgentSelection(currentSessionId);
+            const savedAgentName = agentSelection;
             if (savedAgentName) {
                 if (currentAgentName !== savedAgentName) {
                     setAgent(savedAgentName);
                 }
 
-                const savedModel = getAgentModelForSession(currentSessionId, savedAgentName);
+                const savedModel = getAgentModelSelection(savedAgentName);
                 if (savedModel) {
                     const result = tryApplyModelSelection(savedModel.providerId, savedModel.modelId, savedAgentName);
                     if (result === 'applied') {
@@ -618,7 +617,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
             }
 
             for (const agent of agents) {
-                const selection = getAgentModelForSession(currentSessionId, agent.name);
+                const selection = getAgentModelSelection(agent.name);
                 if (!selection) {
                     continue;
                 }
@@ -627,7 +626,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                     setAgent(agent.name);
                 }
 
-                saveSessionAgentSelection(currentSessionId, agent.name);
+                saveAgentSelection(agent.name);
                 const result = tryApplyModelSelection(selection.providerId, selection.modelId, agent.name);
                 if (result === 'applied') {
                     return 'resolved';
@@ -651,7 +650,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                 return;
             }
 
-            saveSessionAgentSelection(currentSessionId, fallbackAgent.name);
+            saveAgentSelection(fallbackAgent.name);
 
             if (currentAgentName !== fallbackAgent.name) {
                 setAgent(fallbackAgent.name);
@@ -680,7 +679,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                 if (currentSessionMessageCount > 0) {
                     state.inFlight = true;
                     try {
-                        const discoveredChoices = await analyzeAndSaveExternalSessionChoices(currentSessionId, agents);
+                        const discoveredChoices = await analyzeAndSaveExternalSessionChoices(agents);
                         if (isCancelled) {
                             return;
                         }
@@ -697,7 +696,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                             }
 
                             if (latestAgent) {
-                                saveSessionAgentSelection(currentSessionId, latestAgent);
+                                saveAgentSelection(latestAgent);
                                 if (currentAgentName !== latestAgent) {
                                     setAgent(latestAgent);
                                 }
@@ -755,12 +754,12 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
         currentSessionMessageCount,
         agents,
         currentAgentName,
-        getSessionAgentSelection,
-        getAgentModelForSession,
+        agentSelection,
+        getAgentModelSelection,
         setAgent,
         tryApplyModelSelection,
         analyzeAndSaveExternalSessionChoices,
-        saveSessionAgentSelection,
+        saveAgentSelection,
         contextHydrated,
         providers,
     ]);
@@ -770,13 +769,13 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
             return;
         }
 
-        const savedAgentName = getSessionAgentSelection(currentSessionId);
+        const savedAgentName = agentSelection;
         const preferredAgent = savedAgentName || currentAgentName;
         if (!preferredAgent) {
             return;
         }
 
-        const preferredSelection = getAgentModelForSession(currentSessionId, preferredAgent);
+        const preferredSelection = getAgentModelSelection(preferredAgent);
         if (!preferredSelection) {
             return;
         }
@@ -812,8 +811,8 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
         currentModelId,
         providers,
         agents,
-        getSessionAgentSelection,
-        getAgentModelForSession,
+        agentSelection,
+        getAgentModelSelection,
         tryApplyModelSelection,
         setAgent,
     ]);
@@ -831,7 +830,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                     if (currentAgentName && currentSessionId) {
                         await new Promise(resolve => setTimeout(resolve, 50));
 
-                        const persistedChoice = getAgentModelForSession(currentSessionId, currentAgentName);
+                        const persistedChoice = getAgentModelSelection(currentAgentName);
 
                         if (persistedChoice) {
                             const result = tryApplyModelSelection(
@@ -863,7 +862,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
         };
 
         handleAgentSwitch();
-    }, [currentAgentName, currentSessionId, getAgentModelForSession, tryApplyModelSelection, agents, contextHydrated]);
+    }, [currentAgentName, currentSessionId, getAgentModelSelection, tryApplyModelSelection, agents, contextHydrated]);
 
     React.useEffect(() => {
         if (!contextHydrated || !currentAgentName) {
@@ -898,8 +897,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
             return;
         }
 
-        const savedVariant = getAgentModelVariantForSession(
-            currentSessionId,
+        const savedVariant = getAgentModelVariantSelection(
             currentAgentName,
             currentProviderId,
             currentModelId,
@@ -918,7 +916,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
         currentProviderId,
         currentModelId,
         currentVariant,
-        getAgentModelVariantForSession,
+        getAgentModelVariantSelection,
         setCurrentVariant,
         settingsDefaultVariant,
     ]);
@@ -927,8 +925,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
         setCurrentVariant(variant);
 
         if (currentSessionId && currentAgentName && currentProviderId && currentModelId) {
-            saveAgentModelVariantForSession(
-                currentSessionId,
+            saveAgentModelVariantSelection(
                 currentAgentName,
                 currentProviderId,
                 currentModelId,
@@ -940,7 +937,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
         currentModelId,
         currentProviderId,
         currentSessionId,
-        saveAgentModelVariantForSession,
+        saveAgentModelVariantSelection,
         setCurrentVariant,
     ]);
 
@@ -950,7 +947,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
             setAgentMenuOpen(false);
 
             if (currentSessionId) {
-                saveSessionAgentSelection(currentSessionId, agentName);
+                saveAgentSelection(agentName);
             }
             if (isCompact) {
                 closeMobilePanel();
@@ -1675,12 +1672,16 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                                 'focus:outline-none focus-visible:ring-1 focus-visible:ring-primary rounded-t-xl',
                                 editToggleDisabled ? 'cursor-not-allowed opacity-60' : undefined
                             )}
+                            aria-expanded={mobileEditOptionsOpen}
+                            aria-controls={desktopEditOptionsId}
                         >
                             <div className="flex flex-col text-left">
                                 <span
                                     className="typography-meta font-medium text-foreground"
                                     style={{
-                                        color: activeEditModeColors ? activeEditModeColors.text : 'var(--foreground)',
+                                        color: activeEditModeColors
+                                            ? activeEditModeColors.text
+                                            : 'var(--foreground)',
                                         mixBlendMode: 'normal',
                                     }}
                                 >
@@ -1725,7 +1726,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                                                 onClick={() => handleEditPermissionSelect(option.mode)}
                                                 className={cn(
                                                     'flex w-full items-start gap-2 rounded-lg px-2 py-1.5 text-left',
-                                                    option.disabled ? 'cursor-not-allowed opacity-50' : 'focus:bg-transparent hover:bg-transparent',
+                                                    option.disabled ? 'cursor-not-allowed opacity-50' : 'focus:outline-none focus-visible:ring-1 focus-visible:ring-primary',
                                                     isSelected ? 'bg-primary/10' : undefined
                                                 )}
                                                 style={isSelected && optionColors ? { backgroundColor: optionColors.background ?? undefined } : undefined}
@@ -2350,7 +2351,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                             <div
                                 className={cn(
                                     'model-controls__variant-trigger flex items-center gap-1.5 transition-opacity cursor-pointer hover:opacity-70 min-w-0',
-                                    buttonHeight,
+                                    buttonHeight
                                 )}
                             >
                                 <RiBrainAi3Line className={cn(controlIconSize, 'flex-shrink-0', colorClass)} />
@@ -2465,14 +2466,13 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                                         type="button"
                                         disabled={editToggleDisabled}
                                         onClick={() => {
-                                            if (editToggleDisabled) {
-                                                return;
+                                            if (!editToggleDisabled) {
+                                                setDesktopEditOptionsOpen((previous) => !previous);
                                             }
-                                            setDesktopEditOptionsOpen((previous) => !previous);
                                         }}
                                         className={cn(
-                                            'flex w-full items-center justify-between gap-2 rounded-xl px-2 py-2 text-left',
-                                            'focus:outline-none focus-visible:ring-0',
+                                            'flex w-full items-center justify-between gap-2 rounded-xl px-2 py-2 text-left bg-transparent',
+                                            'focus:outline-none focus-visible:ring-1 focus-visible:ring-primary',
                                             editToggleDisabled ? 'cursor-not-allowed opacity-60' : undefined
                                         )}
                                         aria-expanded={desktopEditOptionsOpen}
@@ -2485,6 +2485,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                                                     color: activeEditModeColors
                                                         ? activeEditModeColors.text
                                                         : 'var(--foreground)',
+                                                    mixBlendMode: 'normal',
                                                 }}
                                             >
                                                 {editPermissionMenuLabel}
@@ -2504,7 +2505,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                                                         : undefined
                                                 }
                                             >
-                                                {renderEditModeIcon(effectiveEditMode)}
+                                                {renderEditModeIcon(effectiveEditMode, editToggleIconClass)}
                                             </span>
                                             <RiArrowDownSLine
                                                 className={cn(
@@ -2532,7 +2533,7 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                                                         onClick={() => handleEditPermissionSelect(option.mode)}
                                                         className={cn(
                                                             'flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left',
-                                                            option.disabled ? 'cursor-not-allowed opacity-50' : 'focus:outline-none focus-visible:ring-0',
+                                                            option.disabled ? 'cursor-not-allowed opacity-50' : 'focus:outline-none focus-visible:ring-1 focus-visible:ring-primary',
                                                             isSelected ? 'bg-primary/10' : undefined
                                                         )}
                                                         style={isSelected && optionColors ? { backgroundColor: optionColors.background ?? undefined } : undefined}
@@ -2541,7 +2542,9 @@ export const ModelControls: React.FC<ModelControlsProps> = ({ className }) => {
                                                         <span
                                                             className="typography-meta font-medium"
                                                             style={{
-                                                                color: optionColors ? optionColors.text : 'var(--foreground)',
+                                                                color: optionColors
+                                                                    ? optionColors.text
+                                                                    : 'var(--foreground)',
                                                             }}
                                                         >
                                                             {option.label}

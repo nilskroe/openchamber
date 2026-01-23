@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { isDesktopRuntime } from "@/lib/desktop";
+import { normalizePath } from "@/lib/paths";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -76,12 +77,6 @@ export const truncatePathMiddle = (
   }
 
   return prefix ? `${prefix}…/${fileName}` : `…/${fileName}`;
-};
-
-const normalizePath = (value: string) => {
-  if (!value) return "";
-  if (value === "/") return "/";
-  return value.replace(/\/+$/, "");
 };
 
 export function formatPathForDisplay(path: string | null | undefined, homeDirectory?: string | null): string {

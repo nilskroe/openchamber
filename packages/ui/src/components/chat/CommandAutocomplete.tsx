@@ -1,7 +1,7 @@
 import React from 'react';
 import { RiCommandLine, RiFileLine, RiFlashlightLine, RiRefreshLine, RiScissorsLine, RiTerminalBoxLine, RiArrowGoBackLine, RiArrowGoForwardLine, RiTimeLine } from '@remixicon/react';
 import { cn, fuzzyMatch } from '@/lib/utils';
-import { useSessionStore } from '@/stores/useSessionStore';
+import { useChatStore } from '@/stores/useChatStore';
 import { useCommandsStore } from '@/stores/useCommandsStore';
 import { useShallow } from 'zustand/react/shallow';
 import { ScrollableOverlay } from '@/components/ui/ScrollableOverlay';
@@ -30,10 +30,10 @@ export const CommandAutocomplete = React.forwardRef<CommandAutocompleteHandle, C
   onCommandSelect,
   onClose
 }, ref) => {
-  const { hasMessagesInCurrentSession, currentSessionId } = useSessionStore(
+  const { hasMessagesInCurrentSession, currentSessionId } = useChatStore(
     useShallow((state) => {
       const sessionId = state.currentSessionId;
-      const messageCount = sessionId ? (state.messages.get(sessionId)?.length ?? 0) : 0;
+      const messageCount = state.messages.length;
       return {
         hasMessagesInCurrentSession: messageCount > 0,
         currentSessionId: sessionId,

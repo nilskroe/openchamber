@@ -2,7 +2,7 @@ import React from 'react';
 import { RiArrowDownLine } from '@remixicon/react';
 
 import { ChatInput } from './ChatInput';
-import { useSessionStore } from '@/stores/useSessionStore';
+import { useChatStore } from '@/stores/useChatStore';
 import { useUIStore } from '@/stores/useUIStore';
 import { Skeleton } from '@/components/ui/skeleton';
 import ChatEmptyState from './ChatEmptyState';
@@ -14,89 +14,27 @@ import { Button } from '@/components/ui/button';
 import { OverlayScrollbar } from '@/components/ui/OverlayScrollbar';
 import { TimelineDialog } from './TimelineDialog';
 
-const EMPTY_MESSAGES: never[] = [];
-const EMPTY_PERMISSIONS: never[] = [];
-const EMPTY_QUESTIONS: never[] = [];
-
 export const ChatContainer: React.FC = () => {
-    // Individual selectors - only re-render when specific fields change
-    const currentSessionId = useSessionStore((s) => s.currentSessionId);
-    const isLoading = useSessionStore((s) => s.isLoading);
-    const isSyncing = useSessionStore((s) => s.isSyncing);
-    const newSessionDraft = useSessionStore((s) => s.newSessionDraft);
-
-    // Functions are stable references in Zustand
-    const loadMessages = useSessionStore((s) => s.loadMessages);
-    const loadMoreMessages = useSessionStore((s) => s.loadMoreMessages);
-    const updateViewportAnchor = useSessionStore((s) => s.updateViewportAnchor);
-    const openNewSessionDraft = useSessionStore((s) => s.openNewSessionDraft);
-
-    // Per-session selectors - only re-render when THIS session's data changes
-    const sessionMessages = useSessionStore(
-        React.useCallback((s) => {
-            if (!s.currentSessionId) return EMPTY_MESSAGES;
-            return s.messages.get(s.currentSessionId) ?? EMPTY_MESSAGES;
-        }, [])
-    );
-
-    const sessionPermissions = useSessionStore(
-        React.useCallback((s) => {
-            if (!s.currentSessionId) return EMPTY_PERMISSIONS;
-            return s.permissions.get(s.currentSessionId) ?? EMPTY_PERMISSIONS;
-        }, [])
-    );
-
-    const sessionQuestions = useSessionStore(
-        React.useCallback((s) => {
-            if (!s.currentSessionId) return EMPTY_QUESTIONS;
-            return s.questions.get(s.currentSessionId) ?? EMPTY_QUESTIONS;
-        }, [])
-    );
-
-    const streamingMessageId = useSessionStore(
-        React.useCallback((s) => {
-            if (!s.currentSessionId) return null;
-            return s.streamingMessageIds.get(s.currentSessionId) ?? null;
-        }, [])
-    );
-
-    const sessionActivityPhase = useSessionStore(
-        React.useCallback((s) => {
-            if (!s.currentSessionId) return 'idle' as const;
-            return s.sessionActivityPhase?.get(s.currentSessionId) ?? ('idle' as const);
-        }, [])
-    );
-
-    const sessionMemoryState = useSessionStore(
-        React.useCallback((s) => {
-            if (!s.currentSessionId) return null;
-            return s.sessionMemoryState.get(s.currentSessionId) ?? null;
-        }, [])
-    );
-
-    // Whether messages have been loaded for the current session (entry exists in Map)
-    const hasMessagesEntry = useSessionStore(
-        React.useCallback((s) => {
-            if (!s.currentSessionId) return false;
-            return s.messages.has(s.currentSessionId);
-        }, [])
-    );
+    const currentSessionId = useChatStore((s) => s.currentSessionId);
+    const messages = useChatStore((s) => s.messages);
+    const permissions = useChatStore((s) => s.permissions);
+    const questions = useChatStore((s) => s.questions);
+    const streamingMessageId = useChatStore((s) => s.streamingMessageId);
+    const isLoading = useChatStore((s) => s.isLoading);
+    const isSyncing = useChatStore((s) => s.isSyncing);
+    const hasMoreAbove = useChatStore((s) => s.hasMoreAbove);
+    const activityPhase = useChatStore((s) => s.activityPhase);
+    const loadMessages = useChatStore((s) => s.loadMessages);
+    const loadMoreMessages = useChatStore((s) => s.loadMoreMessages);
 
     const isTimelineDialogOpen = useUIStore((s) => s.isTimelineDialogOpen);
     const setTimelineDialogOpen = useUIStore((s) => s.setTimelineDialogOpen);
 
     const { isMobile } = useDeviceInfo();
-    const draftOpen = Boolean(newSessionDraft?.open);
-
-    React.useEffect(() => {
-        if (!currentSessionId && !draftOpen) {
-            openNewSessionDraft();
-        }
-    }, [currentSessionId, draftOpen, openNewSessionDraft]);
 
     const sessionBlockingCards = React.useMemo(() => {
-        return [...sessionPermissions, ...sessionQuestions];
-    }, [sessionPermissions, sessionQuestions]);
+        return [...permissions, ...questions];
+    }, [permissions, questions]);
 
     const {
         scrollRef,
@@ -108,22 +46,18 @@ export const ChatContainer: React.FC = () => {
         isPinned,
     } = useChatScrollManager({
         currentSessionId,
-        sessionMessages,
-        updateViewportAnchor,
+        sessionMessages: messages,
         isSyncing,
         isMobile,
     });
 
-    const hasMoreAbove = Boolean(sessionMemoryState?.hasMoreAbove);
     const [isLoadingOlder, setIsLoadingOlder] = React.useState(false);
     React.useEffect(() => {
         setIsLoadingOlder(false);
     }, [currentSessionId]);
 
     const handleLoadOlder = React.useCallback(async () => {
-        if (!currentSessionId || isLoadingOlder) {
-            return;
-        }
+        if (!currentSessionId || isLoadingOlder) return;
 
         const container = scrollRef.current;
         const prevHeight = container?.scrollHeight ?? null;
@@ -131,7 +65,7 @@ export const ChatContainer: React.FC = () => {
 
         setIsLoadingOlder(true);
         try {
-            await loadMoreMessages(currentSessionId, 'up');
+            await loadMoreMessages('up');
             if (container && prevHeight !== null && prevTop !== null) {
                 const heightDiff = container.scrollHeight - prevHeight;
                 scrollToPosition(prevTop + heightDiff, { instant: true });
@@ -146,41 +80,31 @@ export const ChatContainer: React.FC = () => {
         const container = scrollRef.current;
         if (!container) return;
 
-        // Find the message element by looking for data-message-id attribute
         const messageElement = container.querySelector(`[data-message-id="${messageId}"]`) as HTMLElement;
         if (messageElement) {
-            // Scroll to the message with some padding (50px from top)
             const containerRect = container.getBoundingClientRect();
             const messageRect = messageElement.getBoundingClientRect();
             const offset = 50;
-
             const scrollTop = messageRect.top - containerRect.top + container.scrollTop - offset;
-            container.scrollTo({
-                top: scrollTop,
-                behavior: 'smooth'
-            });
+            container.scrollTo({ top: scrollTop, behavior: 'smooth' });
         }
     }, [scrollRef]);
 
-    // Track sessions we've already scrolled to prevent re-scrolling on message updates
-    const scrolledSessionsRef = React.useRef<Set<string>>(new Set());
-    const loadingSessionIdRef = React.useRef<string | null>(null);
+    // Track if we've scrolled for this session
+    const scrolledRef = React.useRef(false);
+    const loadingRef = React.useRef(false);
 
-    // Effect: Load messages and scroll to bottom on session switch
-    // This only triggers message loading when switching to a session without messages
     React.useEffect(() => {
-        if (!currentSessionId) {
-            return;
-        }
+        scrolledRef.current = false;
+    }, [currentSessionId]);
 
-        // If we already have messages and already scrolled for this session, do nothing
-        // This prevents re-scrolling when other sessions' messages update
-        if (sessionMessages.length > 0) {
-            if (scrolledSessionsRef.current.has(currentSessionId)) {
-                return; // Already scrolled for this session
-            }
-            // First time seeing this session with messages - scroll to bottom
-            scrolledSessionsRef.current.add(currentSessionId);
+    // Load messages and scroll to bottom on session switch
+    React.useEffect(() => {
+        if (!currentSessionId) return;
+
+        if (messages.length > 0) {
+            if (scrolledRef.current) return;
+            scrolledRef.current = true;
             window.requestAnimationFrame(() => {
                 window.requestAnimationFrame(() => {
                     scrollToBottom({ instant: true });
@@ -189,67 +113,33 @@ export const ChatContainer: React.FC = () => {
             return;
         }
 
-        loadingSessionIdRef.current = currentSessionId;
+        if (loadingRef.current) return;
+        loadingRef.current = true;
 
         const load = async () => {
             try {
-                await loadMessages(currentSessionId);
+                await loadMessages();
             } finally {
-                // Check if we're still on the same session (prevent race condition)
-                if (loadingSessionIdRef.current !== currentSessionId) {
-                    return;
-                }
+                loadingRef.current = false;
+                scrolledRef.current = true;
 
-                // Mark this session as scrolled
-                scrolledSessionsRef.current.add(currentSessionId);
-
-                const isActivePhase = sessionActivityPhase === 'busy' || sessionActivityPhase === 'cooldown';
-                // When pinned and active, scroll is already maintained automatically
+                const isActivePhase = activityPhase === 'busy' || activityPhase === 'cooldown';
                 const shouldSkipScroll = isActivePhase && isPinned;
 
                 if (!shouldSkipScroll) {
-                    // Use double RAF to ensure messages are rendered in DOM before scrolling
-                    if (typeof window === 'undefined') {
-                        scrollToBottom({ instant: true });
-                    } else {
+                    window.requestAnimationFrame(() => {
                         window.requestAnimationFrame(() => {
-                            window.requestAnimationFrame(() => {
-                                scrollToBottom({ instant: true });
-                            });
+                            scrollToBottom({ instant: true });
                         });
-                    }
+                    });
                 }
             }
         };
 
         void load();
-    }, [currentSessionId, isPinned, loadMessages, sessionMessages, scrollToBottom, sessionActivityPhase]);
+    }, [currentSessionId, messages.length, isPinned, loadMessages, scrollToBottom, activityPhase]);
 
-    // Clear the scrolled state when session changes to allow re-scroll on next visit
-    React.useEffect(() => {
-        // When session changes, allow re-scroll for all OTHER sessions
-        // Keep current session's scrolled state to prevent double-scroll
-        if (currentSessionId && scrolledSessionsRef.current.size > 1) {
-            const newScrolled = new Set<string>();
-            if (scrolledSessionsRef.current.has(currentSessionId)) {
-                newScrolled.add(currentSessionId);
-            }
-            scrolledSessionsRef.current = newScrolled;
-        }
-    }, [currentSessionId]);
-
-    if (!currentSessionId && !draftOpen) {
-        return (
-            <div
-                className="flex flex-col h-full bg-background"
-                style={isMobile ? { paddingBottom: 'var(--oc-keyboard-inset, 0px)' } : undefined}
-            >
-                <ChatEmptyState />
-            </div>
-        );
-    }
-
-    if (!currentSessionId && draftOpen) {
+    if (!currentSessionId) {
         return (
             <div
                 className="flex flex-col h-full bg-background transform-gpu"
@@ -265,37 +155,31 @@ export const ChatContainer: React.FC = () => {
         );
     }
 
-    if (!currentSessionId) {
-        return null;
-    }
-
-    if (isLoading && sessionMessages.length === 0 && !streamingMessageId) {
-        if (!hasMessagesEntry) {
-            return (
-                <div
-                    className="flex flex-col h-full bg-background gap-0"
-                    style={isMobile ? { paddingBottom: 'var(--oc-keyboard-inset, 0px)' } : undefined}
-                >
-                    <div className="flex-1 overflow-y-auto p-4 bg-background">
-                        <div className="chat-message-column space-y-4">
-                            {[1, 2, 3].map((i) => (
-                                <div key={i} className="flex gap-3 p-4">
-                                    <Skeleton className="h-8 w-8 rounded-full" />
-                                    <div className="flex-1 space-y-2">
-                                        <Skeleton className="h-4 w-24" />
-                                        <Skeleton className="h-20 w-full" />
-                                    </div>
+    if (isLoading && messages.length === 0 && !streamingMessageId) {
+        return (
+            <div
+                className="flex flex-col h-full bg-background gap-0"
+                style={isMobile ? { paddingBottom: 'var(--oc-keyboard-inset, 0px)' } : undefined}
+            >
+                <div className="flex-1 overflow-y-auto p-4 bg-background">
+                    <div className="chat-message-column space-y-4">
+                        {[1, 2, 3].map((i) => (
+                            <div key={i} className="flex gap-3 p-4">
+                                <Skeleton className="h-8 w-8 rounded-full" />
+                                <div className="flex-1 space-y-2">
+                                    <Skeleton className="h-4 w-24" />
+                                    <Skeleton className="h-20 w-full" />
                                 </div>
-                            ))}
-                        </div>
+                            </div>
+                        ))}
                     </div>
-                    <ChatInput scrollToBottom={scrollToBottom} />
                 </div>
-            );
-        }
+                <ChatInput scrollToBottom={scrollToBottom} />
+            </div>
+        );
     }
 
-    if (sessionMessages.length === 0 && !streamingMessageId) {
+    if (messages.length === 0 && !streamingMessageId) {
         return (
             <div
                 className="flex flex-col h-full bg-background transform-gpu"
@@ -317,7 +201,6 @@ export const ChatContainer: React.FC = () => {
             style={isMobile ? { paddingBottom: 'var(--oc-keyboard-inset, 0px)' } : undefined}
         >
             <div className="relative flex-1 min-h-0">
-
                 <div className="absolute inset-0">
                     <ScrollShadow
                         className="absolute inset-0 overflow-y-auto overflow-x-hidden z-0 chat-scroll overlay-scrollbar-target"
@@ -331,9 +214,9 @@ export const ChatContainer: React.FC = () => {
                     >
                         <div className="relative z-0 min-h-full">
                             <MessageList
-                                messages={sessionMessages}
-                                permissions={sessionPermissions}
-                                questions={sessionQuestions}
+                                messages={messages}
+                                permissions={permissions}
+                                questions={questions}
                                 onMessageContentChange={handleMessageContentChange}
                                 getAnimationHandlers={getAnimationHandlers}
                                 hasMoreAbove={hasMoreAbove}
@@ -348,16 +231,15 @@ export const ChatContainer: React.FC = () => {
             </div>
 
             <div className="relative bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 z-10">
-                {showScrollButton && sessionMessages.length > 0 && (
+                {showScrollButton && messages.length > 0 && (
                     <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2">
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => scrollToBottom({ force: true })}
-                                className="rounded-full h-8 w-8 p-0 shadow-none bg-background/95 hover:bg-accent"
-                                aria-label="Scroll to bottom"
-                            >
-
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => scrollToBottom({ force: true })}
+                            className="rounded-full h-8 w-8 p-0 shadow-none bg-background/95 hover:bg-accent"
+                            aria-label="Scroll to bottom"
+                        >
                             <RiArrowDownLine className="h-4 w-4" />
                         </Button>
                     </div>

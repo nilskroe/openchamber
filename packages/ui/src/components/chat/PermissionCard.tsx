@@ -2,7 +2,7 @@ import React from 'react';
 import { RiCheckLine, RiCloseLine, RiFileEditLine, RiGlobalLine, RiPencilAiLine, RiQuestionLine, RiTerminalBoxLine, RiTimeLine, RiToolsLine } from '@remixicon/react';
 import { cn } from '@/lib/utils';
 import type { PermissionRequest, PermissionResponse } from '@/types/permission';
-import { useSessionStore } from '@/stores/useSessionStore';
+import { useChatStore } from '@/stores/useChatStore';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { useThemeSystem } from '@/contexts/useThemeSystem';
 import { generateSyntaxTheme } from '@/lib/theme/syntaxThemeGenerator';
@@ -62,7 +62,7 @@ export const PermissionCard: React.FC<PermissionCardProps> = ({
 }) => {
   const [isResponding, setIsResponding] = React.useState(false);
   const [hasResponded, setHasResponded] = React.useState(false);
-  const { respondToPermission } = useSessionStore();
+  const { respondToPermission } = useChatStore();
   const { currentTheme } = useThemeSystem();
   const syntaxTheme = React.useMemo(() => generateSyntaxTheme(currentTheme), [currentTheme]);
 
@@ -70,7 +70,7 @@ export const PermissionCard: React.FC<PermissionCardProps> = ({
     setIsResponding(true);
 
     try {
-      await respondToPermission(permission.sessionID, permission.id, response);
+      await respondToPermission(permission.id, response);
       setHasResponded(true);
       onResponse?.(response);
     } catch { /* ignored */ } finally {

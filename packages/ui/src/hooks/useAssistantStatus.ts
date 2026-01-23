@@ -2,8 +2,8 @@ import React from 'react';
 import type { AssistantMessage, Message, Part, ReasoningPart, TextPart, ToolPart } from '@opencode-ai/sdk/v2';
 import { useShallow } from 'zustand/react/shallow';
 
-import type { MessageStreamPhase } from '@/stores/types/sessionTypes';
-import { useSessionStore } from '@/stores/useSessionStore';
+import type { MessageStreamPhase } from '@/stores/types/chatTypes';
+import { useChatStore } from '@/stores/useChatStore';
 import { isFullySyntheticMessage } from '@/lib/messages/synthetic';
 import { useCurrentSessionActivity } from './useSessionActivity';
 
@@ -112,12 +112,12 @@ const getToolDisplayName = (part: ToolPart): string => {
 };
 
 export function useAssistantStatus(): AssistantStatusSnapshot {
-    const { currentSessionId, messages, permissions, sessionAbortFlags } = useSessionStore(
+    const { currentSessionId, messages, permissions, sessionAbortTimestamp } = useChatStore(
         useShallow((state) => ({
             currentSessionId: state.currentSessionId,
             messages: state.messages,
             permissions: state.permissions,
-            sessionAbortFlags: state.sessionAbortFlags,
+            sessionAbortTimestamp: state.sessionAbortTimestamp,
         }))
     );
 
@@ -127,8 +127,7 @@ export function useAssistantStatus(): AssistantStatusSnapshot {
         if (!currentSessionId) {
             return [];
         }
-        const records = messages.get(currentSessionId) ?? [];
-        return records as Array<{ info: Message; parts: Part[] }>;
+        return messages as Array<{ info: Message; parts: Part[] }>;
     }, [currentSessionId, messages]);
 
     type ParsedStatusResult = {
@@ -271,11 +270,9 @@ export function useAssistantStatus(): AssistantStatusSnapshot {
     }, [sessionMessages]);
 
     const abortState = React.useMemo(() => {
-        const sessionId = currentSessionId;
-        const abortRecord = sessionId ? sessionAbortFlags?.get(sessionId) ?? null : null;
-        const hasActiveAbort = Boolean(abortRecord && !abortRecord.acknowledged);
+        const hasActiveAbort = sessionAbortTimestamp !== null;
         return { wasAborted: hasActiveAbort, abortActive: hasActiveAbort };
-    }, [currentSessionId, sessionAbortFlags]);
+    }, [sessionAbortTimestamp]);
 
     const baseWorking = React.useMemo<WorkingSummary>(() => {
 
@@ -365,9 +362,7 @@ export function useAssistantStatus(): AssistantStatusSnapshot {
             return baseWorking;
         }
 
-        const sessionId = currentSessionId;
-        const permissionList = sessionId ? permissions?.get(sessionId) ?? [] : [];
-        const hasPendingPermission = permissionList.length > 0;
+        const hasPendingPermission = permissions.length > 0;
 
         if (!hasPendingPermission) {
             return baseWorking;

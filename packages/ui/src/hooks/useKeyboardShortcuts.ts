@@ -1,5 +1,5 @@
 import React from 'react';
-import { useSessionStore } from '@/stores/useSessionStore';
+import { useChatStore } from '@/stores/useChatStore';
 import { useUIStore } from '@/stores/useUIStore';
 import { useThemeSystem } from '@/contexts/useThemeSystem';
 import { useAssistantStatus } from '@/hooks/useAssistantStatus';
@@ -12,7 +12,8 @@ import { useDirectoryStore } from '@/stores/useDirectoryStore';
 import { usePaneStore } from '@/stores/usePaneStore';
 
 export const useKeyboardShortcuts = () => {
-  const { openNewSessionDraft, abortCurrentOperation, armAbortPrompt, clearAbortPrompt, currentSessionId } = useSessionStore();
+  const { createAndLoadSession, abortCurrentOperation, armAbortPrompt, clearAbortPrompt, currentSessionId } = useChatStore();
+  const currentDirectory = useDirectoryStore((state) => state.currentDirectory);
   const {
     toggleCommandPalette,
     toggleHelpDialog,
@@ -103,7 +104,9 @@ export const useKeyboardShortcuts = () => {
         // Open a new session without worktree
         setActiveMainTab('chat');
         setSessionSwitcherOpen(false);
-        openNewSessionDraft();
+        if (currentDirectory) {
+          void createAndLoadSession(currentDirectory);
+        }
       }
 
        if (hasModifier(e) && e.key === '/') {
@@ -253,14 +256,13 @@ export const useKeyboardShortcuts = () => {
         configState.cycleCurrentVariant();
 
         const nextVariant = useConfigStore.getState().currentVariant;
-        const sessionState = useSessionStore.getState();
-        const sessionId = sessionState.currentSessionId;
+        const sessionState = useChatStore.getState();
         const agentName = useConfigStore.getState().currentAgentName;
         const providerId = useConfigStore.getState().currentProviderId;
         const modelId = useConfigStore.getState().currentModelId;
 
-        if (sessionId && agentName && providerId && modelId) {
-          sessionState.saveAgentModelVariantForSession(sessionId, agentName, providerId, modelId, nextVariant);
+        if (agentName && providerId && modelId) {
+          sessionState.saveAgentModelVariantSelection(agentName, providerId, modelId, nextVariant);
         }
 
         return;
@@ -335,7 +337,8 @@ export const useKeyboardShortcuts = () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [
-    openNewSessionDraft,
+    createAndLoadSession,
+    currentDirectory,
     abortCurrentOperation,
     toggleCommandPalette,
     toggleHelpDialog,

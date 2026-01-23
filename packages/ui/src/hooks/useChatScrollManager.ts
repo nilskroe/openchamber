@@ -18,7 +18,6 @@ interface ChatMessageRecord {
 interface UseChatScrollManagerOptions {
     currentSessionId: string | null;
     sessionMessages: ChatMessageRecord[];
-    updateViewportAnchor: (sessionId: string, anchor: number) => void;
     isSyncing: boolean;
     isMobile: boolean;
 }
@@ -51,7 +50,6 @@ const PIN_THRESHOLD_RATIO = 0.10;
 export const useChatScrollManager = ({
     currentSessionId,
     sessionMessages,
-    updateViewportAnchor,
     isSyncing,
     isMobile,
 }: UseChatScrollManagerOptions): UseChatScrollManagerResult => {
@@ -179,10 +177,6 @@ export const useChatScrollManager = ({
 
         lastScrollTopRef.current = currentScrollTop;
 
-        const { scrollTop, scrollHeight, clientHeight } = container;
-        const position = (scrollTop + clientHeight / 2) / Math.max(scrollHeight, 1);
-        const estimatedIndex = Math.floor(position * sessionMessages.length);
-        updateViewportAnchor(currentSessionId, estimatedIndex);
     }, [
         currentSessionId,
         getDistanceFromBottom,
@@ -191,7 +185,6 @@ export const useChatScrollManager = ({
         sessionMessages.length,
         updatePinnedState,
         updateScrollButtonVisibility,
-        updateViewportAnchor,
     ]);
 
     React.useEffect(() => {

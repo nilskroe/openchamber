@@ -1462,12 +1462,13 @@ export async function handleBridgeMessage(message: BridgeRequest, ctx?: BridgeCo
       }
 
       case 'api:git/worktrees': {
-        const { directory, method, path: worktreePath, branch, createBranch, force } = (payload || {}) as { 
-          directory?: string; 
+        const { directory, method, path: worktreePath, branch, createBranch, startPoint, force } = (payload || {}) as {
+          directory?: string;
           method?: string;
           path?: string;
           branch?: string;
           createBranch?: boolean;
+          startPoint?: string;
           force?: boolean;
         };
         if (!directory) {
@@ -1485,7 +1486,7 @@ export async function handleBridgeMessage(message: BridgeRequest, ctx?: BridgeCo
           if (!worktreePath || !branch) {
             return { id, type, success: false, error: 'Path and branch are required' };
           }
-          const result = await gitService.addGitWorktree(directory, worktreePath, branch, createBranch);
+          const result = await gitService.addGitWorktree(directory, worktreePath, branch, createBranch, startPoint);
           return { id, type, success: true, data: result };
         }
 

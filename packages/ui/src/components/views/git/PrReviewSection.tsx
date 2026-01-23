@@ -2,9 +2,9 @@ import React, { useCallback, useState } from 'react';
 import { RiChat3Line, RiCheckLine, RiSendPlaneLine, RiArrowDownSLine, RiArrowRightSLine, RiFileLine, RiRefreshLine, RiMagicLine, RiCheckboxMultipleLine } from '@remixicon/react';
 import { Button } from '@/components/ui/button';
 import { ScrollableOverlay } from '@/components/ui/ScrollableOverlay';
-import { useSessionStore } from '@/stores/useSessionStore';
+import { useChatStore } from '@/stores/useChatStore';
 import { useConfigStore } from '@/stores/useConfigStore';
-import { useContextStore } from '@/stores/contextStore';
+import { useDirectoryStore } from '@/stores/useDirectoryStore';
 import { useUIStore } from '@/stores/useUIStore';
 import { toast } from 'sonner';
 import type { PrReviewThread, PrReviewComment } from '@/lib/api/types';
@@ -110,13 +110,14 @@ export const PrReviewSection: React.FC<PrReviewSectionProps> = ({ threads, onRef
   const [isFixing, setIsFixing] = useState(false);
   const [isReviewing, setIsReviewing] = useState(false);
   
-  const sendMessage = useSessionStore(state => state.sendMessage);
-  const createSession = useSessionStore(state => state.createSession);
-  const currentSessionId = useSessionStore(state => state.currentSessionId);
+  const sendMessage = useChatStore(state => state.sendMessage);
+  const createAndLoadSession = useChatStore(state => state.createAndLoadSession);
+  const currentSessionId = useChatStore(state => state.currentSessionId);
+  const agentSelection = useChatStore(state => state.agentSelection);
+  const getAgentModelSelection = useChatStore(state => state.getAgentModelSelection);
+  const getAgentModelVariantSelection = useChatStore(state => state.getAgentModelVariantSelection);
   const { currentProviderId, currentModelId, currentAgentName, currentVariant } = useConfigStore();
-  const getSessionAgentSelection = useContextStore(state => state.getSessionAgentSelection);
-  const getAgentModelForSession = useContextStore(state => state.getAgentModelForSession);
-  const getAgentModelVariantForSession = useContextStore(state => state.getAgentModelVariantForSession);
+  const currentDirectory = useDirectoryStore(state => state.currentDirectory);
   const setActiveMainTab = useUIStore(state => state.setActiveMainTab);
 
   const handleSendToAgent = useCallback(async (comment: PrReviewComment, thread: PrReviewThread) => {
@@ -125,8 +126,8 @@ export const PrReviewSection: React.FC<PrReviewSectionProps> = ({ threads, onRef
       return;
     }
 
-    const sessionAgent = getSessionAgentSelection(currentSessionId) || currentAgentName;
-    const sessionModel = sessionAgent ? getAgentModelForSession(currentSessionId, sessionAgent) : null;
+    const sessionAgent = agentSelection || currentAgentName;
+    const sessionModel = sessionAgent ? getAgentModelSelection(sessionAgent) : null;
     const effectiveProviderId = sessionModel?.providerId || currentProviderId;
     const effectiveModelId = sessionModel?.modelId || currentModelId;
 
@@ -136,7 +137,7 @@ export const PrReviewSection: React.FC<PrReviewSectionProps> = ({ threads, onRef
     }
 
     const effectiveVariant = sessionAgent && effectiveProviderId && effectiveModelId
-      ? getAgentModelVariantForSession(currentSessionId, sessionAgent, effectiveProviderId, effectiveModelId) ?? currentVariant
+      ? getAgentModelVariantSelection(sessionAgent, effectiveProviderId, effectiveModelId) ?? currentVariant
       : currentVariant;
 
     const location = comment.line ? `${comment.path}:${comment.line}` : comment.path;
@@ -171,21 +172,19 @@ Please address this review comment.`;
       setSendingCommentId(null);
     }
   }, [currentSessionId, currentProviderId, currentModelId, currentAgentName, currentVariant, 
-      sendMessage, setActiveMainTab, getSessionAgentSelection, getAgentModelForSession, getAgentModelVariantForSession]);
+      sendMessage, setActiveMainTab, agentSelection, getAgentModelSelection, getAgentModelVariantSelection]);
 
-  const getEffectiveConfig = useCallback((sessionId: string | null) => {
-    if (!sessionId) return { providerId: currentProviderId, modelId: currentModelId, agent: currentAgentName, variant: currentVariant };
-    
-    const sessionAgent = getSessionAgentSelection(sessionId) || currentAgentName;
-    const sessionModel = sessionAgent ? getAgentModelForSession(sessionId, sessionAgent) : null;
+  const getEffectiveConfig = useCallback(() => {
+    const sessionAgent = agentSelection || currentAgentName;
+    const sessionModel = sessionAgent ? getAgentModelSelection(sessionAgent) : null;
     const effectiveProviderId = sessionModel?.providerId || currentProviderId;
     const effectiveModelId = sessionModel?.modelId || currentModelId;
     const effectiveVariant = sessionAgent && effectiveProviderId && effectiveModelId
-      ? getAgentModelVariantForSession(sessionId, sessionAgent, effectiveProviderId, effectiveModelId) ?? currentVariant
+      ? getAgentModelVariantSelection(sessionAgent, effectiveProviderId, effectiveModelId) ?? currentVariant
       : currentVariant;
     
     return { providerId: effectiveProviderId, modelId: effectiveModelId, agent: sessionAgent, variant: effectiveVariant };
-  }, [currentProviderId, currentModelId, currentAgentName, currentVariant, getSessionAgentSelection, getAgentModelForSession, getAgentModelVariantForSession]);
+  }, [currentProviderId, currentModelId, currentAgentName, currentVariant, agentSelection, getAgentModelSelection, getAgentModelVariantSelection]);
 
   const handleFixTopIssues = useCallback(async () => {
     const unresolvedThreads = threads.filter(t => !t.isResolved);
@@ -198,8 +197,8 @@ Please address this review comment.`;
     setActiveMainTab('chat');
 
     try {
-      const newSession = await createSession('PR Review Fixes');
-      if (!newSession) {
+      const newSessionId = currentDirectory ? await createAndLoadSession(currentDirectory, 'PR Review Fixes') : null;
+      if (!newSessionId) {
         toast.error('Failed to create session');
         return;
       }
@@ -225,7 +224,7 @@ Please analyze these review comments and fix each issue. For each fix:
 
 Start with the most critical issues first.`;
 
-      const config = getEffectiveConfig(newSession.id);
+      const config = getEffectiveConfig();
       if (!config.providerId || !config.modelId) {
         toast.error('Select a model first');
         return;
@@ -248,7 +247,7 @@ Start with the most critical issues first.`;
     } finally {
       setIsFixing(false);
     }
-  }, [threads, createSession, sendMessage, setActiveMainTab, getEffectiveConfig]);
+  }, [threads, createAndLoadSession, currentDirectory, sendMessage, setActiveMainTab, getEffectiveConfig]);
 
   const handleReviewAndResolve = useCallback(async () => {
     if (threads.length === 0) {
@@ -260,8 +259,8 @@ Start with the most critical issues first.`;
     setActiveMainTab('chat');
 
     try {
-      const newSession = await createSession('PR Review Cleanup');
-      if (!newSession) {
+      const newSessionId = currentDirectory ? await createAndLoadSession(currentDirectory, 'PR Review Cleanup') : null;
+      if (!newSessionId) {
         toast.error('Failed to create session');
         return;
       }
@@ -293,7 +292,7 @@ For each **open** comment:
 
 Report which comments you resolved and which still need attention.`;
 
-      const config = getEffectiveConfig(newSession.id);
+      const config = getEffectiveConfig();
       if (!config.providerId || !config.modelId) {
         toast.error('Select a model first');
         return;
@@ -316,7 +315,7 @@ Report which comments you resolved and which still need attention.`;
     } finally {
       setIsReviewing(false);
     }
-  }, [threads, createSession, sendMessage, setActiveMainTab, getEffectiveConfig]);
+  }, [threads, createAndLoadSession, currentDirectory, sendMessage, setActiveMainTab, getEffectiveConfig]);
 
   const unresolvedCount = threads.filter(t => !t.isResolved).length;
   const resolvedCount = threads.filter(t => t.isResolved).length;

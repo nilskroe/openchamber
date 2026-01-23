@@ -11,9 +11,8 @@ import { flexokiThemeNames } from '@/lib/shiki/flexokiThemes';
 
 import { toast } from '@/components/ui';
 import { Textarea } from '@/components/ui/textarea';
-import { useSessionStore } from '@/stores/useSessionStore';
+import { useChatStore } from '@/stores/useChatStore';
 import { useConfigStore } from '@/stores/useConfigStore';
-import { useContextStore } from '@/stores/contextStore';
 import { useUIStore } from '@/stores/useUIStore';
 import { useDeviceInfo } from '@/lib/device';
 import { cn, getModifierLabel } from '@/lib/utils';
@@ -156,12 +155,12 @@ export const PierreDiffViewer: React.FC<PierreDiffViewerProps> = ({
   
   const [mainContentCenter, setMainContentCenter] = useState<string>(getMainContentCenter);
   
-  const sendMessage = useSessionStore(state => state.sendMessage);
-  const currentSessionId = useSessionStore(state => state.currentSessionId);
+  const sendMessage = useChatStore(state => state.sendMessage);
+  const currentSessionId = useChatStore(state => state.currentSessionId);
+  const agentSelection = useChatStore(state => state.agentSelection);
+  const getAgentModelSelection = useChatStore(state => state.getAgentModelSelection);
+  const getAgentModelVariantSelection = useChatStore(state => state.getAgentModelVariantSelection);
   const { currentProviderId, currentModelId, currentAgentName, currentVariant } = useConfigStore();
-  const getSessionAgentSelection = useContextStore(state => state.getSessionAgentSelection);
-  const getAgentModelForSession = useContextStore(state => state.getAgentModelForSession);
-  const getAgentModelVariantForSession = useContextStore(state => state.getAgentModelVariantForSession);
   
   // Update main content center on resize
   useEffect(() => {
@@ -251,8 +250,8 @@ export const PierreDiffViewer: React.FC<PierreDiffViewerProps> = ({
     }
 
     // Get session-specific agent/model/variant with fallback to config values
-    const sessionAgent = getSessionAgentSelection(currentSessionId) || currentAgentName;
-    const sessionModel = sessionAgent ? getAgentModelForSession(currentSessionId, sessionAgent) : null;
+    const sessionAgent = agentSelection || currentAgentName;
+    const sessionModel = sessionAgent ? getAgentModelSelection(sessionAgent) : null;
     const effectiveProviderId = sessionModel?.providerId || currentProviderId;
     const effectiveModelId = sessionModel?.modelId || currentModelId;
 
@@ -262,7 +261,7 @@ export const PierreDiffViewer: React.FC<PierreDiffViewerProps> = ({
     }
 
     const effectiveVariant = sessionAgent && effectiveProviderId && effectiveModelId
-      ? getAgentModelVariantForSession(currentSessionId, sessionAgent, effectiveProviderId, effectiveModelId) ?? currentVariant
+      ? getAgentModelVariantSelection(sessionAgent, effectiveProviderId, effectiveModelId) ?? currentVariant
       : currentVariant;
     
     const code = extractSelectedCode(original, modified, selection);
@@ -291,7 +290,7 @@ export const PierreDiffViewer: React.FC<PierreDiffViewerProps> = ({
     } catch (e) {
       console.error("Failed to send comment", e);
     }
-  }, [selection, commentText, original, modified, fileName, language, sendMessage, currentSessionId, currentProviderId, currentModelId, currentAgentName, currentVariant, setActiveMainTab, getSessionAgentSelection, getAgentModelForSession, getAgentModelVariantForSession]);
+  }, [selection, commentText, original, modified, fileName, language, sendMessage, currentSessionId, currentProviderId, currentModelId, currentAgentName, currentVariant, setActiveMainTab, agentSelection, getAgentModelSelection, getAgentModelVariantSelection]);
 
   ensureFlexokiThemesRegistered();
 

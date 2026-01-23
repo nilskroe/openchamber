@@ -5,6 +5,7 @@
 
 import { opencodeClient } from './opencode/client';
 import type { FilesAPI, RuntimeAPIs } from './api/types';
+import { normalizePath as normalize, joinPath } from '@/lib/paths';
 
 const CONFIG_FILENAME = 'openchamber.json';
 const CONFIG_DIR = '.openchamber';
@@ -24,21 +25,6 @@ function getRuntimeFilesAPI(): FilesAPI | null {
 export interface OpenChamberConfig {
   'setup-worktree'?: string[];
 }
-
-const normalize = (value: string): string => {
-  if (!value) return '';
-  const replaced = value.replace(/\\/g, '/');
-  return replaced === '/' ? '/' : replaced.replace(/\/+$/, '');
-};
-
-const joinPath = (base: string, segment: string): string => {
-  const normalizedBase = normalize(base);
-  const cleanSegment = segment.replace(/\\/g, '/').replace(/^\/+/, '').replace(/\/+$/, '');
-  if (!normalizedBase || normalizedBase === '/') {
-    return `/${cleanSegment}`;
-  }
-  return `${normalizedBase}/${cleanSegment}`;
-};
 
 const getConfigPath = (projectDirectory: string): string => {
   return joinPath(joinPath(projectDirectory, CONFIG_DIR), CONFIG_FILENAME);

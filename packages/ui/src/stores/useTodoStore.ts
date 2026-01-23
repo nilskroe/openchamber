@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 
 import { opencodeClient } from "@/lib/opencode/client";
-import { useSessionStore } from "./useSessionStore";
+import { useDirectoryStore } from "./useDirectoryStore";
 
 export type TodoStatus = "pending" | "in_progress" | "completed" | "cancelled";
 export type TodoPriority = "high" | "medium" | "low";
@@ -47,7 +47,7 @@ export const useTodoStore = create<TodoStore>()(
         set({ isLoading: true });
 
         try {
-          const directory = useSessionStore.getState().getDirectoryForSession(sessionId);
+          const directory = useDirectoryStore.getState().currentDirectory;
           const rawTodos = directory
             ? await opencodeClient.withDirectory(directory, () => opencodeClient.getSessionTodos(sessionId))
             : await opencodeClient.getSessionTodos(sessionId);

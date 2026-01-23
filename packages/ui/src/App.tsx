@@ -4,7 +4,7 @@ import { VSCodeLayout } from '@/components/layout/VSCodeLayout';
 import { AgentManagerView } from '@/components/views/agent-manager';
 import { FireworksProvider } from '@/contexts/FireworksContext';
 import { Toaster } from '@/components/ui/sonner';
-import { MemoryDebugPanel } from '@/components/ui/MemoryDebugPanel';
+
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { useEventStream } from '@/hooks/useEventStream';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
@@ -17,7 +17,7 @@ import { usePushVisibilityBeacon } from '@/hooks/usePushVisibilityBeacon';
 import { GitPollingProvider } from '@/hooks/useGitPolling';
 import { useConfigStore } from '@/stores/useConfigStore';
 import { hasModifier } from '@/lib/utils';
-import { useSessionStore } from '@/stores/useSessionStore';
+import { useChatStore } from '@/stores/useChatStore';
 import { useDirectoryStore } from '@/stores/useDirectoryStore';
 import { opencodeClient } from '@/lib/opencode/client';
 import { useFontPreferences } from '@/hooks/useFontPreferences';
@@ -47,10 +47,10 @@ type AppProps = {
 
 function App({ apis }: AppProps) {
   const { initializeApp, isInitialized, isConnected } = useConfigStore();
-  const { error, clearError, loadSessions } = useSessionStore();
+  const { loadSession } = useChatStore();
   const currentDirectory = useDirectoryStore((state) => state.currentDirectory);
   const isSwitchingDirectory = useDirectoryStore((state) => state.isSwitchingDirectory);
-  const [showMemoryDebug, setShowMemoryDebug] = React.useState(false);
+
   const { uiFont, monoFont } = useFontPreferences();
   const [isDesktopRuntime, setIsDesktopRuntime] = React.useState<boolean>(() => apis.runtime.isDesktop);
   const [isVSCodeRuntime, setIsVSCodeRuntime] = React.useState<boolean>(() => apis.runtime.isVSCode);
@@ -150,11 +150,11 @@ function App({ apis }: AppProps) {
       }
       opencodeClient.setDirectory(currentDirectory);
 
-      await loadSessions();
+      await loadSession(currentDirectory);
     };
 
     syncDirectoryAndSessions();
-  }, [currentDirectory, isSwitchingDirectory, loadSessions, isConnected, isVSCodeRuntime]);
+  }, [currentDirectory, isSwitchingDirectory, loadSession, isConnected, isVSCodeRuntime]);
 
   useEventStream();
 
@@ -164,35 +164,13 @@ function App({ apis }: AppProps) {
 
   useKeyboardShortcuts();
 
-  const handleToggleMemoryDebug = React.useCallback(() => {
-    setShowMemoryDebug(prev => !prev);
-  }, []);
-
-  useMenuActions(handleToggleMemoryDebug);
+  useMenuActions();
 
   useMessageSync();
 
   useSessionStatusBootstrap();
   useSessionAutoCleanup();
 
-  React.useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (hasModifier(e) && e.shiftKey && e.key === 'D') {
-        e.preventDefault();
-        setShowMemoryDebug(prev => !prev);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  React.useEffect(() => {
-    if (error) {
-
-      setTimeout(() => clearError(), 5000);
-    }
-  }, [error, clearError]);
 
   const handleCliAvailable = React.useCallback(() => {
     setCliAvailable(true);
@@ -253,9 +231,6 @@ function App({ apis }: AppProps) {
               <Toaster />
               <ConfigUpdateOverlay />
               <AboutDialogWrapper />
-              {showMemoryDebug && (
-                <MemoryDebugPanel onClose={() => setShowMemoryDebug(false)} />
-              )}
             </div>
           </FireworksProvider>
         </GitPollingProvider>

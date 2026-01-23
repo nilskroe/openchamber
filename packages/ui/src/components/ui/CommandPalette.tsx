@@ -10,12 +10,12 @@ import {
   CommandShortcut,
 } from '@/components/ui/command';
 import { useUIStore } from '@/stores/useUIStore';
-import { useSessionStore } from '@/stores/useSessionStore';
+import { useChatStore } from '@/stores/useChatStore';
 import { useDirectoryStore } from '@/stores/useDirectoryStore';
 import { useConfigStore } from '@/stores/useConfigStore';
 import { useThemeSystem } from '@/contexts/useThemeSystem';
 import { useDeviceInfo } from '@/lib/device';
-import { RiAddLine, RiChatAi3Line, RiCheckLine, RiCodeLine, RiComputerLine, RiGitBranchLine, RiLayoutLeftLine, RiMoonLine, RiQuestionLine, RiRestartLine, RiSettings3Line, RiSunLine, RiTerminalBoxLine, RiTimeLine } from '@remixicon/react';
+import { RiAddLine, RiCheckLine, RiCodeLine, RiComputerLine, RiGitBranchLine, RiLayoutLeftLine, RiMoonLine, RiQuestionLine, RiRestartLine, RiSettings3Line, RiSunLine, RiTerminalBoxLine, RiTimeLine } from '@remixicon/react';
 import { reloadOpenCodeConfiguration } from '@/stores/useAgentsStore';
 import { getModifierLabel } from '@/lib/utils';
 import { createWorktreeSession } from '@/lib/worktreeSessionCreator';
@@ -32,11 +32,7 @@ export const CommandPalette: React.FC = () => {
     toggleSidebar,
   } = useUIStore();
 
-  const {
-    openNewSessionDraft,
-    setCurrentSession,
-    getSessionsByDirectory,
-  } = useSessionStore();
+  const { createAndLoadSession } = useChatStore();
 
   const settingsAutoCreateWorktree = useConfigStore((state) => state.settingsAutoCreateWorktree);
 
@@ -50,12 +46,9 @@ export const CommandPalette: React.FC = () => {
   const handleCreateSession = async () => {
     setActiveMainTab('chat');
     setSessionSwitcherOpen(false);
-    openNewSessionDraft();
-    handleClose();
-  };
-
-  const handleOpenSession = (sessionId: string) => {
-    setCurrentSession(sessionId);
+    if (currentDirectory) {
+      void createAndLoadSession(currentDirectory);
+    }
     handleClose();
   };
 
@@ -115,11 +108,6 @@ export const CommandPalette: React.FC = () => {
     setTimelineDialogOpen(true);
     handleClose();
   };
-
-  const directorySessions = getSessionsByDirectory(currentDirectory ?? '');
-  const currentSessions = React.useMemo(() => {
-    return directorySessions.slice(0, 5);
-  }, [directorySessions]);
 
   return (
     <CommandDialog open={isCommandPaletteOpen} onOpenChange={setCommandPaletteOpen}>
@@ -202,25 +190,6 @@ export const CommandPalette: React.FC = () => {
             {themeMode === 'system' && <RiCheckLine className="ml-auto h-4 w-4" />}
           </CommandItem>
         </CommandGroup>
-
-        {currentSessions.length > 0 && (
-          <>
-            <CommandSeparator />
-            <CommandGroup heading="Recent Sessions">
-              {currentSessions.map((session) => (
-                <CommandItem
-                  key={session.id}
-                  onSelect={() => handleOpenSession(session.id)}
-                >
-                  <RiChatAi3Line className="mr-2 h-4 w-4" />
-                  <span className="truncate">
-                    {session.title || 'Untitled Session'}
-                  </span>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </>
-        )}
 
         {}
       </CommandList>

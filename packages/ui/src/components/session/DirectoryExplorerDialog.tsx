@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { DirectoryTree } from './DirectoryTree';
 import { useDirectoryStore } from '@/stores/useDirectoryStore';
 import { useProjectsStore } from '@/stores/useProjectsStore';
+import { validateGitHubProject } from '@/stores/useProjectsStore';
 import { useFileSystemAccess } from '@/hooks/useFileSystemAccess';
 import { cn, formatPathForDisplay } from '@/lib/utils';
 import { toast } from '@/components/ui';
@@ -114,10 +115,18 @@ export const DirectoryExplorerDialog: React.FC<DirectoryExplorerDialogProps> = (
         }
       }
 
-      const added = addProject(resolvedPath, { id: projectId });
-      if (!added) {
-        toast.error('Failed to add project', {
-          description: 'Please select a valid directory path.',
+      try {
+        const { owner, repo } = await validateGitHubProject(resolvedPath);
+        const added = addProject(resolvedPath, { id: projectId, owner, repo });
+        if (!added) {
+          toast.error('Failed to add project', {
+            description: 'Please select a valid directory path.',
+          });
+          return;
+        }
+      } catch (err) {
+        toast.error('Cannot add project', {
+          description: err instanceof Error ? err.message : 'Only GitHub repositories can be added as projects.',
         });
         return;
       }

@@ -18,11 +18,10 @@ import {
   RiGitPullRequestLine,
 } from '@remixicon/react';
 import { cn } from '@/lib/utils';
-import { getGitBranches, listGitWorktrees, getRemoteUrl, gitFetch } from '@/lib/gitApi';
+import { getGitBranches, listGitWorktrees, gitFetch } from '@/lib/gitApi';
 import type { GitBranch, GitWorktreeInfo } from '@/lib/api/types';
 import { createWorktreeSessionForBranch } from '@/lib/worktreeSessionCreator';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
-import { parseGitHubRemoteUrl } from '@/lib/github-repos/utils';
 import type { PullRequest } from '@/lib/github-repos/types';
 
 interface Project {
@@ -30,6 +29,8 @@ interface Project {
   path: string;
   normalizedPath: string;
   label?: string;
+  owner: string;
+  repo: string;
 }
 
 interface BranchPickerDialogProps {
@@ -85,24 +86,20 @@ export function BranchPickerDialog({
           worktrees: [],
           loading: true,
           error: null,
-          githubOwner: null,
-          githubRepo: null,
+          githubOwner: project.owner,
+          githubRepo: project.repo,
           prs: [],
-          prsLoading: false,
+          prsLoading: true,
           prsError: null,
         });
         return next;
       });
 
       try {
-        const [branches, worktrees, remoteUrl] = await Promise.all([
+        const [branches, worktrees] = await Promise.all([
           getGitBranches(project.path),
           listGitWorktrees(project.path),
-          getRemoteUrl(project.path, 'origin'),
         ]);
-
-        // Parse GitHub info from remote URL
-        const githubInfo = remoteUrl ? parseGitHubRemoteUrl(remoteUrl) : null;
 
         setProjectData(prev => {
           const next = new Map(prev);
@@ -111,53 +108,51 @@ export function BranchPickerDialog({
             worktrees,
             loading: false,
             error: null,
-            githubOwner: githubInfo?.owner || null,
-            githubRepo: githubInfo?.repo || null,
+            githubOwner: project.owner,
+            githubRepo: project.repo,
             prs: [],
-            prsLoading: !!githubInfo,
+            prsLoading: true,
             prsError: null,
           });
           return next;
         });
 
-        // If we have GitHub info, fetch PRs
-        if (githubInfo) {
-          try {
-            const response = await fetch(`/api/github/${githubInfo.owner}/${githubInfo.repo}/prs`);
-            if (!response.ok) {
-              const errorData = await response.json().catch(() => ({ error: 'Failed to fetch PRs' }));
-              throw new Error(errorData.message || errorData.error || 'Failed to fetch PRs');
-            }
-            const data = await response.json();
-            const prs: PullRequest[] = (data.prs || []).filter((pr: PullRequest) => pr.state === 'open');
-
-            setProjectData(prev => {
-              const next = new Map(prev);
-              const existing = next.get(project.id);
-              if (existing) {
-                next.set(project.id, {
-                  ...existing,
-                  prs,
-                  prsLoading: false,
-                  prsError: null,
-                });
-              }
-              return next;
-            });
-          } catch (prErr) {
-            setProjectData(prev => {
-              const next = new Map(prev);
-              const existing = next.get(project.id);
-              if (existing) {
-                next.set(project.id, {
-                  ...existing,
-                  prsLoading: false,
-                  prsError: prErr instanceof Error ? prErr.message : 'Failed to load PRs',
-                });
-              }
-              return next;
-            });
+        // Fetch PRs using project's GitHub info directly
+        try {
+          const response = await fetch(`/api/github/${project.owner}/${project.repo}/prs`);
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: 'Failed to fetch PRs' }));
+            throw new Error(errorData.message || errorData.error || 'Failed to fetch PRs');
           }
+          const data = await response.json();
+          const prs: PullRequest[] = (data.prs || []).filter((pr: PullRequest) => pr.state === 'open');
+
+          setProjectData(prev => {
+            const next = new Map(prev);
+            const existing = next.get(project.id);
+            if (existing) {
+              next.set(project.id, {
+                ...existing,
+                prs,
+                prsLoading: false,
+                prsError: null,
+              });
+            }
+            return next;
+          });
+        } catch (prErr) {
+          setProjectData(prev => {
+            const next = new Map(prev);
+            const existing = next.get(project.id);
+            if (existing) {
+              next.set(project.id, {
+                ...existing,
+                prsLoading: false,
+                prsError: prErr instanceof Error ? prErr.message : 'Failed to load PRs',
+              });
+            }
+            return next;
+          });
         }
       } catch (err) {
         setProjectData(prev => {

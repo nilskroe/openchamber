@@ -4,8 +4,7 @@ import { useShallow } from 'zustand/react/shallow';
 
 import { defaultCodeDark, defaultCodeLight } from '@/lib/codeTheme';
 import { MessageFreshnessDetector } from '@/lib/messageFreshness';
-import { useSessionStore } from '@/stores/useSessionStore';
-import { useMessageStore } from '@/stores/messageStore';
+import { useChatStore } from '@/stores/useChatStore';
 import { useConfigStore } from '@/stores/useConfigStore';
 import { useUIStore } from '@/stores/useUIStore';
 import { useDeviceInfo } from '@/lib/device';
@@ -83,16 +82,14 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
     const messageSessionId = (message.info as { sessionID?: string }).sessionID ?? null;
 
     // Subscribe to primitive values only - avoid inline functions in selectors
-    const sessionState = useSessionStore(
+    const sessionState = useChatStore(
         useShallow((state) => ({
             lifecyclePhase: state.messageStreamStates.get(message.info.id)?.phase ?? null,
             currentSessionId: state.currentSessionId,
-            // Get the streaming message ID for this session (primitive value)
-            currentStreamingMessageId: state.streamingMessageIds.get(messageSessionId ?? state.currentSessionId ?? '') ?? null,
-            getCurrentAgent: state.getCurrentAgent,
-            getSessionAgentSelection: state.getSessionAgentSelection,
-            getAgentModelForSession: state.getAgentModelForSession,
-            getSessionModelSelection: state.getSessionModelSelection,
+            currentStreamingMessageId: state.streamingMessageId,
+            agentSelection: state.agentSelection,
+            modelSelection: state.modelSelection,
+            getAgentModelSelection: state.getAgentModelSelection,
         }))
     );
 
@@ -100,10 +97,9 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
         lifecyclePhase,
         currentSessionId,
         currentStreamingMessageId,
-        getCurrentAgent,
-        getSessionAgentSelection,
-        getAgentModelForSession,
-        getSessionModelSelection,
+        agentSelection,
+        modelSelection,
+        getAgentModelSelection,
     } = sessionState;
 
     // Compute isStreamingMessage outside the selector for stability
@@ -203,14 +199,8 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
             return undefined;
         }
 
-        const currentContextAgent = getCurrentAgent(sessionId);
-        if (currentContextAgent) {
-            return currentContextAgent;
-        }
-
-        const savedSelection = getSessionAgentSelection(sessionId);
-        return savedSelection ?? undefined;
-    }, [isUser, message.info, previousUserMetadata, getCurrentAgent, getSessionAgentSelection]);
+        return agentSelection ?? undefined;
+    }, [isUser, message.info, previousUserMetadata, agentSelection]);
 
     const sessionId = message.info.sessionID;
     const messageProviderID = !isUser ? getMessageInfoProp(message.info, 'providerID') : null;
@@ -227,19 +217,18 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
         }
 
         if (agentName) {
-            const agentSelection = getAgentModelForSession(sessionId, agentName);
-            if (agentSelection?.providerId && agentSelection?.modelId) {
-                return agentSelection;
+            const agentModel = getAgentModelSelection(agentName);
+            if (agentModel?.providerId && agentModel?.modelId) {
+                return agentModel;
             }
         }
 
-        const sessionSelection = getSessionModelSelection(sessionId);
-        if (sessionSelection?.providerId && sessionSelection?.modelId) {
-            return sessionSelection;
+        if (modelSelection?.providerId && modelSelection?.modelId) {
+            return modelSelection;
         }
 
         return null;
-    }, [isUser, sessionId, agentName, previousUserMetadata, getAgentModelForSession, getSessionModelSelection]);
+    }, [isUser, sessionId, agentName, previousUserMetadata, getAgentModelSelection, modelSelection]);
 
     const providerID = React.useMemo(() => {
         if (isUser) return null;
@@ -518,23 +507,19 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
     }, []);
 
     const userMessageIdForTurn = turnGroupingContext?.turnId;
-    const { assistantSummaryFromStore, variantFromTurnStore } = useMessageStore(
+    const { assistantSummaryFromStore, variantFromTurnStore } = useChatStore(
         useShallow((state) => {
             if (!userMessageIdForTurn) return { assistantSummaryFromStore: undefined, variantFromTurnStore: undefined };
-            const sessionId = message.info.sessionID;
-            if (!sessionId) return { assistantSummaryFromStore: undefined, variantFromTurnStore: undefined };
-            const sessionMessages = state.messages.get(sessionId);
-            if (!sessionMessages) return { assistantSummaryFromStore: undefined, variantFromTurnStore: undefined };
-            const userMsg = sessionMessages.find((entry) => entry.info?.id === userMessageIdForTurn);
+            const userMsg = state.messages.find((entry) => entry.info?.id === userMessageIdForTurn);
             if (!userMsg) return { assistantSummaryFromStore: undefined, variantFromTurnStore: undefined };
-            
+
             const summary = (userMsg.info as { summary?: { body?: string | null | undefined } | null | undefined }).summary;
             const body = summary?.body;
             const assistantSummary = typeof body === 'string' && body.trim().length > 0 ? body : undefined;
-            
+
             const variant = (userMsg.info as { variant?: unknown }).variant;
             const variantValue = typeof variant === 'string' && variant.trim().length > 0 ? variant : undefined;
-            
+
             return { assistantSummaryFromStore: assistantSummary, variantFromTurnStore: variantValue };
         })
     );
@@ -647,7 +632,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
         setTimeout(() => setCopiedMessage(false), 2000);
     }, [copyTextToClipboard, messageTextContent]);
 
-    const { revertToMessage, forkFromMessage } = useSessionStore(
+    const { revertToMessage, forkFromMessage } = useChatStore(
         useShallow((state) => ({
             revertToMessage: state.revertToMessage,
             forkFromMessage: state.forkFromMessage,
@@ -656,13 +641,13 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
 
     const handleRevert = React.useCallback(() => {
         if (!sessionId || !message.info.id) return;
-        revertToMessage(sessionId, message.info.id);
+        revertToMessage(message.info.id);
     }, [sessionId, message.info.id, revertToMessage]);
 
     // NEW: Fork handler
     const handleFork = React.useCallback(() => {
         if (!sessionId || !message.info.id) return;
-        forkFromMessage(sessionId, message.info.id);
+        forkFromMessage(message.info.id);
     }, [sessionId, message.info.id, forkFromMessage]);
 
     const handleToggleTool = React.useCallback((toolId: string) => {

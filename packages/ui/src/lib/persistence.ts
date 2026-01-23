@@ -5,6 +5,7 @@ import { useMessageQueueStore } from '@/stores/messageQueueStore';
 import { useAppRunnerStore } from '@/stores/useAppRunnerStore';
 import { loadAppearancePreferences, applyAppearancePreferences } from '@/lib/appearancePersistence';
 import { getRegisteredRuntimeAPIs } from '@/contexts/runtimeAPIRegistry';
+import { normalizePath } from '@/lib/paths';
 
 const persistToLocalStorage = (settings: DesktopSettings) => {
   if (typeof window === 'undefined') {
@@ -111,7 +112,7 @@ const sanitizeProjects = (value: unknown): DesktopSettings['projects'] | undefin
     const rawPath = typeof candidate.path === 'string' ? candidate.path.trim() : '';
     if (!id || !rawPath) continue;
 
-    const normalizedPath = rawPath === '/' ? rawPath : rawPath.replace(/\\/g, '/').replace(/\/+$/, '');
+    const normalizedPath = normalizePath(rawPath);
     if (!normalizedPath) continue;
 
     if (seenIds.has(id) || seenPaths.has(normalizedPath)) continue;

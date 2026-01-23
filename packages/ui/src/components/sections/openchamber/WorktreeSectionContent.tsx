@@ -13,9 +13,10 @@ import {
 } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useProjectsStore } from '@/stores/useProjectsStore';
-import { useSessionStore } from '@/stores/useSessionStore';
+import { normalizePath } from '@/lib/paths';
+import { useChatStore } from '@/stores/useChatStore';
 import { useGitBranches, useIsGitRepo } from '@/stores/useGitStore';
-import { checkIsGitRepository, getGitBranches } from '@/lib/gitApi';
+import { getGitBranches } from '@/lib/gitApi';
 import { getWorktreeSetupCommands, saveWorktreeSetupCommands } from '@/lib/openchamberConfig';
 import { listWorktrees, mapWorktreeToMetadata } from '@/lib/git/worktreeService';
 import { sessionEvents } from '@/lib/sessionEvents';
@@ -37,7 +38,7 @@ export const WorktreeSectionContent: React.FC = () => {
   const isGitRepoFromStore = useIsGitRepo(projectPath);
   const branchesFromStore = useGitBranches(projectPath);
 
-  const { sessions, getWorktreeMetadata } = useSessionStore();
+  const { allSessions, getWorktreeMetadata } = useChatStore();
 
   const [branchPrefix, setBranchPrefix] = React.useState(worktreeDefaults?.branchPrefix ?? '');
   const [baseBranch, setBaseBranch] = React.useState(worktreeDefaults?.baseBranch ?? 'HEAD');
@@ -52,7 +53,7 @@ export const WorktreeSectionContent: React.FC = () => {
   const WORKTREE_ROOT = '.openchamber';
 
   const joinWorktreePath = React.useCallback((projectDirectory: string, slug: string): string => {
-    const normalizedProject = projectDirectory.replace(/\\/g, '/').replace(/\/+$/, '');
+    const normalizedProject = normalizePath(projectDirectory);
     const base = !normalizedProject || normalizedProject === '/'
       ? `/${WORKTREE_ROOT}`
       : `${normalizedProject}/${WORKTREE_ROOT}`;
@@ -87,7 +88,8 @@ export const WorktreeSectionContent: React.FC = () => {
 
     (async () => {
       try {
-        const repoStatus = await checkIsGitRepository(projectPath);
+        // Projects are guaranteed to be git repos
+        const repoStatus = true;
         if (cancelled) return;
         setIsGitRepoLocal(repoStatus);
 
@@ -104,7 +106,7 @@ export const WorktreeSectionContent: React.FC = () => {
 
             // Filter worktrees to only show those under .openchamber
             const mapped = worktrees.map((info) => mapWorktreeToMetadata(projectPath, info));
-            const worktreeRoot = `${projectPath.replace(/\\/g, '/').replace(/\/+$/, '')}/${WORKTREE_ROOT}`;
+            const worktreeRoot = `${normalizePath(projectPath)}/${WORKTREE_ROOT}`;
             const worktreePrefix = `${worktreeRoot}/`;
             const filtered = mapped.filter((item) => item.path.startsWith(worktreePrefix));
             setAvailableWorktrees(filtered);
@@ -255,69 +257,31 @@ export const WorktreeSectionContent: React.FC = () => {
 
   // Delete worktree handler
   const handleDeleteWorktree = React.useCallback((worktree: WorktreeMetadata) => {
-    const normalizedWorktreePath = worktree.path.replace(/\\/g, '/').replace(/\/+$/, '');
+    const normalizedWorktreePath = normalizePath(worktree.path);
 
-    // Find sessions linked to this worktree by:
-    // 1. Worktree metadata path match
-    // 2. Session directory match
-    const directSessions = sessions.filter((session) => {
-      // Check worktree metadata
+    // Find the session linked to this worktree (one session per worktree)
+    const linkedSession = allSessions.find((session: { id: string }) => {
       const metadata = getWorktreeMetadata(session.id);
-      if (metadata?.path === worktree.path) {
-        return true;
-      }
+      if (metadata?.path === worktree.path) return true;
 
-      // Check session directory
       const sessionDir = (session as { directory?: string }).directory;
       if (sessionDir) {
-        const normalizedSessionDir = sessionDir.replace(/\\/g, '/').replace(/\/+$/, '');
-        if (normalizedSessionDir === normalizedWorktreePath) {
-          return true;
-        }
+        return normalizePath(sessionDir) === normalizedWorktreePath;
       }
-
       return false;
     });
 
-    // Build a set of session IDs that are directly linked
-    const directSessionIds = new Set(directSessions.map((s) => s.id));
-
-    // Find all subsessions recursively
-    const findSubsessions = (parentIds: Set<string>): typeof sessions => {
-      const subsessions = sessions.filter((session) => {
-        const parentID = (session as { parentID?: string | null }).parentID;
-        return parentID && parentIds.has(parentID);
-      });
-      if (subsessions.length === 0) {
-        return [];
-      }
-      const subsessionIds = new Set(subsessions.map((s) => s.id));
-      return [...subsessions, ...findSubsessions(subsessionIds)];
-    };
-
-    const allSubsessions = findSubsessions(directSessionIds);
-
-    // Dedupe sessions (in case same session matched both ways)
-    const seenIds = new Set<string>();
-    const allSessions = [...directSessions, ...allSubsessions].filter((session) => {
-      if (seenIds.has(session.id)) {
-        return false;
-      }
-      seenIds.add(session.id);
-      return true;
-    });
-
     sessionEvents.requestDelete({
-      sessions: allSessions,
+      sessions: linkedSession ? [linkedSession] : [],
       mode: 'worktree',
       worktree,
     });
-  }, [sessions, getWorktreeMetadata]);
+  }, [allSessions, getWorktreeMetadata]);
 
 
 
   // Refresh worktrees when sessions change (after deletion)
-  const sessionsKey = React.useMemo(() => sessions.map(s => s.id).join(','), [sessions]);
+  const sessionsKey = React.useMemo(() => allSessions.map((s: { id: string }) => s.id).join(','), [allSessions]);
   React.useEffect(() => {
     if (isGitRepoLocal && projectPath) {
       refreshWorktrees();

@@ -1692,9 +1692,6 @@ class OpencodeService {
 
   // GitHub Operations
   async listGitHubRepos(): Promise<GitHubRepo[]> {
-    if (this.isDesktopRuntime()) {
-      throw new Error('GitHub integration is not available in the desktop app. Use the web version or clone repositories manually.');
-    }
     const response = await fetch(`${this.baseUrl}/github/repos`);
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Failed to fetch GitHub repositories' }));
@@ -1704,9 +1701,6 @@ class OpencodeService {
   }
 
   async cloneGitHubRepo(cloneUrl: string, targetDirectory: string): Promise<{ success: boolean; path: string }> {
-    if (this.isDesktopRuntime()) {
-      throw new Error('GitHub integration is not available in the desktop app. Use the web version or clone repositories manually.');
-    }
     const response = await fetch(`${this.baseUrl}/github/clone`, {
       method: 'POST',
       headers: {

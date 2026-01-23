@@ -1,4 +1,4 @@
-import type { MessageStreamLifecycle } from "../types/sessionTypes";
+import type { MessageStreamLifecycle } from "../types/chatTypes";
 
 export type { MessageStreamLifecycle };
 

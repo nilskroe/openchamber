@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useSessionStore } from '@/stores/useSessionStore';
+import { useChatStore } from '@/stores/useChatStore';
 import { useDirectoryStore } from '@/stores/useDirectoryStore';
 import { useProjectsStore } from '@/stores/useProjectsStore';
 import { opencodeClient } from '@/lib/opencode/client';
@@ -27,7 +27,7 @@ export interface DebugMessageInfo {
 export const debugUtils = {
 
   getLastAssistantMessage(): DebugMessageInfo | null {
-    const state = useSessionStore.getState();
+    const state = useChatStore.getState();
     const currentSessionId = state.currentSessionId;
 
     if (!currentSessionId) {
@@ -35,7 +35,7 @@ export const debugUtils = {
       return null;
     }
 
-    const messages = state.messages.get(currentSessionId);
+    const messages = state.messages;
     if (!messages || messages.length === 0) {
       console.log('[ERROR] No messages in current session');
       return null;
@@ -156,7 +156,7 @@ export const debugUtils = {
   },
 
   getAllMessages(truncate: boolean = false) {
-    const state = useSessionStore.getState();
+    const state = useChatStore.getState();
     const currentSessionId = state.currentSessionId;
 
     if (!currentSessionId) {
@@ -164,10 +164,10 @@ export const debugUtils = {
       return [];
     }
 
-    const messages = state.messages.get(currentSessionId) || [];
+    const messages = state.messages;
     console.log(`[MESSAGES] Total messages in session: ${messages.length}`);
 
-    messages.forEach((msg, idx) => {
+    messages.forEach((msg: { info: { role: string; id: string }; parts: any[] }, idx: number) => {
       console.log(`[${idx}] ${msg.info.role} - ${msg.info.id} - ${msg.parts.length} parts`);
     });
 
@@ -176,24 +176,12 @@ export const debugUtils = {
 
   async getAppStatus() {
     const directoryState = useDirectoryStore.getState();
-    const sessionState = useSessionStore.getState();
+    const sessionState = useChatStore.getState();
     const projectsState = useProjectsStore.getState();
     const currentDirectory = directoryState.currentDirectory || null;
     const opencodeDirectory = opencodeClient.getDirectory() ?? null;
 
-    const sessions = sessionState.sessions || [];
-    const sessionDirectories = new Set<string>();
-    const sessionDirectoryCounts: Record<string, number> = {};
-
-    sessions.forEach((session) => {
-      const directory = (session as { directory?: string | null }).directory;
-      if (typeof directory === 'string' && directory.trim().length > 0) {
-        sessionDirectories.add(directory);
-        sessionDirectoryCounts[directory] = (sessionDirectoryCounts[directory] ?? 0) + 1;
-      } else {
-        sessionDirectoryCounts['(none)'] = (sessionDirectoryCounts['(none)'] ?? 0) + 1;
-      }
-    });
+    const sessions = sessionState.allSessions || [];
 
     const localStorageSnapshot = (() => {
       if (typeof window === 'undefined') {
@@ -331,13 +319,9 @@ export const debugUtils = {
       sessions: {
         total: sessions.length,
         currentSessionId: sessionState.currentSessionId,
-        lastLoadedDirectory: sessionState.lastLoadedDirectory,
-        uniqueDirectories: sessionDirectories.size,
-        directorySamples: Array.from(sessionDirectories).slice(0, 5),
-        directoryCounts: sessionDirectoryCounts,
       },
       worktrees: {
-        available: sessionState.availableWorktrees.length,
+        available: Array.from(sessionState.availableWorktreesByProject.values()).flat().length,
         metadataEntries: sessionState.worktreeMetadata.size,
       },
       git: gitCheck,
@@ -396,24 +380,20 @@ export const debugUtils = {
   },
 
   getStreamingState() {
-    const state = useSessionStore.getState();
-    const currentStreamingId = state.currentSessionId
-      ? state.streamingMessageIds.get(state.currentSessionId) ?? null
-      : null;
+    const state = useChatStore.getState();
+    const currentStreamingId = state.streamingMessageId;
     console.log('[STREAM] Streaming State:', {
       streamingMessageId: currentStreamingId,
-      streamingMessageIds: Array.from(state.streamingMessageIds.entries()),
       messageStreamStates: Array.from(state.messageStreamStates.entries()),
     });
     return {
       streamingMessageId: currentStreamingId,
-      streamingMessageIds: state.streamingMessageIds,
       streamStates: state.messageStreamStates,
     };
   },
 
   findEmptyMessages() {
-    const state = useSessionStore.getState();
+    const state = useChatStore.getState();
     const currentSessionId = state.currentSessionId;
 
     if (!currentSessionId) {
@@ -421,10 +401,10 @@ export const debugUtils = {
       return [];
     }
 
-    const messages = state.messages.get(currentSessionId) || [];
+    const messages = state.messages;
     const emptyMessages = messages
-      .filter((msg) => msg.info.role === 'assistant')
-      .filter((msg) => {
+      .filter((msg: any) => msg.info.role === 'assistant')
+      .filter((msg: any) => {
         const parts = msg.parts || [];
         const hasTextContent = parts.some(
           (p: any) => p.type === 'text' && p.text && p.text.trim().length > 0
@@ -436,7 +416,7 @@ export const debugUtils = {
 
     console.log(`[INSPECT] Found ${emptyMessages.length} empty assistant messages`);
 
-    emptyMessages.forEach((msg, idx) => {
+    emptyMessages.forEach((msg: any, idx: number) => {
       console.log(`[${idx}] Empty message:`, {
         messageId: msg.info.id,
         partsCount: msg.parts.length,
@@ -472,7 +452,7 @@ export const debugUtils = {
     maxTableRows?: number;
   } = {}) {
     const { includeNonAssistant = false, verbose = true, maxTableRows = 25 } = options;
-    const state = useSessionStore.getState();
+    const state = useChatStore.getState();
     const currentSessionId = state.currentSessionId;
 
     if (!currentSessionId) {
@@ -480,10 +460,10 @@ export const debugUtils = {
       return { summary: null, rows: [] };
     }
 
-    const messages = state.messages.get(currentSessionId) || [];
+    const messages = state.messages;
     const targetMessages = includeNonAssistant
       ? messages
-      : messages.filter((msg) => msg.info.role === 'assistant');
+      : messages.filter((msg: any) => msg.info.role === 'assistant');
 
     const summary = {
       totalMessages: messages.length,
@@ -505,7 +485,7 @@ export const debugUtils = {
       return filtered.length > 0 ? Math.max(...filtered) : null;
     };
 
-    const rows = targetMessages.map((message, index) => {
+    const rows = targetMessages.map((message: any, index: number) => {
       const info = message.info ?? {};
       const parts = Array.isArray(message.parts) ? message.parts : [];
 
@@ -601,7 +581,7 @@ export const debugUtils = {
   },
 
    checkCompletionStatus() {
-    const state = useSessionStore.getState();
+    const state = useChatStore.getState();
     const currentSessionId = state.currentSessionId;
 
     if (!currentSessionId) {
@@ -609,8 +589,8 @@ export const debugUtils = {
       return null;
     }
 
-    const messages = state.messages.get(currentSessionId) || [];
-    const assistantMessages = messages.filter(m => m.info.role === 'assistant');
+    const messages = state.messages;
+    const assistantMessages = messages.filter((m: any) => m.info.role === 'assistant');
 
     if (assistantMessages.length === 0) {
       console.log('[ERROR] No assistant messages');
@@ -628,9 +608,7 @@ export const debugUtils = {
     const messageIsComplete = Boolean(hasCompletedFlag && hasStopReason);
 
      const messageStreamStates = state.messageStreamStates;
-    const streamingMessageId = (lastMessage.info as { sessionID?: string }).sessionID
-      ? state.streamingMessageIds.get((lastMessage.info as { sessionID?: string }).sessionID as string) ?? null
-      : null;
+    const streamingMessageId = state.streamingMessageId;
     const lifecycle = messageStreamStates.get(lastMessage.info.id);
     const isStreamingCandidate = lastMessage.info.id === streamingMessageId;
 

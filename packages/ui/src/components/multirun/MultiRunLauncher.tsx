@@ -9,10 +9,11 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { cn } from '@/lib/utils';
 import { useDirectoryStore } from '@/stores/useDirectoryStore';
 import { useMultiRunStore } from '@/stores/useMultiRunStore';
-import { useSessionStore } from '@/stores/useSessionStore';
+import { useChatStore } from '@/stores/useChatStore';
 import { useUIStore } from '@/stores/useUIStore';
 import { useProjectsStore } from '@/stores/useProjectsStore';
 import { getWorktreeSetupCommands } from '@/lib/openchamberConfig';
+import { normalizePath } from '@/lib/paths';
 import type { CreateMultiRunParams, MultiRunModelSelection } from '@/types/multirun';
 import { ModelMultiSelect, generateInstanceId, type ModelSelectionWithId } from './ModelMultiSelect';
 import { BranchSelector, useBranchOptions } from './BranchSelector';
@@ -84,7 +85,7 @@ export const MultiRunLauncher: React.FC<MultiRunLauncherProps> = ({
     const base = currentDirectory ?? vscodeWorkspaceFolder;
     if (!base) return null;
 
-    const normalized = base.replace(/\\/g, '/').replace(/\/+$/, '') || base;
+    const normalized = normalizePath(base);
     const marker = '/.openchamber/';
     const markerIndex = normalized.indexOf(marker);
     if (markerIndex > 0) return normalized.slice(0, markerIndex);
@@ -267,10 +268,6 @@ export const MultiRunLauncher: React.FC<MultiRunLauncherProps> = ({
 
       const result = await createMultiRun(params);
        if (result) {
-         if (result.firstSessionId) {
-           useSessionStore.getState().setCurrentSession(result.firstSessionId);
-         }
-
          // Close launcher
          onCreated?.();
        }

@@ -15,12 +15,12 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { GridLoader } from '@/components/ui/grid-loader';
 import { cn, getModifierLabel } from '@/lib/utils';
 import { useUIStore } from '@/stores/useUIStore';
-import { useSessionStore } from '@/stores/useSessionStore';
+import { useChatStore } from '@/stores/useChatStore';
 import { useAppRunnerStore } from '@/stores/useAppRunnerStore';
 import type { PaneId, PaneTab, PaneTabType } from '@/stores/usePaneStore';
 import { usePanes } from '@/stores/usePaneStore';
 import { useDirectoryStore } from '@/stores/useDirectoryStore';
-import { SessionHistoryDropdown } from './SessionHistoryDropdown';
+
 import { McpDropdown } from '@/components/mcp/McpDropdown';
 import { getTabIcon, getTabAddLabel, getTabLabel } from '@/constants/tabs';
 import { useSessionActivity } from '@/hooks/useSessionActivity';
@@ -59,10 +59,9 @@ const DraggableTabItem: React.FC<DraggableTabItemProps> = ({
   onDrop,
 }) => {
   const Icon = getTabIcon(tab.type);
-  // Use per-session hook - only re-renders when THIS session's phase changes
-  const { isWorking: isStreaming } = useSessionActivity(tab.type === 'chat' ? tab.sessionId : null);
+  const { isWorking: isStreaming } = useSessionActivity();
   const showLoader = tab.type === 'chat' && isStreaming;
-  const isClosable = tab.type !== 'appRunner';
+  const isClosable = tab.type !== 'appRunner' && tab.type !== 'chat';
 
   const handleClose = useCallback(
     (e: React.MouseEvent) => {
@@ -149,7 +148,7 @@ const NewTabMenu: React.FC<NewTabMenuProps> = ({ onSelect, onClose, anchorRef })
     }
   }, [anchorRef]);
 
-  const tabTypes: PaneTabType[] = ['chat', 'terminal', 'files', 'diff', 'git', 'todo', 'preview'];
+  const tabTypes: PaneTabType[] = ['terminal', 'files', 'diff', 'git', 'todo', 'preview'];
   const options = tabTypes.map((type) => ({
     type,
     label: getTabAddLabel(type),
@@ -220,22 +219,23 @@ export const PaneTabBar: React.FC<PaneTabBarProps> = ({
   const toggleHelpDialog = useUIStore((state) => state.toggleHelpDialog);
 
   const appRunnerEnabled = useAppRunnerStore((s) => s.enabled);
-  const appRunnerStatus = useAppRunnerStore((s) => s.status);
-  const appRunnerUrls = useAppRunnerStore((s) => s.detectedUrls);
   const [showUrlMenu, setShowUrlMenu] = useState(false);
   const urlButtonRef = useRef<HTMLButtonElement>(null);
-  
-  const sessions = useSessionStore((s) => s.sessions);
+
+  const sessionTitle = useChatStore((s) => s.sessionTitle);
   const currentDirectory = useDirectoryStore((s) => s.currentDirectory);
+
+  const dirState = useAppRunnerStore((s) => currentDirectory ? s.directoryStates[currentDirectory] : undefined);
+  const appRunnerStatus = dirState?.status ?? 'stopped';
+  const appRunnerUrls = dirState?.detectedUrls ?? [];
   const { addTab } = usePanes(currentDirectory);
 
   const getDisplayTitle = useCallback((tab: PaneTab) => {
-    if (tab.type === 'chat' && tab.sessionId) {
-      const session = sessions.find((s) => s.id === tab.sessionId);
-      if (session?.title) return session.title;
+    if (tab.type === 'chat' && sessionTitle) {
+      return sessionTitle;
     }
     return tab.title || getTabLabel(tab.type);
-  }, [sessions]);
+  }, [sessionTitle]);
 
   // Detect fullscreen mode - disable app-region-drag in fullscreen since window can't be dragged anyway
   // and it interferes with HTML5 drag-and-drop
@@ -430,8 +430,7 @@ export const PaneTabBar: React.FC<PaneTabBarProps> = ({
                   <button
                     type="button"
                     onClick={() => {
-                      const store = useAppRunnerStore.getState();
-                      if (store.status === 'running' || store.status === 'starting') {
+                      if (appRunnerStatus === 'running' || appRunnerStatus === 'starting') {
                         document.dispatchEvent(new CustomEvent('app-runner-stop'));
                       } else {
                         document.dispatchEvent(new CustomEvent('app-runner-start'));
@@ -556,11 +555,6 @@ export const PaneTabBar: React.FC<PaneTabBarProps> = ({
           </div>
         </div>
 
-        {paneId !== 'rightBottom' && (
-          <div className="border-l" style={{ borderColor: 'var(--interactive-border)' }}>
-            <SessionHistoryDropdown paneId={paneId} buttonClassName={actionButtonClass} />
-          </div>
-        )}
 
         {isLastPane && (
           <>

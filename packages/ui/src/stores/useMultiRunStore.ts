@@ -4,10 +4,10 @@ import type { CreateMultiRunParams, CreateMultiRunResult } from '@/types/multiru
 import { opencodeClient } from '@/lib/opencode/client';
 import { createWorktree, runWorktreeSetupCommands } from '@/lib/git/worktreeService';
 import { saveWorktreeSetupCommands } from '@/lib/openchamberConfig';
-import { checkIsGitRepository } from '@/lib/gitApi';
-import { useSessionStore } from './sessionStore';
+import { useChatStore } from './useChatStore';
 import { useDirectoryStore } from './useDirectoryStore';
 import { useProjectsStore } from './useProjectsStore';
+import { normalizePath } from '@/lib/paths';
 
 /**
  * Generate a git-safe slug from a string.
@@ -66,7 +66,7 @@ const resolveProjectDirectory = (): string | null => {
     return null;
   }
 
-  const normalized = currentDirectory.replace(/\\/g, '/').replace(/\/+$/, '') || currentDirectory;
+  const normalized = normalizePath(currentDirectory);
   const marker = '/.openchamber/';
   const markerIndex = normalized.indexOf(marker);
   if (markerIndex > 0) {
@@ -132,11 +132,7 @@ export const useMultiRunStore = create<MultiRunStore>()(
             return null;
           }
 
-          const isGit = await checkIsGitRepository(directory);
-          if (!isGit) {
-            set({ error: 'Not in a git repository', isLoading: false });
-            return null;
-          }
+          // Projects are guaranteed to be git repos - skip checkIsGitRepository
 
           const groupSlug = toGitSafeSlug(groupName);
           const worktreeBaseBranch =
@@ -208,7 +204,7 @@ export const useMultiRunStore = create<MultiRunStore>()(
                 () => opencodeClient.createSession({ title: sessionTitle })
               );
 
-              useSessionStore.getState().setWorktreeMetadata(session.id, worktreeMetadata);
+              useChatStore.getState().setWorktreeMetadata(session.id, worktreeMetadata);
 
               createdRuns.push({
                 sessionId: session.id,
@@ -252,7 +248,7 @@ export const useMultiRunStore = create<MultiRunStore>()(
 
           // Refresh sessions list so sidebar shows the new sessions immediately
           try {
-            await useSessionStore.getState().loadSessions();
+            await useChatStore.getState().loadAllSessions();
           } catch {
             // Ignore refresh errors
           }

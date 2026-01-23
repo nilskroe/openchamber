@@ -9,7 +9,7 @@ import { RiChat4Line, RiCodeLine, RiCommandLine, RiFolder6Line, RiGitBranchLine,
 import { useUIStore, type MainTab } from '@/stores/useUIStore';
 import { useUpdateStore } from '@/stores/useUpdateStore';
 import { useConfigStore } from '@/stores/useConfigStore';
-import { useSessionStore } from '@/stores/useSessionStore';
+import { useChatStore } from '@/stores/useChatStore';
 import { ContextUsageDisplay } from '@/components/ui/ContextUsageDisplay';
 import { useDeviceInfo } from '@/lib/device';
 import { cn, getModifierLabel, hasModifier } from '@/lib/utils';
@@ -95,7 +95,7 @@ export const Header: React.FC = () => {
 
   const { getCurrentModel } = useConfigStore();
 
-  const getContextUsage = useSessionStore((state) => state.getContextUsage);
+  const contextUsage = useChatStore((state) => state.contextUsage);
   const { isMobile } = useDeviceInfo();
   const diffFileCount = useDiffFileCount();
   const updateAvailable = useUpdateStore((state) => state.available);
@@ -123,14 +123,6 @@ export const Header: React.FC = () => {
     const detected = typeof (window as typeof window & { opencodeDesktop?: unknown }).opencodeDesktop !== 'undefined';
     setIsDesktopApp(detected);
   }, []);
-
-  const currentModel = getCurrentModel();
-  const limit = currentModel && typeof currentModel.limit === 'object' && currentModel.limit !== null
-    ? (currentModel.limit as Record<string, unknown>)
-    : null;
-  const contextLimit = (limit && typeof limit.context === 'number' ? limit.context : 0);
-  const outputLimit = (limit && typeof limit.output === 'number' ? limit.output : 0);
-  const contextUsage = getContextUsage(contextLimit, outputLimit);
   const isSessionSwitcherOpen = useUIStore((state) => state.isSessionSwitcherOpen);
 
   const blurActiveElement = React.useCallback(() => {

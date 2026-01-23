@@ -1,11 +1,13 @@
-import type { BoardColumn } from '@/lib/github-repos/types';
+import type { BoardColumn, PullRequest } from '@/lib/github-repos/types';
 import { GitHubRepoBoardCard } from './GitHubRepoBoardCard';
 
 interface GitHubRepoBoardColumnProps {
   column: BoardColumn;
+  onCreateWorktree?: (pr: PullRequest) => void;
+  creatingWorktreeFor?: number | null;
 }
 
-export function GitHubRepoBoardColumn({ column }: GitHubRepoBoardColumnProps) {
+export function GitHubRepoBoardColumn({ column, onCreateWorktree, creatingWorktreeFor }: GitHubRepoBoardColumnProps) {
   return (
     <div className="flex min-w-[280px] max-w-[280px] flex-col rounded-lg border border-border bg-background">
       <div className="flex items-center justify-between border-b border-border px-3 py-2">
@@ -14,7 +16,7 @@ export function GitHubRepoBoardColumn({ column }: GitHubRepoBoardColumnProps) {
           {column.items.length}
         </span>
       </div>
-      
+
       <div className="flex-1 overflow-y-auto p-2">
         {column.items.length === 0 ? (
           <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
@@ -26,6 +28,8 @@ export function GitHubRepoBoardColumn({ column }: GitHubRepoBoardColumnProps) {
               <GitHubRepoBoardCard
                 key={item.type === 'pr' ? `pr-${item.data.number}` : `branch-${item.data.name}`}
                 item={item}
+                onCreateWorktree={onCreateWorktree}
+                isCreatingWorktree={item.type === 'pr' && creatingWorktreeFor === item.data.number}
               />
             ))}
           </div>

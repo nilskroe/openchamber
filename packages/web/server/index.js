@@ -6121,63 +6121,50 @@ async function main(options = {}) {
   });
 
   // ============== PREVIEW PROXY ENDPOINT ==============
-  // Import both legacy proxy utilities and new DevTools manager
-  const { stripSecurityHeaders, rewriteUrls } = await import('./lib/preview-proxy.js');
-  const { PreviewDevTools } = await import('./lib/preview-devtools/index.js');
+  // Minimal proxy: fetches URL and strips frame-deny headers so iframe can load it.
+  const STRIPPED_HEADERS = new Set([
+    'x-frame-options',
+    'content-security-policy',
+    'x-content-type-options',
+    'cross-origin-opener-policy',
+    'cross-origin-embedder-policy',
+    'cross-origin-resource-policy',
+  ]);
 
   app.get('/api/preview-proxy', async (req, res) => {
     const targetUrl = req.query.url;
-    
     if (!targetUrl || typeof targetUrl !== 'string') {
       return res.status(400).json({ error: 'URL parameter is required' });
     }
 
     try {
-      const parsedUrl = new URL(targetUrl);
-      
-      // Parse DevTools configuration from query params
-      const devToolsConfig = PreviewDevTools.parseConfig(req.query);
-      
-      // Get any auth headers from config
-      const authHeaders = PreviewDevTools.getAuthHeaders(devToolsConfig);
-      
+      new URL(targetUrl); // validate
+
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 30000);
 
       const response = await fetch(targetUrl, {
         signal: controller.signal,
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.9',
-          ...authHeaders,
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+          'Accept': '*/*',
         },
       });
 
       clearTimeout(timeout);
 
-      const contentType = response.headers.get('content-type') || '';
-      const cleanedHeaders = stripSecurityHeaders(response.headers);
-
       res.set('Access-Control-Allow-Origin', '*');
-      res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
-      res.set('Access-Control-Allow-Headers', 'Content-Type');
 
-      for (const [key, value] of Object.entries(cleanedHeaders)) {
-        const lowerKey = key.toLowerCase();
-        if (lowerKey !== 'content-encoding' && 
-            lowerKey !== 'transfer-encoding' && 
-            lowerKey !== 'content-length') {
-          res.set(key, value);
-        }
+      for (const [key, value] of response.headers.entries()) {
+        const lower = key.toLowerCase();
+        if (STRIPPED_HEADERS.has(lower)) continue;
+        if (lower === 'content-encoding' || lower === 'transfer-encoding' || lower === 'content-length') continue;
+        res.set(key, value);
       }
 
+      const contentType = response.headers.get('content-type') || '';
       if (contentType.includes('text/html')) {
-        let html = await response.text();
-        const proxyServerOrigin = `${req.protocol}://${req.get('host')}`;
-        html = rewriteUrls(html, targetUrl, '/api/preview-proxy', proxyServerOrigin);
-        html = PreviewDevTools.inject(html, targetUrl, devToolsConfig);
-        
+        const html = await response.text();
         res.set('Content-Type', 'text/html; charset=utf-8');
         res.send(html);
       } else {
@@ -6189,8 +6176,8 @@ async function main(options = {}) {
       if (error.name === 'AbortError') {
         return res.status(504).json({ error: 'Request timeout' });
       }
-      console.error('Preview proxy error:', error);
-      res.status(500).json({ error: error.message || 'Failed to proxy request' });
+      console.error('Preview proxy error:', error.message);
+      res.status(500).json({ error: 'Failed to proxy request' });
     }
   });
 

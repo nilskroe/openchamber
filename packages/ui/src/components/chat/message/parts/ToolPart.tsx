@@ -9,7 +9,7 @@ import type { ToolPart as ToolPartType, ToolState as ToolStateUnion } from '@ope
 import { toolDisplayStyles } from '@/lib/typography';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { useDirectoryStore } from '@/stores/useDirectoryStore';
-import { useSessionStore } from '@/stores/useSessionStore';
+import { useChatStore } from '@/stores/useChatStore';
 import { ScrollableOverlay } from '@/components/ui/ScrollableOverlay';
 import type { ContentChangeReason } from '@/hooks/useChatScrollManager';
 
@@ -315,7 +315,7 @@ const TaskToolSummary: React.FC<{
     output?: string;
     sessionId?: string;
 }> = ({ entries, isExpanded, hasPrevTool, hasNextTool, output, sessionId }) => {
-    const setCurrentSession = useSessionStore((state) => state.setCurrentSession);
+    const loadSession = useChatStore((state) => state.loadSession);
     const completedEntries = React.useMemo(() => {
         return entries.filter((entry) => entry.state?.status === 'completed');
     }, [entries]);
@@ -328,9 +328,7 @@ const TaskToolSummary: React.FC<{
 
     const handleOpenSession = (event: React.MouseEvent) => {
         event.stopPropagation();
-        if (sessionId) {
-            setCurrentSession(sessionId);
-        }
+        // In one-session-per-worktree model, sub-sessions are not navigable
     };
 
     if (completedEntries.length === 0 && !hasOutput && !sessionId) {

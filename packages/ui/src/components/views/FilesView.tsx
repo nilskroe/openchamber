@@ -56,14 +56,14 @@ import { getLanguageFromExtension, getImageMimeType, isImageFile } from '@/lib/t
 import { useRuntimeAPIs } from '@/hooks/useRuntimeAPIs';
 import { EditorView } from '@codemirror/view';
 import { useThemeSystem } from '@/contexts/useThemeSystem';
-import { useSessionStore } from '@/stores/useSessionStore';
+import { useChatStore } from '@/stores/useChatStore';
 import { useConfigStore } from '@/stores/useConfigStore';
-import { useContextStore } from '@/stores/contextStore';
 import { useUIStore } from '@/stores/useUIStore';
 import { useDirectoryStore } from '@/stores/useDirectoryStore';
 import { opencodeClient } from '@/lib/opencode/client';
 import { useDirectoryShowHidden } from '@/lib/directoryShowHidden';
 import { useFilesViewShowGitignored } from '@/lib/filesViewShowGitignored';
+import { normalizePath } from '@/lib/paths';
 
 type FileNode = {
   name: string;
@@ -86,8 +86,6 @@ const sortNodes = (items: FileNode[]) =>
     return a.name.localeCompare(b.name);
   });
 
-const normalizePath = (value: string): string => value.replace(/\\/g, '/');
-
 const DEFAULT_IGNORED_DIR_NAMES = new Set(['node_modules']);
 
 const shouldIgnoreEntryName = (name: string): boolean => DEFAULT_IGNORED_DIR_NAMES.has(name);
@@ -98,15 +96,8 @@ const shouldIgnorePath = (path: string): boolean => {
 };
 
 const useEffectiveDirectory = () => {
-  const { currentSessionId, sessions, worktreeMetadata: worktreeMap } = useSessionStore();
-  const { currentDirectory: fallbackDirectory } = useDirectoryStore();
-
-  const worktreeMetadata = currentSessionId ? worktreeMap.get(currentSessionId) ?? undefined : undefined;
-  const currentSession = sessions.find((session) => session.id === currentSessionId);
-  type SessionWithDirectory = { directory?: string };
-  const sessionDirectory = (currentSession as unknown as SessionWithDirectory | undefined)?.directory;
-
-  return worktreeMetadata?.path ?? sessionDirectory ?? fallbackDirectory ?? '';
+  const { currentDirectory } = useDirectoryStore();
+  return currentDirectory ?? '';
 };
 
 const MAX_VIEW_CHARS = 200_000;
@@ -311,12 +302,12 @@ export const FilesView: React.FC = () => {
   const selectionStartRef = React.useRef<number | null>(null);
 
   // Session/config for sending comments
-  const sendMessage = useSessionStore((state) => state.sendMessage);
-  const currentSessionId = useSessionStore((state) => state.currentSessionId);
+  const sendMessage = useChatStore((state) => state.sendMessage);
+  const currentSessionId = useChatStore((state) => state.currentSessionId);
+  const agentSelection = useChatStore((state) => state.agentSelection);
+  const getAgentModelSelection = useChatStore((state) => state.getAgentModelSelection);
+  const getAgentModelVariantSelection = useChatStore((state) => state.getAgentModelVariantSelection);
   const { currentProviderId, currentModelId, currentAgentName, currentVariant } = useConfigStore();
-  const getSessionAgentSelection = useContextStore((state) => state.getSessionAgentSelection);
-  const getAgentModelForSession = useContextStore((state) => state.getAgentModelForSession);
-  const getAgentModelVariantForSession = useContextStore((state) => state.getAgentModelVariantForSession);
   const setActiveMainTab = useUIStore((state) => state.setActiveMainTab);
   const setMainTabGuard = useUIStore((state) => state.setMainTabGuard);
   const { inputBarOffset, isKeyboardOpen } = useUIStore();
@@ -391,8 +382,8 @@ export const FilesView: React.FC = () => {
     }
 
     // Get session-specific agent/model/variant with fallback to config values
-    const sessionAgent = getSessionAgentSelection(currentSessionId) || currentAgentName;
-    const sessionModel = sessionAgent ? getAgentModelForSession(currentSessionId, sessionAgent) : null;
+    const sessionAgent = agentSelection || currentAgentName;
+    const sessionModel = sessionAgent ? getAgentModelSelection(sessionAgent) : null;
     const effectiveProviderId = sessionModel?.providerId || currentProviderId;
     const effectiveModelId = sessionModel?.modelId || currentModelId;
 
@@ -402,7 +393,7 @@ export const FilesView: React.FC = () => {
     }
 
     const effectiveVariant = sessionAgent && effectiveProviderId && effectiveModelId
-      ? getAgentModelVariantForSession(currentSessionId, sessionAgent, effectiveProviderId, effectiveModelId) ?? currentVariant
+      ? getAgentModelVariantSelection(sessionAgent, effectiveProviderId, effectiveModelId) ?? currentVariant
       : currentVariant;
 
     const code = extractSelectedCode(fileContent, lineSelection);
@@ -432,7 +423,7 @@ export const FilesView: React.FC = () => {
     } catch (e) {
       console.error('Failed to send comment', e);
     }
-  }, [lineSelection, commentText, selectedFile, fileContent, currentSessionId, currentProviderId, currentModelId, currentAgentName, currentVariant, extractSelectedCode, sendMessage, setActiveMainTab, getSessionAgentSelection, getAgentModelForSession, getAgentModelVariantForSession]);
+  }, [lineSelection, commentText, selectedFile, fileContent, currentSessionId, currentProviderId, currentModelId, currentAgentName, currentVariant, extractSelectedCode, sendMessage, setActiveMainTab, agentSelection, getAgentModelSelection, getAgentModelVariantSelection]);
 
   const mapDirectoryEntries = React.useCallback((dirPath: string, entries: Array<{ name: string; path: string; isDirectory: boolean }>): FileNode[] => {
     const nodes = entries
@@ -1249,7 +1240,7 @@ export const FilesView: React.FC = () => {
               textarea.style.height = `${Math.min(textarea.scrollHeight, maxHeight)}px`;
             }}
             placeholder="Type your comment..."
-            className="min-h-[28px] max-h-[108px] resize-none border-0 px-3 pt-2 pb-1 shadow-none rounded-none appearance-none focus:shadow-none focus-visible:shadow-none focus-visible:border-transparent focus-visible:ring-0 focus-visible:ring-transparent hover:border-transparent bg-transparent dark:bg-transparent focus-visible:outline-none overflow-y-auto"
+            className="min-h-[28px] max-h-[108px] resize-none border-0 px-3 pt-2 pb-1 shadow-none rounded-none appearance-none focus:shadow-none focus-visible:shadow-none focus-visible:border-transparent focus-visible:ring-0 focus-visible:ring-transparent focus-visible:outline-none overflow-y-auto"
             autoFocus={!isMobile}
             rows={1}
             onKeyDown={(e) => {

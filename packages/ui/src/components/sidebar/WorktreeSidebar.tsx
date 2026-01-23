@@ -1,17 +1,15 @@
 import React, { useCallback, useMemo, useState, useRef, useEffect } from 'react';
-import type { Session } from '@opencode-ai/sdk/v2';
 import {
   RiAddLine,
   RiArrowDownSLine,
   RiArrowLeftLine,
   RiArrowRightSLine,
   RiCloseLine,
-  RiFolder6Line,
   RiFolderOpenLine,
   RiGitBranchLine,
+  RiGitPullRequestLine,
   RiGitRepositoryLine,
   RiMore2Line,
-  RiChat4Line,
   RiSearchLine,
   RiSideBarLine,
   RiFolderTransferLine,
@@ -22,20 +20,17 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
 } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ScrollableOverlay } from '@/components/ui/ScrollableOverlay';
 import { GridLoader } from '@/components/ui/grid-loader';
-import { GitHubReposSidebar } from './GitHubReposSidebar';
 import { cn, formatDirectoryName, getModifierLabel } from '@/lib/utils';
 import { useProjectsStore } from '@/stores/useProjectsStore';
-import { useSessionStore } from '@/stores/useSessionStore';
+import { useChatStore } from '@/stores/useChatStore';
 import { useDirectoryStore } from '@/stores/useDirectoryStore';
 import { useUIStore } from '@/stores/useUIStore';
+import { usePanes } from '@/stores/usePaneStore';
 import { sessionEvents } from '@/lib/sessionEvents';
-import { checkIsGitRepository } from '@/lib/gitApi';
 import { createWorktreeSession } from '@/lib/worktreeSessionCreator';
 import { hasLegacyWorktrees, migrateWorktreesToGlobalLocation } from '@/lib/git/worktreeService';
 import { BranchPickerDialog } from '@/components/session/BranchPickerDialog';
@@ -43,7 +38,6 @@ import type { WorktreeMetadata } from '@/types/worktree';
 import { SIDEBAR_SECTIONS, type SidebarSection } from '@/constants/sidebar';
 import { isVSCodeRuntime } from '@/lib/desktop';
 import { useAutoReviewStore } from '@/stores/useAutoReviewStore';
-import { useDirectoryHasActiveSession, useSessionActivity } from '@/hooks/useSessionActivity';
 
 const normalizePath = (value?: string | null): string | null => {
   if (!value) return null;
@@ -66,56 +60,11 @@ const formatRelativeTime = (timestamp: number): string => {
 };
 
 interface WorktreeStats {
-  sessionCount: number;
   additions: number;
   deletions: number;
   lastUpdated: number | null;
-  sessionIds: string[];
+  sessionTitle: string | null;
 }
-
-interface SessionItemProps {
-  session: Session;
-  isActive: boolean;
-  onSelect: () => void;
-}
-
-const SessionItem: React.FC<SessionItemProps> = ({ session, isActive, onSelect }) => {
-  const sessionTime = session.time?.updated ?? session.time?.created;
-  // Use per-session hook - only re-renders when THIS session's phase changes
-  const { isWorking: isStreaming } = useSessionActivity(session.id);
-
-  return (
-    <button
-      type="button"
-      onClick={onSelect}
-      className={cn(
-        'group flex w-full flex-col gap-0.5 rounded-md px-2 py-2 text-left mb-1',
-        'transition-colors',
-        isActive ? 'bg-primary/10' : 'hover:bg-muted/50'
-      )}
-    >
-      <div className="flex items-center gap-2">
-        <RiChat4Line
-          className={cn('h-4 w-4 shrink-0', isActive ? 'text-primary' : 'text-muted-foreground')}
-        />
-        <span
-          className={cn(
-            'flex-1 truncate text-sm',
-            isActive ? 'text-primary font-medium' : 'text-foreground'
-          )}
-        >
-          {session.title || 'Untitled'}
-        </span>
-        {isStreaming && <GridLoader size="xs" className="text-primary shrink-0" />}
-      </div>
-      {sessionTime && (
-        <span className="text-xs text-muted-foreground/70 pl-6">
-          {formatRelativeTime(sessionTime)}
-        </span>
-      )}
-    </button>
-  );
-};
 
 interface WorktreeItemProps {
   worktree: WorktreeMetadata;
@@ -150,14 +99,16 @@ const WorktreeItem: React.FC<WorktreeItemProps> = ({
   onCancelRename,
   isAutoReviewEnabled,
 }) => {
-  const label = isMain ? 'main' : (worktree.label || worktree.branch || 'worktree');
+  const branchLabel = isMain ? 'main' : (worktree.branch || 'worktree');
+  const primaryLabel = stats.sessionTitle || (isMain ? 'main' : (worktree.label || worktree.branch || 'worktree'));
   const hasChanges = stats.additions > 0 || stats.deletions > 0;
   const showActions = onOpenInFinder || (!isMain && (onClose || onRename));
   const inputRef = useRef<HTMLInputElement>(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
-  // Use per-directory hook for streaming detection - only re-renders when THIS worktree's sessions change
-  const isStreaming = useDirectoryHasActiveSession(stats.sessionIds);
+  // Show streaming indicator only for the active worktree
+  const activityPhase = useChatStore((s) => s.activityPhase);
+  const isStreaming = isActive && (activityPhase === 'busy' || activityPhase === 'cooldown');
   
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -212,12 +163,19 @@ const WorktreeItem: React.FC<WorktreeItemProps> = ({
               className="flex-1 bg-transparent border-b border-primary text-sm text-foreground outline-none px-0 py-0"
             />
           ) : (
-            <span className={cn(
-              'flex-1 truncate text-sm',
-              isActive ? 'text-primary font-medium' : 'text-foreground'
-            )}>
-              {label}
-            </span>
+            <div className="flex-1 min-w-0">
+              <span className={cn(
+                'block truncate text-sm',
+                isActive ? 'text-primary font-medium' : 'text-foreground'
+              )}>
+                {primaryLabel}
+              </span>
+              {stats.sessionTitle && !isMain && (
+                <span className="block truncate text-xs text-muted-foreground">
+                  {branchLabel}
+                </span>
+              )}
+            </div>
           )}
           {isStreaming && (
             <GridLoader size="xs" className="text-primary shrink-0" />
@@ -246,21 +204,13 @@ const WorktreeItem: React.FC<WorktreeItemProps> = ({
           )}
         </div>
         
-        {(stats.sessionCount > 0 || hasChanges) && !isEditing && (
+        {hasChanges && !isEditing && (
           <div className="flex items-center gap-2 pl-6 text-xs text-muted-foreground">
-            {stats.sessionCount > 0 && (
-              <span className="flex items-center gap-1">
-                <RiChat4Line className="h-3 w-3" />
-                {stats.sessionCount}
-              </span>
-            )}
-            {hasChanges && (
-              <span className="flex items-center gap-0.5">
-                <span className="text-[color:var(--status-success)]">+{stats.additions}</span>
-                <span>/</span>
-                <span className="text-destructive">-{stats.deletions}</span>
-              </span>
-            )}
+            <span className="flex items-center gap-0.5">
+              <span className="text-[color:var(--status-success)]">+{stats.additions}</span>
+              <span>/</span>
+              <span className="text-destructive">-{stats.deletions}</span>
+            </span>
             {stats.lastUpdated && (
               <span className="text-muted-foreground/70">
                 {formatRelativeTime(stats.lastUpdated)}
@@ -303,6 +253,8 @@ interface ProjectSectionProps {
     path: string;
     label?: string;
     normalizedPath: string;
+    owner: string;
+    repo: string;
   };
   isActive: boolean;
   worktrees: WorktreeMetadata[];
@@ -315,8 +267,8 @@ interface ProjectSectionProps {
   onOpenInFinder?: (worktreePath: string) => void;
   onNewWorktreeSession?: () => void;
   onOpenBranchPicker?: () => void;
+  onOpenGitHubBoard?: () => void;
   onMigrateWorktrees?: () => void;
-  isRepo: boolean;
   hasLegacy: boolean;
   getWorktreeStats: (worktreePath: string) => WorktreeStats;
   editingWorktreePath: string | null;
@@ -342,8 +294,8 @@ const ProjectSection: React.FC<ProjectSectionProps> = ({
   onOpenInFinder,
   onNewWorktreeSession,
   onOpenBranchPicker,
+  onOpenGitHubBoard,
   onMigrateWorktrees,
-  isRepo,
   hasLegacy,
   getWorktreeStats,
   editingWorktreePath,
@@ -359,19 +311,16 @@ const ProjectSection: React.FC<ProjectSectionProps> = ({
   const normalizedProjectPath = project.normalizedPath;
   
   const actualWorktrees = useMemo(() => {
-    if (!isRepo) return [];
     return worktrees.filter(w => normalizePath(w.path) !== normalizedProjectPath);
-  }, [isRepo, worktrees, normalizedProjectPath]);
+  }, [worktrees, normalizedProjectPath]);
 
   const projectStats = useMemo(() => {
-    let totalSessions = 0;
     let totalAdditions = 0;
     let totalDeletions = 0;
     let lastUpdated: number | null = null;
 
     actualWorktrees.forEach(wt => {
       const stats = getWorktreeStats(wt.path);
-      totalSessions += stats.sessionCount;
       totalAdditions += stats.additions;
       totalDeletions += stats.deletions;
       if (stats.lastUpdated && (!lastUpdated || stats.lastUpdated > lastUpdated)) {
@@ -379,7 +328,7 @@ const ProjectSection: React.FC<ProjectSectionProps> = ({
       }
     });
 
-    return { totalSessions, totalAdditions, totalDeletions, lastUpdated };
+    return { totalAdditions, totalDeletions, lastUpdated };
   }, [actualWorktrees, getWorktreeStats]);
 
   return (
@@ -435,7 +384,26 @@ const ProjectSection: React.FC<ProjectSectionProps> = ({
           </DropdownMenuContent>
         </DropdownMenu>
 
-        {isRepo && onOpenBranchPicker && (
+        {onOpenGitHubBoard && (
+          <Tooltip delayDuration={700}>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onOpenGitHubBoard();
+                }}
+                className="h-6 w-6 flex items-center justify-center rounded-md text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-foreground hover:bg-muted/50 transition-all"
+                aria-label="Pull Requests"
+              >
+                <RiGitPullRequestLine className="h-4 w-4" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">Pull Requests</TooltipContent>
+          </Tooltip>
+        )}
+
+        {onOpenBranchPicker && (
           <Tooltip delayDuration={700}>
             <TooltipTrigger asChild>
               <button
@@ -454,7 +422,7 @@ const ProjectSection: React.FC<ProjectSectionProps> = ({
           </Tooltip>
         )}
 
-        {isRepo && onNewWorktreeSession && (
+        {onNewWorktreeSession && (
           <Tooltip delayDuration={700}>
             <TooltipTrigger asChild>
               <button
@@ -474,19 +442,13 @@ const ProjectSection: React.FC<ProjectSectionProps> = ({
         )}
       </div>
 
-      {isCollapsed && projectStats.totalSessions > 0 && (
+      {isCollapsed && (projectStats.totalAdditions > 0 || projectStats.totalDeletions > 0) && (
         <div className="flex items-center gap-2 px-2 py-1 text-xs text-muted-foreground ml-5">
-          <span className="flex items-center gap-1">
-            <RiChat4Line className="h-3 w-3" />
-            {projectStats.totalSessions}
+          <span className="flex items-center gap-0.5">
+            <span className="text-[color:var(--status-success)]">+{projectStats.totalAdditions}</span>
+            <span>/</span>
+            <span className="text-destructive">-{projectStats.totalDeletions}</span>
           </span>
-          {(projectStats.totalAdditions > 0 || projectStats.totalDeletions > 0) && (
-            <span className="flex items-center gap-0.5">
-              <span className="text-[color:var(--status-success)]">+{projectStats.totalAdditions}</span>
-              <span>/</span>
-              <span className="text-destructive">-{projectStats.totalDeletions}</span>
-            </span>
-          )}
           {projectStats.lastUpdated && (
             <span className="text-muted-foreground/70">
               {formatRelativeTime(projectStats.lastUpdated)}
@@ -549,8 +511,8 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
   const removeProject = useProjectsStore((s) => s.removeProject);
   const setActiveProject = useProjectsStore((s) => s.setActiveProject);
   
-  const availableWorktreesByProject = useSessionStore((s) => s.availableWorktreesByProject);
-  const sessionsByDirectory = useSessionStore((s) => s.sessionsByDirectory);
+  const availableWorktreesByProject = useChatStore((s) => s.availableWorktreesByProject);
+  const allSessions = useChatStore((s) => s.allSessions);
   
   const currentDirectory = useDirectoryStore((s) => s.currentDirectory);
   const setDirectory = useDirectoryStore((s) => s.setDirectory);
@@ -561,12 +523,6 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
   const setSettingsOpen = useUIStore((s) => s.setSettingsDialogOpen);
   const activeSettingsTab = useUIStore((s) => s.activeSettingsTab);
   const setActiveSettingsTab = useUIStore((s) => s.setActiveSettingsTab);
-  const sidebarMode = useUIStore((s) => s.sidebarMode);
-  const setSidebarMode = useUIStore((s) => s.setSidebarMode);
-  const focusedSessionId = useUIStore((s) => s.focusedSessionId);
-  const setFocusedSessionId = useUIStore((s) => s.setFocusedSessionId);
-  
-  const sessions = useSessionStore((s) => s.sessions);
 
   const autoReviewDirectory = useAutoReviewStore((s) => s.activeDirectory);
   const normalizedAutoReviewDirectory = useMemo(() => normalizePath(autoReviewDirectory), [autoReviewDirectory]);
@@ -584,7 +540,6 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
   }, [isVSCode]);
 
   const [collapsedProjects, setCollapsedProjects] = useState<Set<string>>(new Set());
-  const [projectRepoStatus, setProjectRepoStatus] = useState<Map<string, boolean>>(new Map());
   const [branchPickerOpen, setBranchPickerOpen] = useState(false);
   const [editingWorktreePath, setEditingWorktreePath] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -608,29 +563,7 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
     let cancelled = false;
     projects.forEach((project) => {
       const path = normalizePath(project.path);
-      if (!path || projectRepoStatus.has(project.id)) return;
-      
-      checkIsGitRepository(path)
-        .then((isRepo) => {
-          if (!cancelled) {
-            setProjectRepoStatus((prev) => new Map(prev).set(project.id, isRepo));
-          }
-        })
-        .catch(() => {
-          if (!cancelled) {
-            setProjectRepoStatus((prev) => new Map(prev).set(project.id, false));
-          }
-        });
-    });
-    return () => { cancelled = true; };
-  }, [projects, projectRepoStatus]);
-
-  React.useEffect(() => {
-    let cancelled = false;
-    projects.forEach((project) => {
-      const path = normalizePath(project.path);
-      const isRepo = projectRepoStatus.get(project.id);
-      if (!path || !isRepo || projectLegacyStatus.has(project.id)) return;
+      if (!path || projectLegacyStatus.has(project.id)) return;
       
       hasLegacyWorktrees(path)
         .then((hasLegacy) => {
@@ -645,9 +578,9 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
         });
     });
     return () => { cancelled = true; };
-  }, [projects, projectRepoStatus, projectLegacyStatus]);
+  }, [projects, projectLegacyStatus]);
 
-  const loadSessions = useSessionStore((s) => s.loadSessions);
+  const loadAllSessions = useChatStore((s) => s.loadAllSessions);
 
   const handleMigrateWorktrees = useCallback(async (projectId: string) => {
     const project = projects.find(p => p.id === projectId);
@@ -668,7 +601,7 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
           description: result.targetDirectory ? `To: ${result.targetDirectory}` : undefined,
         });
         setProjectLegacyStatus((prev) => new Map(prev).set(projectId, false));
-        loadSessions();
+        loadAllSessions();
       } else {
         const failed = result.migrated.filter(m => !m.success);
         toast.error('Migration failed', { 
@@ -682,7 +615,7 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
         description: error instanceof Error ? error.message : 'Unknown error',
       });
     }
-  }, [projects, loadSessions]);
+  }, [projects, loadAllSessions]);
 
   const activeWorktreePath = useMemo(() => {
     return normalizePath(currentDirectory);
@@ -691,35 +624,25 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
   const getWorktreeStats = useCallback((worktreePath: string): WorktreeStats => {
     const normalizedPath = normalizePath(worktreePath);
     if (!normalizedPath) {
-      return { sessionCount: 0, additions: 0, deletions: 0, lastUpdated: null, sessionIds: [] };
+      return { additions: 0, deletions: 0, lastUpdated: null, sessionTitle: null };
     }
 
-    const directorySessions = sessionsByDirectory.get(normalizedPath) ?? [];
-
-    let additions = 0;
-    let deletions = 0;
-    let lastUpdated: number | null = null;
-    const sessionIds: string[] = [];
-
-    directorySessions.forEach((session: Session) => {
-      additions += session.summary?.additions ?? 0;
-      deletions += session.summary?.deletions ?? 0;
-      sessionIds.push(session.id);
-
-      const updated = session.time?.updated ?? session.time?.created;
-      if (updated && (!lastUpdated || updated > lastUpdated)) {
-        lastUpdated = updated;
-      }
+    const session = allSessions.find((s) => {
+      const dir = ((s as { directory?: string | null }).directory ?? '').replace(/\\/g, '/').replace(/\/+$/, '');
+      return dir === normalizedPath;
     });
 
+    if (!session) {
+      return { additions: 0, deletions: 0, lastUpdated: null, sessionTitle: null };
+    }
+
     return {
-      sessionCount: directorySessions.length,
-      additions,
-      deletions,
-      lastUpdated,
-      sessionIds,
+      additions: (session as any).summary?.additions ?? 0,
+      deletions: (session as any).summary?.deletions ?? 0,
+      lastUpdated: session.time?.updated ?? session.time?.created ?? null,
+      sessionTitle: session.title || null,
     };
-  }, [sessionsByDirectory]);
+  }, [allSessions]);
 
   const toggleProject = useCallback((projectId: string) => {
     setCollapsedProjects((prev) => {
@@ -745,27 +668,9 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
     toast.success('Project closed');
   }, [removeProject]);
 
-  const handleAddProject = useCallback(() => {
-    if (isDesktopRuntime && window.opencodeDesktop?.requestDirectoryAccess) {
-      window.opencodeDesktop
-        .requestDirectoryAccess('')
-        .then((result) => {
-          if (result.success && result.path) {
-            const added = useProjectsStore.getState().addProject(result.path, { id: result.projectId });
-            if (!added) {
-              toast.error('Failed to add project');
-            }
-          } else if (result.error && result.error !== 'Directory selection cancelled') {
-            toast.error('Failed to select directory', { description: result.error });
-          }
-        })
-        .catch(() => {
-          toast.error('Failed to select directory');
-        });
-    } else {
-      sessionEvents.requestDirectoryDialog();
-    }
-  }, [isDesktopRuntime]);
+  const handleAddRepository = useCallback(() => {
+    sessionEvents.requestDirectoryDialog();
+  }, []);
 
 
 
@@ -791,24 +696,22 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
     }
 
     if (!worktreeMetadata) {
-      // Worktree not found in tracked worktrees, just show a message
       toast.error('Worktree not found');
       return;
     }
 
-    // Find sessions linked to this worktree
-    const linkedSessions = sessions.filter(session => {
-      const sessionDir = normalizePath(session.directory ?? null);
+    // Find the session linked to this worktree (one session per worktree)
+    const linkedSession = allSessions.find(session => {
+      const sessionDir = normalizePath((session as { directory?: string | null }).directory ?? null);
       return sessionDir === normalizedPath;
     });
 
-    // Trigger the delete dialog via sessionEvents
     sessionEvents.requestDelete({
-      sessions: linkedSessions,
+      sessions: linkedSession ? [linkedSession] : [],
       mode: 'worktree',
       worktree: worktreeMetadata,
     });
-  }, [availableWorktreesByProject, sessions]);
+  }, [availableWorktreesByProject, allSessions]);
 
   const handleOpenInFinder = useCallback(async (worktreePath: string) => {
     const normalizedPath = normalizePath(worktreePath);
@@ -842,6 +745,18 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
   const handleOpenBranchPicker = useCallback(() => {
     setBranchPickerOpen(true);
   }, []);
+
+  const { addTab } = usePanes(currentDirectory);
+
+  const handleOpenGitHubBoard = useCallback((projectId: string) => {
+    const project = projects.find((p) => p.id === projectId);
+    if (!project) return;
+    addTab('right', {
+      type: 'github-repo',
+      title: `${project.owner}/${project.repo}`,
+      metadata: { owner: project.owner, repo: project.repo, projectDirectory: project.path },
+    });
+  }, [addTab, projects]);
 
   const handleStartRename = useCallback((worktreePath: string, currentLabel: string) => {
     const savedLabel = worktreeLabels.get(worktreePath);
@@ -890,6 +805,8 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
       path: string;
       label?: string;
       normalizedPath: string;
+      owner: string;
+      repo: string;
     }>;
   }, [projects]);
 
@@ -934,21 +851,6 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
     </div>
   );
 
-  const setCurrentSession = useSessionStore((s) => s.setCurrentSession);
-  
-  const handleSelectSession = useCallback((sessionId: string) => {
-    setFocusedSessionId(sessionId);
-    setCurrentSession(sessionId);
-  }, [setFocusedSessionId, setCurrentSession]);
-
-  const sortedSessions = useMemo(() => {
-    return [...sessions].sort((a, b) => {
-      const aTime = a.time?.updated ?? a.time?.created ?? 0;
-      const bTime = b.time?.updated ?? b.time?.created ?? 0;
-      return bTime - aTime;
-    });
-  }, [sessions]);
-
   const renderSidebarHeader = () => (
     <div className="flex h-12 min-h-12 items-center justify-between px-3 border-b border-border/50">
       <div className="flex items-center gap-2">
@@ -964,118 +866,25 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
           </TooltipTrigger>
           <TooltipContent side="bottom">Close Sidebar</TooltipContent>
         </Tooltip>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button
-              type="button"
-              className="flex items-center gap-1 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <span>
-                {sidebarMode === 'projects' ? 'Projects' : sidebarMode === 'sessions' ? 'Sessions' : 'GitHub'}
-              </span>
-              <RiArrowDownSLine className="h-4 w-4" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="min-w-[140px]">
-            <DropdownMenuRadioGroup value={sidebarMode} onValueChange={(v) => setSidebarMode(v as 'projects' | 'sessions' | 'github')}>
-              <DropdownMenuRadioItem value="projects">Projects</DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="sessions">Sessions</DropdownMenuRadioItem>
-              <DropdownMenuRadioItem value="github">GitHub</DropdownMenuRadioItem>
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <span className="text-sm font-medium text-muted-foreground">Repositories</span>
       </div>
-      {sidebarMode === 'projects' && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              onClick={handleAddProject}
-              className="h-6 w-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50"
-            >
-              <RiAddLine className="h-4 w-4" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">Add Project</TooltipContent>
-        </Tooltip>
-      )}
-      {sidebarMode === 'github' && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              onClick={() => {
-                // Dispatch custom event to trigger add repo in GitHubReposSidebar
-                const event = new CustomEvent('github-repos-add-trigger');
-                document.dispatchEvent(event);
-              }}
-              className="h-6 w-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50"
-            >
-              <RiAddLine className="h-4 w-4" />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">Add Repository</TooltipContent>
-        </Tooltip>
-      )}
-    </div>
-  );
-
-  const renderSessionsView = () => (
-    <div className="flex flex-col h-full">
-      {renderSidebarHeader()}
-
-      <div className="px-2 pt-2">
-        <button
-          type="button"
-          onClick={toggleCommandPalette}
-          className="flex w-full items-center gap-2 px-2.5 py-2 rounded border border-muted-foreground/25 text-muted-foreground hover:text-foreground hover:bg-muted/40 hover:border-muted-foreground/40 transition-all"
-        >
-          <RiSearchLine className="h-4 w-4" />
-          <span className="flex-1 text-left text-sm">Search...</span>
-          <kbd className="hidden sm:inline-flex h-5 items-center gap-0.5 rounded border border-border/50 bg-muted/30 px-1.5 font-mono text-[10px] font-medium text-muted-foreground">
-            {getModifierLabel()}K
-          </kbd>
-        </button>
-      </div>
-
-      <ScrollableOverlay className="flex-1 overflow-y-auto p-2">
-        {sortedSessions.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-4 text-center">
-            <RiChat4Line className="h-10 w-10 text-muted-foreground/50 mb-3" />
-            <p className="text-sm font-medium text-muted-foreground mb-1">No sessions yet</p>
-            <p className="text-xs text-muted-foreground/70">Start a conversation to create a session</p>
-          </div>
-        ) : (
-          sortedSessions.map((session) => (
-            <SessionItem
-              key={session.id}
-              session={session}
-              isActive={focusedSessionId === session.id}
-              onSelect={() => handleSelectSession(session.id)}
-            />
-          ))
-        )}
-      </ScrollableOverlay>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            type="button"
+            onClick={handleAddRepository}
+            className="h-6 w-6 flex items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50"
+          >
+            <RiAddLine className="h-4 w-4" />
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">Add Repository</TooltipContent>
+      </Tooltip>
     </div>
   );
 
   if (isSettingsOpen) {
     return renderSettingsView();
-  }
-
-  if (sidebarMode === 'sessions') {
-    return renderSessionsView();
-  }
-
-  if (sidebarMode === 'github') {
-    return (
-      <div className="flex flex-col h-full">
-        {renderSidebarHeader()}
-        <div className="flex-1 overflow-hidden">
-          <GitHubReposSidebar />
-        </div>
-      </div>
-    );
   }
 
   if (normalizedProjects.length === 0) {
@@ -1096,16 +905,16 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
           </button>
         </div>
         <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
-          <RiFolder6Line className="h-10 w-10 text-muted-foreground/50 mb-3" />
-          <p className="text-sm font-medium text-muted-foreground mb-1">No projects yet</p>
-          <p className="text-xs text-muted-foreground/70 mb-4">Add a project to get started</p>
+          <RiGitRepositoryLine className="h-10 w-10 text-muted-foreground/50 mb-3" />
+          <p className="text-sm font-medium text-muted-foreground mb-1">No repositories yet</p>
+          <p className="text-xs text-muted-foreground/70 mb-4">Add a repository to get started</p>
           <button
             type="button"
-            onClick={handleAddProject}
+            onClick={handleAddRepository}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-primary/10 text-primary text-sm font-medium hover:bg-primary/20 transition-colors"
           >
             <RiAddLine className="h-4 w-4" />
-            Add Project
+            Add Repository
           </button>
         </div>
       </div>
@@ -1135,7 +944,6 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
           const worktrees = availableWorktreesByProject.get(project.normalizedPath) ?? [];
           const isActive = project.id === activeProjectId;
           const isCollapsed = collapsedProjects.has(project.id);
-          const isRepo = projectRepoStatus.get(project.id) ?? false;
 
           return (
             <ProjectSection
@@ -1152,8 +960,8 @@ export const WorktreeSidebar: React.FC<WorktreeSidebarProps> = () => {
               onOpenInFinder={handleOpenInFinder}
               onNewWorktreeSession={() => handleNewWorktreeSession(project.id)}
               onOpenBranchPicker={handleOpenBranchPicker}
+              onOpenGitHubBoard={() => handleOpenGitHubBoard(project.id)}
               onMigrateWorktrees={() => handleMigrateWorktrees(project.id)}
-              isRepo={isRepo}
               hasLegacy={projectLegacyStatus.get(project.id) ?? false}
               getWorktreeStats={getWorktreeStats}
               editingWorktreePath={editingWorktreePath}

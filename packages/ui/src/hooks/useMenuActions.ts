@@ -1,14 +1,12 @@
 import React from 'react';
 import { toast } from '@/components/ui';
-import { useSessionStore } from '@/stores/useSessionStore';
+import { useChatStore } from '@/stores/useChatStore';
 import { useUIStore } from '@/stores/useUIStore';
-import { useProjectsStore } from '@/stores/useProjectsStore';
 import { useThemeSystem } from '@/contexts/useThemeSystem';
 import { getRegisteredRuntimeAPIs } from '@/contexts/runtimeAPIRegistry';
 import { sessionEvents } from '@/lib/sessionEvents';
-import { isDesktopRuntime } from '@/lib/desktop';
-import { useFileSystemAccess } from '@/hooks/useFileSystemAccess';
 import { createWorktreeSession } from '@/lib/worktreeSessionCreator';
+import { useDirectoryStore } from '@/stores/useDirectoryStore';
 
 const MENU_ACTION_EVENT = 'openchamber:menu-action';
 
@@ -30,10 +28,9 @@ type MenuAction =
   | 'help-dialog'
   | 'download-logs';
 
-export const useMenuActions = (
-  onToggleMemoryDebug?: () => void
-) => {
-  const { openNewSessionDraft } = useSessionStore();
+export const useMenuActions = () => {
+  const { createAndLoadSession } = useChatStore();
+  const currentDirectory = useDirectoryStore((state) => state.currentDirectory);
   const {
     toggleCommandPalette,
     toggleHelpDialog,
@@ -43,47 +40,12 @@ export const useMenuActions = (
     setSettingsDialogOpen,
     setAboutDialogOpen,
   } = useUIStore();
-  const { addProject } = useProjectsStore();
-  const { requestAccess, startAccessing } = useFileSystemAccess();
   const { setThemeMode } = useThemeSystem();
   const isDownloadingLogsRef = React.useRef(false);
 
   const handleChangeWorkspace = React.useCallback(() => {
-    if (isDesktopRuntime()) {
-      requestAccess('')
-        .then(async (result) => {
-          if (!result.success || !result.path) {
-            if (result.error && result.error !== 'Directory selection cancelled') {
-              toast.error('Failed to select directory', {
-                description: result.error,
-              });
-            }
-            return;
-          }
-
-          const accessResult = await startAccessing(result.path);
-          if (!accessResult.success) {
-            toast.error('Failed to open directory', {
-              description: accessResult.error || 'Desktop could not grant file access.',
-            });
-            return;
-          }
-
-          const added = addProject(result.path, { id: result.projectId });
-          if (!added) {
-            toast.error('Failed to add project', {
-              description: 'Please select a valid directory path.',
-            });
-          }
-        })
-        .catch((error) => {
-          console.error('Desktop: Error selecting directory:', error);
-          toast.error('Failed to select directory');
-        });
-    } else {
-      sessionEvents.requestDirectoryDialog();
-    }
-  }, [addProject, requestAccess, startAccessing]);
+    sessionEvents.requestDirectoryDialog();
+  }, []);
 
   React.useEffect(() => {
     const handleMenuAction = (event: Event) => {
@@ -105,7 +67,9 @@ export const useMenuActions = (
         case 'new-session':
           setActiveMainTab('chat');
           setSessionSwitcherOpen(false);
-          openNewSessionDraft();
+          if (currentDirectory) {
+            void createAndLoadSession(currentDirectory);
+          }
           break;
 
         case 'new-worktree-session':
@@ -153,7 +117,6 @@ export const useMenuActions = (
           break;
 
         case 'toggle-memory-debug':
-          onToggleMemoryDebug?.();
           break;
 
         case 'help-dialog':
@@ -199,7 +162,8 @@ export const useMenuActions = (
     window.addEventListener(MENU_ACTION_EVENT, handleMenuAction);
     return () => window.removeEventListener(MENU_ACTION_EVENT, handleMenuAction);
   }, [
-    openNewSessionDraft,
+    createAndLoadSession,
+    currentDirectory,
     toggleCommandPalette,
     toggleHelpDialog,
     toggleSidebar,
@@ -208,7 +172,6 @@ export const useMenuActions = (
     setSettingsDialogOpen,
     setAboutDialogOpen,
     setThemeMode,
-    onToggleMemoryDebug,
     handleChangeWorkspace,
   ]);
 };

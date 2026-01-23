@@ -1,5 +1,5 @@
 import React from 'react';
-import { useSessionStore } from '@/stores/useSessionStore';
+import { useChatStore } from '@/stores/useChatStore';
 import { useUIStore } from '@/stores/useUIStore';
 import { parseRoute, updateBrowserURL, hasRouteParams } from '@/lib/router';
 import type { RouteState, AppRouteState } from '@/lib/router';
@@ -38,7 +38,6 @@ export function useRouter(): void {
   const isApplyingRouteRef = React.useRef(false);
 
   // Get store actions (stable references)
-  const setCurrentSession = useSessionStore((state) => state.setCurrentSession);
   const setActiveMainTab = useUIStore((state) => state.setActiveMainTab);
   const setSettingsDialogOpen = useUIStore((state) => state.setSettingsDialogOpen);
   const setSidebarSection = useUIStore((state) => state.setSidebarSection);
@@ -56,13 +55,7 @@ export function useRouter(): void {
       isApplyingRouteRef.current = true;
 
       try {
-        // 1. Apply session first (may trigger async operations)
-        if (route.sessionId) {
-          const currentSessionId = useSessionStore.getState().currentSessionId;
-          if (route.sessionId !== currentSessionId) {
-            await setCurrentSession(route.sessionId);
-          }
-        }
+        // Session routing is informational only - session is determined by current directory
 
         // 2. Handle settings (takes precedence over tabs - it's a full-screen overlay)
         if (route.settingsSection) {
@@ -90,14 +83,14 @@ export function useRouter(): void {
         isApplyingRouteRef.current = false;
       }
     },
-    [setCurrentSession, setActiveMainTab, setSettingsDialogOpen, setSidebarSection, navigateToDiff]
+    [setActiveMainTab, setSettingsDialogOpen, setSidebarSection, navigateToDiff]
   );
 
   /**
    * Get current app state for URL serialization.
    */
   const getCurrentAppState = React.useCallback((): AppRouteState => {
-    const sessionState = useSessionStore.getState();
+    const sessionState = useChatStore.getState();
     const uiState = useUIStore.getState();
 
     return {
@@ -158,9 +151,9 @@ export function useRouter(): void {
       return;
     }
 
-    let prevSessionId: string | null = useSessionStore.getState().currentSessionId;
+    let prevSessionId: string | null = useChatStore.getState().currentSessionId;
 
-    const unsubscribe = useSessionStore.subscribe((state) => {
+    const unsubscribe = useChatStore.subscribe((state) => {
       const sessionId = state.currentSessionId;
 
       // Skip if no change or if we're currently applying a route
@@ -259,10 +252,7 @@ export function navigateToRoute(route: Partial<RouteState>): void {
   // Check VS Code context
   const win = window as { __VSCODE_CONFIG__?: unknown };
   if (win.__VSCODE_CONFIG__ !== undefined) {
-    // In VS Code, just apply state changes directly
-    if (route.sessionId) {
-      void useSessionStore.getState().setCurrentSession(route.sessionId);
-    }
+    // In VS Code, just apply state changes directly (session routing is informational only)
     if (route.settingsSection) {
       useUIStore.getState().setSidebarSection(route.settingsSection);
       useUIStore.getState().setSettingsDialogOpen(true);
@@ -298,10 +288,7 @@ export function navigateToRoute(route: Partial<RouteState>): void {
 
   window.history.pushState({ route }, '', url);
 
-  // Also apply to state
-  if (route.sessionId) {
-    void useSessionStore.getState().setCurrentSession(route.sessionId);
-  }
+  // Also apply to state (session routing is informational only)
   if (route.settingsSection) {
     useUIStore.getState().setSidebarSection(route.settingsSection);
     useUIStore.getState().setSettingsDialogOpen(true);
@@ -321,7 +308,7 @@ export function getShareableURL(): string {
     return '/';
   }
 
-  const sessionState = useSessionStore.getState();
+  const sessionState = useChatStore.getState();
   const uiState = useUIStore.getState();
 
   const params = new URLSearchParams();

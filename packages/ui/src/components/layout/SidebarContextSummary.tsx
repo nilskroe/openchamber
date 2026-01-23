@@ -1,5 +1,5 @@
 import React from 'react';
-import { useSessionStore } from '@/stores/useSessionStore';
+import { useChatStore } from '@/stores/useChatStore';
 import { useDirectoryStore } from '@/stores/useDirectoryStore';
 import { cn } from '@/lib/utils';
 
@@ -23,17 +23,16 @@ const formatDirectoryPath = (path?: string) => {
 };
 
 export const SidebarContextSummary: React.FC<SidebarContextSummaryProps> = ({ className }) => {
-    const currentSessionId = useSessionStore((state) => state.currentSessionId);
-    const sessions = useSessionStore((state) => state.sessions);
+    const currentSessionId = useChatStore((state) => state.currentSessionId);
+    const sessionTitle = useChatStore((state) => state.sessionTitle);
     const { currentDirectory } = useDirectoryStore();
 
     const activeSessionTitle = React.useMemo(() => {
         if (!currentSessionId) {
             return 'No active session';
         }
-        const session = sessions.find((item) => item.id === currentSessionId);
-        return session ? formatSessionTitle(session.title) : 'No active session';
-    }, [currentSessionId, sessions]);
+        return formatSessionTitle(sessionTitle);
+    }, [currentSessionId, sessionTitle]);
 
     const directoryFull = React.useMemo(() => {
         return formatDirectoryPath(currentDirectory);

@@ -12,6 +12,7 @@ import { startAppearanceAutoSave } from './lib/appearanceAutoSave'
 import { startAppRunnerAutoSave } from './lib/appRunnerAutoSave'
 import { applyPersistedDirectoryPreferences } from './lib/directoryPersistence'
 import { startTypographyWatcher } from './lib/typographyWatcher'
+import { useChatStore } from './stores/useChatStore'
 import type { RuntimeAPIs } from './lib/api/types'
 
 declare global {
@@ -33,22 +34,16 @@ await applyPersistedDirectoryPreferences();
 
 if (typeof window !== 'undefined') {
   (window as { debugContextTokens?: () => void }).debugContextTokens = () => {
-    const sessionStore = (window as { __zustand_session_store__?: { getState: () => { currentSessionId?: string; messages: Map<string, { info: { role: string }; parts: { type: string }[] }[]>; sessionContextUsage: Map<string, unknown>; getContextUsage: (contextLimit: number, outputLimit: number) => unknown } } }).__zustand_session_store__;
-    if (!sessionStore) {
+    const state = useChatStore.getState();
+
+    if (!state.currentSessionId) {
+      console.debug('No active session');
       return;
     }
 
-    const state = sessionStore.getState();
-    const currentSessionId = state.currentSessionId;
-
-    if (!currentSessionId) {
-      return;
-    }
-
-    const sessionMessages = state.messages.get(currentSessionId) || [];
-    const assistantMessages = sessionMessages.filter((m: { info: { role: string } }) => m.info.role === 'assistant');
-
+    const assistantMessages = state.messages.filter((m) => m.info.role === 'assistant');
     if (assistantMessages.length === 0) {
+      console.debug('No assistant messages');
       return;
     }
 
@@ -56,31 +51,14 @@ if (typeof window !== 'undefined') {
     const tokens = (lastMessage.info as { tokens?: { input?: number; output?: number; reasoning?: number; cache?: { read?: number; write?: number } } }).tokens;
 
     if (tokens && typeof tokens === 'object') {
-
       console.debug('Token breakdown:', {
         base: (tokens.input || 0) + (tokens.output || 0) + (tokens.reasoning || 0),
         cache: tokens.cache ? (tokens.cache.read || 0) + (tokens.cache.write || 0) : 0
       });
     }
 
-    void state.sessionContextUsage.get(currentSessionId);
-
-    const configStore = (window as { __zustand_config_store__?: { getState: () => { getCurrentModel: () => { limit?: { context?: number } } | null } } }).__zustand_config_store__;
-    if (configStore) {
-      const currentModel = configStore.getState().getCurrentModel();
-      const contextLimit = currentModel?.limit?.context || 0;
-      const outputLimit =
-        currentModel && currentModel.limit && typeof currentModel.limit === 'object'
-          ? Math.max(((currentModel.limit as { output?: number }).output ?? 0), 0)
-          : 0;
-
-      if (contextLimit > 0) {
-
-        void state.getContextUsage(contextLimit, outputLimit);
-      }
-    }
+    console.debug('Context usage:', state.contextUsage);
   };
-
 }
 
 const rootElement = document.getElementById('root');

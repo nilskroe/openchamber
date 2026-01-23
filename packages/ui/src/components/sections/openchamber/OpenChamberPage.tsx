@@ -2,7 +2,6 @@ import React from 'react';
 import { OpenChamberVisualSettings } from './OpenChamberVisualSettings';
 import { AboutSettings } from './AboutSettings';
 import { SessionRetentionSettings } from './SessionRetentionSettings';
-import { MemoryLimitsSettings } from './MemoryLimitsSettings';
 import { DefaultsSettings } from './DefaultsSettings';
 import { GitSettings } from './GitSettings';
 import { WorktreeSectionContent } from './WorktreeSectionContent';
@@ -100,9 +99,6 @@ const SessionsSectionContent: React.FC = () => {
             <DefaultsSettings />
             <div className="border-t border-border/40 pt-6">
                 <SessionRetentionSettings />
-            </div>
-            <div className="border-t border-border/40 pt-6">
-                <MemoryLimitsSettings />
             </div>
         </div>
     );

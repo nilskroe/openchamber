@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { RiCheckboxBlankLine, RiCheckboxLine, RiDeleteBinLine, RiGitBranchLine } from '@remixicon/react';
 import { MobileOverlayPanel } from '@/components/ui/MobileOverlayPanel';
-import { DirectoryExplorerDialog } from './DirectoryExplorerDialog';
+import { RepoPickerDialog } from './RepoPickerDialog';
 import { cn, formatPathForDisplay } from '@/lib/utils';
 import type { Session } from '@opencode-ai/sdk/v2';
 import type { WorktreeMetadata } from '@/types/worktree';
@@ -21,27 +21,15 @@ import {
     getWorktreeStatus,
 } from '@/lib/git/worktreeService';
 import { ensureOpenChamberIgnored } from '@/lib/gitApi';
-import { useSessionStore } from '@/stores/useSessionStore';
+import { useChatStore } from '@/stores/useChatStore';
 import { useDirectoryStore } from '@/stores/useDirectoryStore';
 import { useProjectsStore } from '@/stores/useProjectsStore';
-import { useFileSystemAccess } from '@/hooks/useFileSystemAccess';
-import { isDesktopRuntime } from '@/lib/desktop';
 import { useDeviceInfo } from '@/lib/device';
 import { sessionEvents } from '@/lib/sessionEvents';
+import { normalizePath as normalizeProjectDirectory } from '@/lib/paths';
 
 const renderToastDescription = (text?: string) =>
     text ? <span className="text-foreground/80 dark:text-foreground/70">{text}</span> : undefined;
-
-const normalizeProjectDirectory = (path: string | null | undefined): string => {
-    if (!path) {
-        return '';
-    }
-    const replaced = path.replace(/\\/g, '/');
-    if (replaced === '/') {
-        return '/';
-    }
-    return replaced.replace(/\/+$/, '');
-};
 
 type DeleteDialogState = {
     sessions: Session[];
@@ -62,12 +50,11 @@ export const SessionDialogs: React.FC = () => {
     const {
         deleteSession,
         deleteSessions,
-        loadSessions,
+        loadAllSessions,
         getWorktreeMetadata,
-    } = useSessionStore();
+    } = useChatStore();
     const { currentDirectory, homeDirectory, isHomeReady } = useDirectoryStore();
-    const { projects, addProject, activeProjectId } = useProjectsStore();
-    const { requestAccess, startAccessing } = useFileSystemAccess();
+    const { projects, activeProjectId } = useProjectsStore();
     const { isMobile, isTablet, hasTouchInput } = useDeviceInfo();
     const useMobileOverlay = isMobile || isTablet || hasTouchInput;
 
@@ -119,8 +106,8 @@ export const SessionDialogs: React.FC = () => {
     }, [projectDirectory]);
 
     React.useEffect(() => {
-        loadSessions();
-    }, [loadSessions, currentDirectory]);
+        loadAllSessions();
+    }, [loadAllSessions, currentDirectory]);
 
     const projectsKey = React.useMemo(
         () => projects.map((project) => `${project.id}:${project.path}`).join('|'),
@@ -134,8 +121,8 @@ export const SessionDialogs: React.FC = () => {
         }
 
         lastProjectsKeyRef.current = projectsKey;
-        loadSessions();
-    }, [loadSessions, projectsKey]);
+        loadAllSessions();
+    }, [loadAllSessions, projectsKey]);
 
     React.useEffect(() => {
         if (hasShownInitialDirectoryPrompt || !isHomeReady || projects.length > 0) {
@@ -143,49 +130,11 @@ export const SessionDialogs: React.FC = () => {
         }
 
         setHasShownInitialDirectoryPrompt(true);
-
-        if (isDesktopRuntime()) {
-            requestAccess('')
-                .then(async (result) => {
-                    if (!result.success || !result.path) {
-                        if (result.error && result.error !== 'Directory selection cancelled') {
-                            toast.error('Failed to select directory', {
-                                description: result.error,
-                            });
-                        }
-                        return;
-                    }
-
-                    const accessResult = await startAccessing(result.path);
-                    if (!accessResult.success) {
-                        toast.error('Failed to open directory', {
-                            description: accessResult.error || 'Desktop could not grant file access.',
-                        });
-                        return;
-                    }
-
-                    const added = addProject(result.path, { id: result.projectId });
-                    if (!added) {
-                        toast.error('Failed to add project', {
-                            description: 'Please select a valid directory path.',
-                        });
-                    }
-                })
-                .catch((error) => {
-                    console.error('Desktop: Error selecting directory:', error);
-                    toast.error('Failed to select directory');
-                });
-            return;
-        }
-
         setIsDirectoryDialogOpen(true);
     }, [
-        addProject,
         hasShownInitialDirectoryPrompt,
         isHomeReady,
         projects.length,
-        requestAccess,
-        startAccessing,
     ]);
 
     const openDeleteDialog = React.useCallback((payload: { sessions: Session[]; dateLabel?: string; mode?: 'session' | 'worktree'; worktree?: WorktreeMetadata | null }) => {
@@ -303,7 +252,7 @@ export const SessionDialogs: React.FC = () => {
                     description: renderToastDescription(archiveNote),
                 });
                 closeDeleteDialog();
-                loadSessions();
+                loadAllSessions();
                 return;
             }
 
@@ -374,7 +323,7 @@ export const SessionDialogs: React.FC = () => {
         } finally {
             setIsProcessingDelete(false);
         }
-    }, [deleteDialog, deleteDialogShouldRemoveRemote, deleteSession, deleteSessions, closeDeleteDialog, shouldArchiveWorktree, isWorktreeDelete, canRemoveRemoteBranches, projectDirectory, loadSessions]);
+    }, [deleteDialog, deleteDialogShouldRemoveRemote, deleteSession, deleteSessions, closeDeleteDialog, shouldArchiveWorktree, isWorktreeDelete, canRemoveRemoteBranches, projectDirectory, loadAllSessions]);
 
     const targetWorktree = deleteDialog?.worktree ?? deleteDialogSummaries[0]?.metadata ?? null;
     const deleteDialogDescription = deleteDialog
@@ -453,7 +402,7 @@ export const SessionDialogs: React.FC = () => {
             ) : (
                 <div className="rounded-xl border border-border/40 bg-sidebar/60 p-3">
                     <p className="typography-meta text-muted-foreground/80">
-                        Worktree directories stay intact. Subsessions linked to the selected sessions will also be removed.
+                        Worktree directories stay intact.
                     </p>
                 </div>
             )}
@@ -578,7 +527,7 @@ export const SessionDialogs: React.FC = () => {
                 </Dialog>
             )}
 
-            <DirectoryExplorerDialog
+            <RepoPickerDialog
                 open={isDirectoryDialogOpen}
                 onOpenChange={setIsDirectoryDialogOpen}
             />

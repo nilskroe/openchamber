@@ -6,7 +6,7 @@ import { opencodeClient } from "@/lib/opencode/client";
 import { scopeMatches, subscribeToConfigChanges } from "@/lib/configSync";
 import type { ModelMetadata } from "@/types";
 import { getSafeStorage } from "./utils/safeStorage";
-import type { SessionStore } from "./types/sessionTypes";
+import type { ChatStore } from "./types/chatTypes";
 import { filterVisibleAgents } from "./useAgentsStore";
 import { isDesktopRuntime, getDesktopSettings } from "@/lib/desktop";
 import { getRegisteredRuntimeAPIs } from "@/contexts/runtimeAPIRegistry";
@@ -411,7 +411,7 @@ interface ConfigStore {
 declare global {
     interface Window {
         __zustand_config_store__?: UseBoundStore<StoreApi<ConfigStore>>;
-        __zustand_session_store__?: UseBoundStore<StoreApi<SessionStore>>;
+        __zustand_session_store__?: UseBoundStore<StoreApi<ChatStore>>;
     }
 }
 
@@ -1156,23 +1156,10 @@ export const useConfigStore = create<ConfigStore>()(
                         const sessionStore = window.__zustand_session_store__;
                         if (sessionStore) {
                             const sessionState = sessionStore.getState();
-                            const { currentSessionId, isOpenChamberCreatedSession, initializeNewOpenChamberSession, getAgentModelForSession } = sessionState;
+                            const { currentSessionId } = sessionState;
 
                             if (currentSessionId) {
-
-                                sessionStore.setState((state) => {
-                                    const newAgentContext = new Map(state.currentAgentContext);
-                                    newAgentContext.set(currentSessionId, agentName);
-                                    return { currentAgentContext: newAgentContext };
-                                });
-                            }
-
-                            if (currentSessionId && isOpenChamberCreatedSession(currentSessionId)) {
-                                const existingAgentModel = getAgentModelForSession(currentSessionId, agentName);
-                                if (!existingAgentModel) {
-
-                                    initializeNewOpenChamberSession(currentSessionId, agents);
-                                }
+                                sessionStore.setState({ currentAgentContext: agentName });
                             }
                         }
                     }
@@ -1180,10 +1167,10 @@ export const useConfigStore = create<ConfigStore>()(
                     if (agentName && typeof window !== "undefined") {
                         const sessionStore = window.__zustand_session_store__;
                         if (sessionStore?.getState) {
-                            const { currentSessionId, getAgentModelForSession } = sessionStore.getState();
+                            const { currentSessionId, getAgentModelSelection } = sessionStore.getState();
 
                             if (currentSessionId) {
-                                const existingAgentModel = getAgentModelForSession(currentSessionId, agentName);
+                                const existingAgentModel = getAgentModelSelection(agentName);
 
                                 if (existingAgentModel) {
 

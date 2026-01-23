@@ -7,8 +7,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { useSessionStore } from '@/stores/useSessionStore';
-import { useMessageStore } from '@/stores/messageStore';
+import { useChatStore } from '@/stores/useChatStore';
 import { RiLoader4Line, RiSearchLine, RiTimeLine, RiGitBranchLine, RiArrowGoBackLine } from '@remixicon/react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { Part } from '@opencode-ai/sdk/v2';
@@ -36,13 +35,10 @@ function formatRelativeTime(timestamp: number): string {
 }
 
 export const TimelineDialog: React.FC<TimelineDialogProps> = ({ open, onOpenChange, onScrollToMessage }) => {
-    const currentSessionId = useSessionStore((state) => state.currentSessionId);
-    const messages = useMessageStore((state) =>
-        currentSessionId ? state.messages.get(currentSessionId) || [] : []
-    );
-    const revertToMessage = useSessionStore((state) => state.revertToMessage);
-    const forkFromMessage = useSessionStore((state) => state.forkFromMessage);
-    const loadSessions = useSessionStore((state) => state.loadSessions);
+    const currentSessionId = useChatStore((state) => state.currentSessionId);
+    const messages = useChatStore((state) => state.messages);
+    const revertToMessage = useChatStore((state) => state.revertToMessage);
+    const forkFromMessage = useChatStore((state) => state.forkFromMessage);
 
     const [forkingMessageId, setForkingMessageId] = React.useState<string | null>(null);
     const [searchQuery, setSearchQuery] = React.useState('');
@@ -69,8 +65,7 @@ export const TimelineDialog: React.FC<TimelineDialogProps> = ({ open, onOpenChan
         if (!currentSessionId) return;
         setForkingMessageId(messageId);
         try {
-            await forkFromMessage(currentSessionId, messageId);
-            await loadSessions();
+            await forkFromMessage(messageId);
             onOpenChange(false);
         } finally {
             setForkingMessageId(null);
@@ -144,7 +139,7 @@ export const TimelineDialog: React.FC<TimelineDialogProps> = ({ open, onOpenChan
                                                         className="h-5 w-5 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
                                                         onClick={async (e) => {
                                                             e.stopPropagation();
-                                                            await revertToMessage(currentSessionId, message.info.id);
+                                                            await revertToMessage(message.info.id);
                                                             onOpenChange(false);
                                                         }}
                                                     >

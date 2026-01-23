@@ -6,6 +6,7 @@ import { updateDesktopSettings } from '@/lib/persistence';
 import { useFileSearchStore } from '@/stores/useFileSearchStore';
 import { streamDebugEnabled } from '@/stores/utils/streamDebug';
 import { getSafeStorage } from './utils/safeStorage';
+import { normalizePath, normalizePathOrNull } from '@/lib/paths';
 
 interface DirectoryStore {
 
@@ -40,18 +41,6 @@ const invalidateFileSearchCache = (scope?: string | null) => {
   }
 };
 
-const normalizeDirectoryPath = (value: string): string => {
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return trimmed;
-  }
-  const normalized = trimmed.replace(/\\/g, '/');
-  if (normalized.length > 1) {
-    return normalized.replace(/\/+$/, '');
-  }
-  return normalized;
-};
-
 const resolveTildePath = (path: string, homeDir?: string | null): string => {
   const trimmed = path.trim();
   if (!trimmed.startsWith('~')) {
@@ -68,7 +57,7 @@ const resolveTildePath = (path: string, homeDir?: string | null): string => {
 
 const resolveDirectoryPath = (path: string, homeDir?: string | null): string => {
   const expanded = resolveTildePath(path, homeDir);
-  return normalizeDirectoryPath(expanded);
+  return normalizePath(expanded.trim());
 };
 
 const getHomeDirectory = () => {
@@ -109,30 +98,6 @@ const getHomeDirectory = () => {
 };
 
 
-const normalizeHomeCandidate = (value?: string | null) => {
-  if (typeof value !== 'string') {
-    return null;
-  }
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return null;
-  }
-  const normalized = trimmed.replace(/\\/g, '/');
-  if (normalized.length > 1) {
-    const withoutTrailingSlash = normalized.replace(/\/+$/, '');
-    if (withoutTrailingSlash && withoutTrailingSlash.length > 0) {
-      if (withoutTrailingSlash === '/') {
-        return null;
-      }
-      return withoutTrailingSlash;
-    }
-  }
-  if (normalized === '/' || normalized.length === 0) {
-    return null;
-  }
-  return normalized;
-};
-
 const persistResolvedHome = (resolved: string) => {
   cachedHomeDirectory = resolved;
   if (typeof window !== 'undefined') {
@@ -144,7 +109,7 @@ const persistResolvedHome = (resolved: string) => {
 
 const initializeHomeDirectory = async () => {
   const acceptCandidate = (candidate?: string | null) => {
-    const normalized = normalizeHomeCandidate(candidate);
+    const normalized = normalizePathOrNull(candidate);
     return normalized ? persistResolvedHome(normalized) : null;
   };
 
@@ -195,7 +160,7 @@ const getVsCodeWorkspaceFolder = (): string | null => {
   if (typeof workspaceFolder !== 'string' || workspaceFolder.trim().length === 0) {
     return null;
   }
-  const normalized = normalizeDirectoryPath(workspaceFolder);
+  const normalized = normalizePath(workspaceFolder.trim());
   return normalized.length > 0 ? normalized : null;
 };
 

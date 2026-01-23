@@ -9,7 +9,7 @@ import { DiffWorkerProvider } from '@/contexts/DiffWorkerProvider';
 import { MultiRunLauncher } from '@/components/multirun';
 import { WorkspacePane } from '@/components/panes';
 import { usePaneStore, usePanes, type PaneId } from '@/stores/usePaneStore';
-import { useSessionStore } from '@/stores/useSessionStore';
+import { useChatStore } from '@/stores/useChatStore';
 
 import { useUIStore } from '@/stores/useUIStore';
 import { useUpdateStore } from '@/stores/useUpdateStore';
@@ -39,7 +39,7 @@ export const MainLayout: React.FC = () => {
 
     const { rightPaneWidth, setRightPaneWidth, rightBottomHeight, setRightBottomHeight, rightBottomCollapsed, setRightBottomCollapsed } = usePaneStore();
     const { addTab, activateTabByIndex, closeActiveTab, closeTab, focusedPane, rightPane, rightBottomPane, moveTab, setFocusedPane, toggleRightBottomCollapsed } = usePanes(worktreeId);
-    const { createSession, setCurrentSession } = useSessionStore();
+    const { createAndLoadSession } = useChatStore();
     const [isResizing, setIsResizing] = React.useState(false);
     const [isVerticalResizing, setIsVerticalResizing] = React.useState(false);
     const [isDraggingTab, setIsDraggingTab] = useState(false);
@@ -119,14 +119,12 @@ export const MainLayout: React.FC = () => {
 
             if (e.key === 't' && !e.shiftKey) {
                 e.preventDefault();
-                const session = await createSession();
-                if (session?.id) {
+                if (currentDirectory) {
+                    await createAndLoadSession(currentDirectory);
                     addTab(focusedPane, {
                         type: 'chat',
-                        title: session.title || 'New Chat',
-                        sessionId: session.id,
+                        title: 'New Chat',
                     });
-                    setCurrentSession(session.id);
                 }
                 return;
             }
@@ -154,9 +152,11 @@ export const MainLayout: React.FC = () => {
             if (e.key === 'r' && !e.shiftKey) {
                 const appRunner = useAppRunnerStore.getState();
                 if (!appRunner.enabled) return;
-                
+
                 e.preventDefault();
-                if (appRunner.status === 'running' || appRunner.status === 'starting') {
+                const dir = useDirectoryStore.getState().currentDirectory;
+                const dirStatus = dir ? appRunner.directoryStates[dir]?.status : undefined;
+                if (dirStatus === 'running' || dirStatus === 'starting') {
                     document.dispatchEvent(new CustomEvent('app-runner-stop'));
                 } else {
                     document.dispatchEvent(new CustomEvent('app-runner-start'));
@@ -167,7 +167,7 @@ export const MainLayout: React.FC = () => {
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isMobile, activateTabByIndex, closeActiveTab, addTab, focusedPane, createSession, setCurrentSession, rightPaneVisible, rightBottomPane.tabs.length, toggleRightBottomCollapsed, setRightBottomCollapsed, setFocusedPane]);
+    }, [isMobile, activateTabByIndex, closeActiveTab, addTab, focusedPane, createAndLoadSession, currentDirectory, rightPaneVisible, rightBottomPane.tabs.length, toggleRightBottomCollapsed, setRightBottomCollapsed, setFocusedPane]);
 
     const checkForUpdates = useUpdateStore((state) => state.checkForUpdates);
     React.useEffect(() => {

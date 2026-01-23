@@ -2,7 +2,7 @@ import React from 'react';
 import { RiCodeLine, RiFileImageLine, RiFileLine, RiFilePdfLine, RiRefreshLine } from '@remixicon/react';
 import { cn, truncatePathMiddle } from '@/lib/utils';
 import { useDirectoryStore } from '@/stores/useDirectoryStore';
-import { useSessionStore } from '@/stores/useSessionStore';
+import { useFileStore } from '@/stores/fileStore';
 import { useFileSearchStore } from '@/stores/useFileSearchStore';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
 import type { ProjectFileSearchHit } from '@/lib/opencode/client';
@@ -28,7 +28,7 @@ export const FileMentionAutocomplete = React.forwardRef<FileMentionHandle, FileM
   onClose
 }, ref) => {
   const { currentDirectory } = useDirectoryStore();
-  const { addServerFile } = useSessionStore();
+  const { addServerFile } = useFileStore();
   const searchFiles = useFileSearchStore((state) => state.searchFiles);
   const debouncedQuery = useDebouncedValue(searchQuery, 180);
   const showHidden = useDirectoryShowHidden();

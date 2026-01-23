@@ -1,4 +1,4 @@
-import type { EditPermissionMode } from "../types/sessionTypes";
+import type { EditPermissionMode } from "../types/chatTypes";
 
 const EDIT_PERMISSION_TOOL_NAMES = new Set([
     'edit',

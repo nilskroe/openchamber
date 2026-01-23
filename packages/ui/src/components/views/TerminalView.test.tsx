@@ -20,8 +20,8 @@ vi.mock('@/hooks/useRuntimeAPIs', () => ({
   }),
 }));
 
-vi.mock('@/stores/useSessionStore', () => ({
-  useSessionStore: (selector?: (state: unknown) => unknown) => {
+vi.mock('@/stores/useChatStore', () => ({
+  useChatStore: (selector?: (state: unknown) => unknown) => {
     const state = {
       currentSessionId: 'test-session',
       sessions: [{ id: 'test-session', directory: '/home/user/project' }],

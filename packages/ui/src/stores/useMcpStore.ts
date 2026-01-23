@@ -3,6 +3,7 @@ import { devtools } from 'zustand/middleware';
 import type { McpStatus } from '@opencode-ai/sdk/v2';
 import { opencodeClient } from '@/lib/opencode/client';
 import { useDirectoryStore } from '@/stores/useDirectoryStore';
+import { normalizePathOrNull as normalizeDirectory } from '@/lib/paths';
 
 export type McpStatusMap = Record<string, McpStatus>;
 
@@ -13,14 +14,6 @@ type McpHealth = {
   total: number;
   hasFailed: boolean;
   hasAuthRequired: boolean;
-};
-
-const normalizeDirectory = (directory: string | null | undefined): string | null => {
-  if (typeof directory !== 'string') return null;
-  const trimmed = directory.trim();
-  if (!trimmed) return null;
-  const normalized = trimmed.replace(/\\/g, '/');
-  return normalized.length > 1 ? normalized.replace(/\/+$/, '') : normalized;
 };
 
 const toKey = (directory: string | null | undefined): string => normalizeDirectory(directory) ?? '__global__';

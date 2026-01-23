@@ -1,6 +1,6 @@
 import React from 'react';
 import { opencodeClient } from '@/lib/opencode/client';
-import { useSessionStore } from '@/stores/useSessionStore';
+import { useChatStore } from '@/stores/useChatStore';
 
 type SessionStatusPayload = {
   type: 'idle' | 'busy' | 'retry';
@@ -15,22 +15,21 @@ export const useSessionStatusBootstrap = () => {
 
     const bootstrap = async () => {
       try {
-        // Use global status to detect busy sessions across all directories,
-        // including sessions started externally (e.g., via CLI) before UI opened
+        const currentSessionId = useChatStore.getState().currentSessionId;
+        if (!currentSessionId) return;
+
         const statusMap = await opencodeClient.getGlobalSessionStatus();
         if (cancelled || !statusMap) return;
 
-        const phases = new Map<string, 'idle' | 'busy' | 'cooldown'>();
-        Object.entries(statusMap).forEach(([sessionId, raw]) => {
-          if (!sessionId || !raw) return;
-          const status = raw as SessionStatusPayload;
-          const phase: 'idle' | 'busy' | 'cooldown' =
-            status.type === 'busy' || status.type === 'retry' ? 'busy' : 'idle';
-          phases.set(sessionId, phase);
-        });
+        const raw = statusMap[currentSessionId];
+        if (!raw) return;
 
-        if (phases.size > 0) {
-          useSessionStore.setState({ sessionActivityPhase: phases });
+        const status = raw as SessionStatusPayload;
+        const phase: 'idle' | 'busy' | 'cooldown' =
+          status.type === 'busy' || status.type === 'retry' ? 'busy' : 'idle';
+
+        if (phase !== 'idle') {
+          useChatStore.setState({ activityPhase: phase });
         }
       } catch { /* ignored */ }
     };
@@ -42,4 +41,3 @@ export const useSessionStatusBootstrap = () => {
     };
   }, []);
 };
-

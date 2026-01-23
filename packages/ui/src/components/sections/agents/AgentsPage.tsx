@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from '@/components/ui';
 import { useAgentsStore, type AgentConfig, type AgentScope } from '@/stores/useAgentsStore';
 import { useConfigStore } from '@/stores/useConfigStore';
-import { usePermissionStore } from '@/stores/permissionStore';
+import { useChatStore } from '@/stores/useChatStore';
 import { useDirectoryStore } from '@/stores/useDirectoryStore';
 import { opencodeClient } from '@/lib/opencode/client';
 import { RiAddLine, RiAiAgentFill, RiAiAgentLine, RiInformationLine, RiRobot2Line, RiRobotLine, RiSaveLine, RiSubtractLine, RiUser3Line, RiFolderLine } from '@remixicon/react';
@@ -266,7 +266,7 @@ export const AgentsPage: React.FC = () => {
   const currentDirectory = useDirectoryStore((state) => state.currentDirectory ?? null);
   const [toolIds, setToolIds] = React.useState<string[]>([]);
 
-  const permissionsBySession = usePermissionStore((state) => state.permissions);
+  const permissions = useChatStore((state) => state.permissions);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -313,21 +313,19 @@ export const AgentsPage: React.FC = () => {
       }
     }
 
-    for (const permissions of permissionsBySession.values()) {
-      for (const request of permissions) {
-        const permissionName = request.permission?.trim();
-        if (permissionName && permissionName !== 'invalid') {
-          names.add(permissionName);
-        }
+    for (const request of permissions) {
+      const permissionName = request.permission?.trim();
+      if (permissionName && permissionName !== 'invalid') {
+        names.add(permissionName);
       }
     }
 
-    for (const toolId of toolIds) {
-      names.add(toolId);
+    for (const key of toolIds) {
+      names.add(key);
     }
 
     return Array.from(names).sort((a, b) => a.localeCompare(b));
-  }, [agents, permissionsBySession, toolIds]);
+  }, [agents, permissions, toolIds]);
 
   const getOverrideWildcardAction = React.useCallback((permissionName: string): PermissionAction | undefined => {
     const configured = permissionEntries[permissionName];

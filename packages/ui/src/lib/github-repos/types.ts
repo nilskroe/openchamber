@@ -1,9 +1,3 @@
-export type TrackedRepo = {
-  owner: string;
-  repo: string;
-  addedAt: number;
-};
-
 export type BoardColumnType =
   | 'branches'
   | 'behind-prs'

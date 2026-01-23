@@ -5,7 +5,7 @@ import { getSafeStorage } from './utils/safeStorage';
 import { SEMANTIC_TYPOGRAPHY, getTypographyVariable, type SemanticTypographyKey } from '@/lib/typography';
 
 export type MainTab = 'chat' | 'git' | 'diff' | 'terminal' | 'files';
-export type SidebarMode = 'projects' | 'sessions' | 'github';
+export type SidebarMode = 'projects' | 'sessions';
 
 export type MainTabGuard = (nextTab: MainTab) => boolean;
 export type EventStreamStatus =

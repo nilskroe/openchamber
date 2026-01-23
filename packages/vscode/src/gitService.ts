@@ -626,21 +626,25 @@ export async function getAvailableBranchesForWorktree(directory: string): Promis
  * Add a new worktree
  */
 export async function addGitWorktree(
-  directory: string, 
-  worktreePath: string, 
-  branch: string, 
-  createBranch = false
+  directory: string,
+  worktreePath: string,
+  branch: string,
+  createBranch = false,
+  startPoint?: string
 ): Promise<{ success: boolean; path: string; branch: string }> {
   const args = ['worktree', 'add'];
-  
+
   if (createBranch) {
     args.push('-b', branch, worktreePath);
+    if (startPoint && startPoint.trim()) {
+      args.push(startPoint.trim());
+    }
   } else {
     args.push(worktreePath, branch);
   }
 
   const result = await execGit(args, directory);
-  
+
   return {
     success: result.exitCode === 0,
     path: worktreePath,

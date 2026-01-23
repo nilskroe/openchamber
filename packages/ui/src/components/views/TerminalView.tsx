@@ -2,7 +2,7 @@ import React from 'react';
 import { RiAlertLine, RiArrowDownLine, RiArrowGoBackLine, RiArrowLeftLine, RiArrowRightLine, RiArrowUpLine, RiCheckboxCircleLine, RiCircleLine, RiCloseLine, RiCommandLine, RiDeleteBinLine, RiFileCopyLine, RiRestartLine } from '@remixicon/react';
 import { toast } from 'sonner';
 
-import { useSessionStore } from '@/stores/useSessionStore';
+import { useChatStore } from '@/stores/useChatStore';
 import { useDirectoryStore } from '@/stores/useDirectoryStore';
 import { useTerminalStore } from '@/stores/useTerminalStore';
 import { type TerminalStreamEvent } from '@/lib/api/types';
@@ -87,23 +87,9 @@ export const TerminalView: React.FC = () => {
     const tabContext = useTabContext();
     const tabId = tabContext?.tabId ?? null;
 
-    const { currentSessionId, sessions, worktreeMetadata: worktreeMap } = useSessionStore();
-    const worktreeMetadata = currentSessionId ? worktreeMap.get(currentSessionId) ?? undefined : undefined;
-
-    const sessionDirectory = React.useMemo(() => {
-        if (worktreeMetadata?.path) {
-            return worktreeMetadata.path;
-        }
-        if (!currentSessionId) return null;
-        const entry = sessions.find((session) => session.id === currentSessionId);
-        const directory = typeof (entry as { directory?: string } | undefined)?.directory === 'string'
-            ? (entry as { directory?: string }).directory
-            : null;
-        return directory && directory.length > 0 ? directory : null;
-    }, [currentSessionId, sessions, worktreeMetadata]);
-
+    const currentSessionId = useChatStore((s) => s.currentSessionId);
     const { currentDirectory: fallbackDirectory, homeDirectory } = useDirectoryStore();
-    const effectiveDirectory = sessionDirectory || fallbackDirectory || null;
+    const effectiveDirectory = fallbackDirectory || null;
 
     const displayDirectory = React.useMemo(() => {
         if (!effectiveDirectory) return '';

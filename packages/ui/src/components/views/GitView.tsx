@@ -1,5 +1,5 @@
 import React from 'react';
-import { useSessionStore } from '@/stores/useSessionStore';
+import { useChatStore } from '@/stores/useChatStore';
 import { useConfigStore } from '@/stores/useConfigStore';
 import { useFireworksCelebration } from '@/contexts/FireworksContext';
 import type { GitIdentityProfile, CommitFileEntry } from '@/lib/api/types';
@@ -180,28 +180,15 @@ const matchGitmojiFromSubject = (subject: string, gitmojis: GitmojiEntry[]): Git
 let gitViewSnapshot: GitViewSnapshot | null = null;
 
 const useEffectiveDirectory = () => {
-  const { currentSessionId, sessions, worktreeMetadata: worktreeMap } = useSessionStore();
-  const { currentDirectory: fallbackDirectory } = useDirectoryStore();
-
-  const worktreeMetadata = currentSessionId
-    ? worktreeMap.get(currentSessionId) ?? undefined
-    : undefined;
-  const currentSession = sessions.find((session) => session.id === currentSessionId);
-  type SessionWithDirectory = Session & { directory?: string };
-  const sessionDirectory: string | undefined = (
-    currentSession as SessionWithDirectory | undefined
-  )?.directory;
-
-  return worktreeMetadata?.path ?? sessionDirectory ?? fallbackDirectory ?? undefined;
+  const { currentDirectory } = useDirectoryStore();
+  return currentDirectory ?? undefined;
 };
 
 export const GitView: React.FC = () => {
   const { git } = useRuntimeAPIs();
   const currentDirectory = useEffectiveDirectory();
-  const { currentSessionId, worktreeMetadata: worktreeMap } = useSessionStore();
-  const worktreeMetadata = currentSessionId
-    ? worktreeMap.get(currentSessionId) ?? undefined
-    : undefined;
+  // In one-session-per-worktree model, every session is associated with its directory
+  const isWorktreeMode = !!currentDirectory;
 
   const { profiles, globalIdentity, defaultGitIdentityId, loadProfiles, loadGlobalIdentity, loadDefaultGitIdentityId } =
     useGitIdentitiesStore();
@@ -989,7 +976,7 @@ export const GitView: React.FC = () => {
         availableIdentities={availableIdentities}
         onSelectIdentity={handleApplyIdentity}
         isApplyingIdentity={isSettingIdentity}
-        isWorktreeMode={!!worktreeMetadata}
+        isWorktreeMode={isWorktreeMode}
       />
 
         <ScrollableOverlay outerClassName="flex-1 min-h-0" className="p-3">

@@ -9,11 +9,12 @@ import {
     RiSendPlane2Line,
     RiStopCircleLine,
 } from '@remixicon/react';
-import { useSessionStore } from '@/stores/useSessionStore';
+import { useChatStore } from '@/stores/useChatStore';
+import { useFileStore, type AttachedFile as FileStoreAttachedFile } from '@/stores/fileStore';
 import { useConfigStore } from '@/stores/useConfigStore';
 import { useUIStore } from '@/stores/useUIStore';
 import { useMessageQueueStore, type QueuedMessage } from '@/stores/messageQueueStore';
-import type { AttachedFile, EditPermissionMode } from '@/stores/types/sessionTypes';
+import type { AttachedFile, EditPermissionMode } from '@/stores/types/chatTypes';
 import { getEditModeColors } from '@/lib/permissions/editModeColors';
 import { AttachedFilesList } from './FileAttachment';
 import { QueuedMessageChips } from './QueuedMessageChips';
@@ -30,7 +31,6 @@ import { StatusRow } from './StatusRow';
 import { useAssistantStatus } from '@/hooks/useAssistantStatus';
 import { useCurrentSessionActivity } from '@/hooks/useSessionActivity';
 import { toast } from '@/components/ui';
-import { useFileStore } from '@/stores/fileStore';
 import { calculateEditPermissionUIState, type BashPermissionSetting } from '@/lib/permissions/editPermissionDefaults';
 import { isVSCodeRuntime } from '@/lib/desktop';
 import { isIMECompositionEvent } from '@/lib/ime';
@@ -134,22 +134,20 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBo
     const agentRef = React.useRef<AgentMentionAutocompleteHandle>(null);
     const skillRef = React.useRef<SkillAutocompleteHandle>(null);
 
-    const sendMessage = useSessionStore((state) => state.sendMessage);
-    const currentSessionId = useSessionStore((state) => state.currentSessionId);
-    const newSessionDraftOpen = useSessionStore((state) => state.newSessionDraft?.open);
-    const abortCurrentOperation = useSessionStore((state) => state.abortCurrentOperation);
-    const acknowledgeSessionAbort = useSessionStore((state) => state.acknowledgeSessionAbort);
-    const abortPromptSessionId = useSessionStore((state) => state.abortPromptSessionId);
-    const abortPromptExpiresAt = useSessionStore((state) => state.abortPromptExpiresAt);
-    const clearAbortPrompt = useSessionStore((state) => state.clearAbortPrompt);
-    const sessionAbortFlags = useSessionStore((state) => state.sessionAbortFlags);
-    const attachedFiles = useSessionStore((state) => state.attachedFiles);
-    const addAttachedFile = useSessionStore((state) => state.addAttachedFile);
-    const addServerFile = useSessionStore((state) => state.addServerFile);
-    const clearAttachedFiles = useSessionStore((state) => state.clearAttachedFiles);
-    const saveSessionAgentSelection = useSessionStore((state) => state.saveSessionAgentSelection);
-    const consumePendingInputText = useSessionStore((state) => state.consumePendingInputText);
-    const pendingInputText = useSessionStore((state) => state.pendingInputText);
+    const sendMessage = useChatStore((state) => state.sendMessage);
+    const currentSessionId = useChatStore((state) => state.currentSessionId);
+    const abortCurrentOperation = useChatStore((state) => state.abortCurrentOperation);
+    const acknowledgeAbort = useChatStore((state) => state.acknowledgeAbort);
+    const abortPromptExpiresAt = useChatStore((state) => state.abortPromptExpiresAt);
+    const clearAbortPrompt = useChatStore((state) => state.clearAbortPrompt);
+    const sessionAbortTimestamp = useChatStore((state) => state.sessionAbortTimestamp);
+    const saveAgentSelection = useChatStore((state) => state.saveAgentSelection);
+    const consumePendingInputText = useChatStore((state) => state.consumePendingInputText);
+    const pendingInputText = useChatStore((state) => state.pendingInputText);
+    const attachedFiles = useFileStore((state) => state.attachedFiles);
+    const addAttachedFile = useFileStore((state) => state.addAttachedFile);
+    const addServerFile = useFileStore((state) => state.addServerFile);
+    const clearAttachedFiles = useFileStore((state) => state.clearAttachedFiles);
 
     const { currentProviderId, currentModelId, currentVariant, currentAgentName, setAgent, getVisibleAgents } = useConfigStore();
     const agents = getVisibleAgents();
@@ -254,14 +252,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBo
         return action;
     }, [currentAgent]);
 
-    const sessionAgentEditOverride = useSessionStore(
+    const sessionAgentEditOverride = useChatStore(
         React.useCallback((state) => {
-            if (!currentSessionId || !currentAgentName) {
+            if (!currentAgentName) {
                 return undefined;
             }
-            const sessionMap = state.sessionAgentEditModes.get(currentSessionId);
-            return sessionMap?.get(currentAgentName);
-        }, [currentSessionId, currentAgentName])
+            return state.agentEditModes.get(currentAgentName);
+        }, [currentAgentName])
     );
 
     const agentWebfetchPermission = React.useMemo(() => {
@@ -332,8 +329,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBo
 
     const isAbortPromptActive = React.useMemo(() => {
         if (!currentSessionId) return false;
-        return abortPromptSessionId === currentSessionId && Boolean(abortPromptExpiresAt);
-    }, [abortPromptSessionId, abortPromptExpiresAt, currentSessionId]);
+        return Boolean(abortPromptExpiresAt);
+    }, [abortPromptExpiresAt, currentSessionId]);
 
     // Add message to queue instead of sending
     const handleQueueMessage = React.useCallback(() => {
@@ -361,7 +358,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBo
     const handleSubmit = async (e?: React.FormEvent) => {
         e?.preventDefault();
 
-        if (!canSend || (!currentSessionId && !newSessionDraftOpen)) return;
+        if (!canSend || (!currentSessionId)) return;
 
         // Re-pin and scroll to bottom when sending
         scrollToBottom?.({ instant: true, force: true });
@@ -449,14 +446,14 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBo
 
             // NEW: /undo - revert to last message (populates input with reverted message text)
             if (commandName === 'undo' && currentSessionId) {
-                await useSessionStore.getState().handleSlashUndo(currentSessionId);
+                await useChatStore.getState().handleSlashUndo();
                 // Don't clear message - pendingInputText will populate it with reverted message
                 scrollToBottom?.({ instant: true, force: true });
                 return; // Don't send to assistant
             }
             // NEW: /redo - unrevert or partial redo (populates input with message text)
             else if (commandName === 'redo' && currentSessionId) {
-                await useSessionStore.getState().handleSlashRedo(currentSessionId);
+                await useChatStore.getState().handleSlashRedo();
                 // Don't clear message - pendingInputText will populate it
                 scrollToBottom?.({ instant: true, force: true });
                 return; // Don't send to assistant
@@ -587,10 +584,8 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBo
         const wasWorking = prevSessionPhaseRef.current === 'busy' || prevSessionPhaseRef.current === 'cooldown';
         const isNowIdle = sessionPhase === 'idle';
         
-        const wasRecentlyAborted = currentSessionId && sessionAbortFlags.has(currentSessionId) && (() => {
-            const abortRecord = sessionAbortFlags.get(currentSessionId);
-            if (!abortRecord) return false;
-            const timeSinceAbort = Date.now() - abortRecord.timestamp;
+        const wasRecentlyAborted = sessionAbortTimestamp && (() => {
+            const timeSinceAbort = Date.now() - sessionAbortTimestamp;
             return timeSinceAbort < 2000;
         })();
         
@@ -610,7 +605,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBo
         }
         
         prevSessionPhaseRef.current = sessionPhase;
-    }, [sessionPhase, queuedMessages.length, currentSessionId, currentProviderId, currentModelId, sessionAbortFlags, queueSendBehavior]);
+    }, [sessionPhase, queuedMessages.length, currentSessionId, currentProviderId, currentModelId, sessionAbortTimestamp, queueSendBehavior]);
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         // Early return during IME composition to prevent interference with autocomplete.
@@ -721,7 +716,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBo
 
         if (currentSessionId) {
 
-            saveSessionAgentSelection(currentSessionId, nextAgent.name);
+            saveAgentSelection(nextAgent.name);
         }
     };
 
@@ -901,7 +896,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBo
             return;
         }
 
-        if (!currentSessionId && !newSessionDraftOpen) {
+        if (!currentSessionId) {
             return;
         }
 
@@ -915,10 +910,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBo
         let attachedCount = 0;
 
         for (const file of imageFiles) {
-            const sizeBefore = useSessionStore.getState().attachedFiles.length;
+            const sizeBefore = useFileStore.getState().attachedFiles.length;
             try {
                 await addAttachedFile(file);
-                const sizeAfter = useSessionStore.getState().attachedFiles.length;
+                const sizeAfter = useFileStore.getState().attachedFiles.length;
                 if (sizeAfter > sizeBefore) {
                     attachedCount += 1;
                 }
@@ -931,7 +926,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBo
         if (attachedCount > 0) {
             toast.success(`Attached ${attachedCount} image${attachedCount > 1 ? 's' : ''} from clipboard`);
         }
-    }, [addAttachedFile, currentSessionId, newSessionDraftOpen, insertTextAtSelection]);
+    }, [addAttachedFile, currentSessionId, true, insertTextAtSelection]);
 
     const handleFileSelect = (file: { name: string; path: string }) => {
 
@@ -1040,16 +1035,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBo
         }
     }, [currentSessionId, isMobile]);
 
-    React.useEffect(() => {
-        if (abortPromptSessionId && abortPromptSessionId !== currentSessionId) {
-            clearAbortPrompt();
-        }
-    }, [abortPromptSessionId, currentSessionId, clearAbortPrompt]);
+    // Abort prompt cleanup handled by store directly
 
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        if ((currentSessionId || newSessionDraftOpen) && !isDragging) {
+        if ((true) && !isDragging) {
             setIsDragging(true);
         }
     };
@@ -1067,16 +1058,16 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBo
         e.stopPropagation();
         setIsDragging(false);
 
-        if (!currentSessionId && !newSessionDraftOpen) return;
+        if (!currentSessionId) return;
 
         const files = Array.from(e.dataTransfer.files);
         let attachedCount = 0;
 
         for (const file of files) {
-            const sizeBefore = useSessionStore.getState().attachedFiles.length;
+            const sizeBefore = useFileStore.getState().attachedFiles.length;
             try {
                 await addAttachedFile(file);
-                const sizeAfter = useSessionStore.getState().attachedFiles.length;
+                const sizeAfter = useFileStore.getState().attachedFiles.length;
                 if (sizeAfter > sizeBefore) {
                     attachedCount += 1;
                 }
@@ -1095,10 +1086,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBo
         let attachedCount = 0;
 
         for (const file of files) {
-            const sizeBefore = useSessionStore.getState().attachedFiles.length;
+            const sizeBefore = useFileStore.getState().attachedFiles.length;
             try {
                 await addServerFile(file.path, file.name);
-                const sizeAfter = useSessionStore.getState().attachedFiles.length;
+                const sizeAfter = useFileStore.getState().attachedFiles.length;
                 if (sizeAfter > sizeBefore) {
                     attachedCount += 1;
                 }
@@ -1121,10 +1112,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBo
         const list = Array.isArray(files) ? files : Array.from(files);
 
         for (const file of list) {
-            const sizeBefore = useSessionStore.getState().attachedFiles.length;
+            const sizeBefore = useFileStore.getState().attachedFiles.length;
             try {
                 await addAttachedFile(file);
-                const sizeAfter = useSessionStore.getState().attachedFiles.length;
+                const sizeAfter = useFileStore.getState().attachedFiles.length;
                 if (sizeAfter > sizeBefore) {
                     attachedCount += 1;
                 }
@@ -1239,13 +1230,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBo
     ) : (
         <button
             type={isMobile ? 'button' : 'submit'}
-            disabled={!canSend || (!currentSessionId && !newSessionDraftOpen)}
+            disabled={!canSend || (!currentSessionId)}
             onPointerDownCapture={(event) => {
                 if (!isMobile || event.pointerType !== 'touch') {
                     return;
                 }
 
-                if (!canSend || (!currentSessionId && !newSessionDraftOpen)) {
+                if (!canSend || (!currentSessionId)) {
                     return;
                 }
 
@@ -1269,7 +1260,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBo
             }}
             className={cn(
                 iconButtonBaseClass,
-                canSend && (currentSessionId || newSessionDraftOpen)
+                canSend && (true)
                     ? 'text-primary hover:text-primary'
                     : 'opacity-30'
             )}
@@ -1370,12 +1361,12 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBo
         if (!prevWasAbortedRef.current && pendingAbortBanner && !showAbortStatus) {
             startAbortIndicator();
             if (currentSessionId) {
-                acknowledgeSessionAbort(currentSessionId);
+                acknowledgeAbort();
             }
         }
         prevWasAbortedRef.current = pendingAbortBanner;
     }, [
-        acknowledgeSessionAbort,
+        acknowledgeAbort,
         currentSessionId,
         showAbortStatus,
         startAbortIndicator,
@@ -1511,10 +1502,10 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onOpenSettings, scrollToBo
                             onKeyDown={handleKeyDown}
                             onPaste={handlePaste}
                             onPointerDownCapture={handleTextareaPointerDownCapture}
-                            placeholder={currentSessionId || newSessionDraftOpen
+                            placeholder={true
                                 ? "# for agents; @ for files; / for commands"
                                 : "Select or create a session to start chatting"}
-                            disabled={!currentSessionId && !newSessionDraftOpen}
+                            disabled={!currentSessionId}
 
                         className={cn(
                             'min-h-[52px] resize-none border-0 px-3 shadow-none rounded-b-none appearance-none focus:shadow-none focus-visible:shadow-none focus-visible:border-transparent focus-visible:ring-0 focus-visible:ring-transparent hover:border-transparent bg-transparent',

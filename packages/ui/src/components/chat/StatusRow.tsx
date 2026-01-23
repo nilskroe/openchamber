@@ -2,7 +2,7 @@ import React from "react";
 import { RiArrowUpSLine, RiArrowDownSLine, RiCloseCircleLine } from "@remixicon/react";
 import { cn } from "@/lib/utils";
 import { useTodoStore, type TodoItem, type TodoStatus } from "@/stores/useTodoStore";
-import { useSessionStore } from "@/stores/useSessionStore";
+import { useChatStore } from "@/stores/useChatStore";
 import { useUIStore } from "@/stores/useUIStore";
 import { WorkingPlaceholder } from "./message/parts/WorkingPlaceholder";
 import { isVSCodeRuntime } from "@/lib/desktop";
@@ -76,7 +76,7 @@ export const StatusRow: React.FC<StatusRowProps> = ({
   showAbortStatus,
 }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
-  const currentSessionId = useSessionStore((state) => state.currentSessionId);
+  const currentSessionId = useChatStore((state) => state.currentSessionId);
   const todos = useTodoStore((state) =>
     currentSessionId ? state.sessionTodos.get(currentSessionId) ?? EMPTY_TODOS : EMPTY_TODOS
   );

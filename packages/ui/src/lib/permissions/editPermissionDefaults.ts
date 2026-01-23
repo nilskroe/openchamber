@@ -1,4 +1,4 @@
-import type { EditPermissionMode } from '@/stores/types/sessionTypes';
+import type { EditPermissionMode } from '@/stores/types/chatTypes';
 
 export type BashPermissionValue = 'allow' | 'ask' | 'deny';
 export type BashPermissionSetting = BashPermissionValue | Record<string, BashPermissionValue | undefined>;

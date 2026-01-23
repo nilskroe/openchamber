@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { ProviderLogo } from '@/components/ui/ProviderLogo';
 import { useAgentGroupsStore, type AgentGroup, type AgentGroupSession } from '@/stores/useAgentGroupsStore';
-import { useSessionStore } from '@/stores/useSessionStore';
+import { useChatStore } from '@/stores/useChatStore';
 import { ChatContainer } from '@/components/chat/ChatContainer';
 import { ChatErrorBoundary } from '@/components/chat/ChatErrorBoundary';
 import {
@@ -39,7 +39,7 @@ export const AgentGroupDetail: React.FC<AgentGroupDetailProps> = ({
   className,
 }) => {
   const { selectedSessionId, selectSession, deleteGroupWorktree, keepOnlyGroupWorktree } = useAgentGroupsStore();
-  const { setCurrentSession, currentSessionId } = useSessionStore();
+  const { currentSessionId } = useChatStore();
   const [worktreeDialog, setWorktreeDialog] = React.useState<null | { kind: 'remove' | 'keepOnly'; path: string; label: string }>(null);
   const [isProcessing, setIsProcessing] = React.useState(false);
   
@@ -49,36 +49,17 @@ export const AgentGroupDetail: React.FC<AgentGroupDetailProps> = ({
     return group.sessions.find((s) => s.id === selectedSessionId) ?? group.sessions[0] ?? null;
   }, [group.sessions, selectedSessionId]);
   
-  // When selecting a session, switch to that OpenCode session
-  // NOTE: We intentionally do NOT change the global directory here to avoid
-  // re-triggering loadGroups() which would cause groups to disappear
+  // When selecting a session, update the selection (view-only, doesn't change active chat)
   const handleSessionSelect = React.useCallback((session: AgentGroupSession) => {
     selectSession(session.id);
-    
-    // Switch to the OpenCode session
-    setCurrentSession(session.id);
-  }, [selectSession, setCurrentSession]);
+  }, [selectSession]);
   
-  // Auto-select first session when group changes and sync OpenCode session
+  // Auto-select first session when group changes
   React.useEffect(() => {
-    if (group.sessions.length > 0) {
-      const session = selectedSessionId 
-        ? group.sessions.find((s) => s.id === selectedSessionId) ?? group.sessions[0]
-        : group.sessions[0];
-      
-      if (session) {
-        // Always ensure the OpenCode session is synced
-        if (session.id !== currentSessionId) {
-          setCurrentSession(session.id);
-        }
-        
-        // Update selection if not already selected
-        if (!selectedSessionId) {
-          selectSession(session.id);
-        }
-      }
+    if (group.sessions.length > 0 && !selectedSessionId) {
+      selectSession(group.sessions[0].id);
     }
-  }, [group.name, group.sessions, selectedSessionId, currentSessionId, selectSession, setCurrentSession]);
+  }, [group.name, group.sessions, selectedSessionId, selectSession]);
 
   // Check if the current OpenCode session matches the selected agent group session
   const isSessionSynced = selectedSession?.id === currentSessionId;

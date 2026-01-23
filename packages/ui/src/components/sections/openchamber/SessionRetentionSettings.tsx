@@ -28,7 +28,7 @@ export const SessionRetentionSettings: React.FC = () => {
   const pendingCount = candidates.length;
 
   const handleRunCleanup = React.useCallback(async () => {
-    const result = await runCleanup({ force: true });
+    const result = await runCleanup();
     if (result.deletedIds.length === 0 && result.failedIds.length === 0) {
       toast.message('No sessions eligible for deletion');
       return;

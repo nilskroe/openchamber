@@ -18,8 +18,7 @@ import { ArrowsMerge } from '@/components/icons/ArrowsMerge';
 import type { ContentChangeReason } from '@/hooks/useChatScrollManager';
 
 import { SimpleMarkdownRenderer } from '../MarkdownRenderer';
-import { useMessageStore } from '@/stores/messageStore';
-import { useSessionStore } from '@/stores/useSessionStore';
+import { useChatStore } from '@/stores/useChatStore';
 import { useUIStore } from '@/stores/useUIStore';
 import { flattenAssistantTextParts } from '@/lib/messages/messageText';
 import { MULTIRUN_EXECUTION_FORK_PROMPT_META_TEXT } from '@/lib/messages/executionMeta';
@@ -310,7 +309,7 @@ const AssistantMessageBody: React.FC<Omit<MessageBodyProps, 'isUser'>> = ({
         return visibleParts.filter((part) => part.type === 'text');
     }, [visibleParts]);
 
-    const createSessionFromAssistantMessage = useSessionStore((state) => state.createSessionFromAssistantMessage);
+    const forkFromMessageFn = useChatStore((state) => state.forkFromMessage);
     const openMultiRunLauncherWithPrompt = useUIStore((state) => state.openMultiRunLauncherWithPrompt);
     const isLastAssistantInTurn = turnGroupingContext?.isLastAssistantInTurn ?? false;
     const hasStopFinish = messageFinish === 'stop';
@@ -476,12 +475,12 @@ const AssistantMessageBody: React.FC<Omit<MessageBodyProps, 'isUser'>> = ({
         (event: React.MouseEvent<HTMLButtonElement>) => {
             event.stopPropagation();
             event.preventDefault();
-            if (!createSessionFromAssistantMessage) {
+            if (!forkFromMessageFn || !messageId) {
                 return;
             }
-            void createSessionFromAssistantMessage(messageId);
+            void forkFromMessageFn(messageId);
         },
-        [createSessionFromAssistantMessage, messageId]
+        [forkFromMessageFn, messageId]
     );
 
     const handleForkMultiRunClick = React.useCallback(
@@ -765,13 +764,10 @@ const AssistantMessageBody: React.FC<Omit<MessageBodyProps, 'isUser'>> = ({
     ]);
 
     const userMessageId = turnGroupingContext?.turnId;
-    const currentSessionId = useSessionStore((state) => state.currentSessionId);
 
-    const rawSummaryBodyFromStore = useMessageStore((state) => {
-        if (!userMessageId || !currentSessionId) return undefined;
-        const sessionMessages = state.messages.get(currentSessionId);
-        if (!sessionMessages) return undefined;
-        const userMsg = sessionMessages.find((m) => m.info?.id === userMessageId);
+    const rawSummaryBodyFromStore = useChatStore((state) => {
+        if (!userMessageId) return undefined;
+        const userMsg = state.messages.find((m) => m.info?.id === userMessageId);
         if (!userMsg) return undefined;
         const summary = (userMsg.info as { summary?: { body?: string | null | undefined } | null | undefined }).summary;
         const body = summary?.body;

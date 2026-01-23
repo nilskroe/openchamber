@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { devtools, persist, createJSONStorage } from 'zustand/middleware';
 import { getSafeStorage } from './utils/safeStorage';
-import type { AttachedFile } from './types/sessionTypes';
+import type { AttachedFile } from './types/chatTypes';
 import { updateDesktopSettings } from '@/lib/persistence';
 
 export interface QueuedMessage {

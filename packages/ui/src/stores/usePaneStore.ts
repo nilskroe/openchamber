@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
-import { useSessionStore } from './useSessionStore';
 import { useUIStore } from './useUIStore';
 import { type PaneTabType, getTabLabel } from '@/constants/tabs';
 
@@ -194,10 +193,14 @@ export const usePaneStore = create<PaneStore>()(
         closeTab: (worktreeId: string, paneId: PaneId, tabId: string) => {
           const panes = get().panesByWorktree.get(worktreeId);
           if (!panes) return;
-          
+
           const paneState = panes[paneId];
           const tabIndex = paneState.tabs.findIndex((t) => t.id === tabId);
           if (tabIndex === -1) return;
+
+          // Chat and appRunner tabs are non-closable
+          const tab = paneState.tabs[tabIndex];
+          if (tab.type === 'chat' || tab.type === 'appRunner') return;
           
           const newTabs = paneState.tabs.filter((t) => t.id !== tabId);
           let newActiveTabId = paneState.activeTabId;
@@ -225,10 +228,7 @@ export const usePaneStore = create<PaneStore>()(
             return { panesByWorktree };
           });
           
-          // Sync session if auto-selected a chat tab
-          if (newActiveTab?.type === 'chat' && newActiveTab.sessionId) {
-            useSessionStore.getState().setCurrentSession(newActiveTab.sessionId);
-          }
+          // Session is determined by worktree directory, not tab switching
         },
         
         setActiveTab: (worktreeId: string, paneId: PaneId, tabId: string) => {
@@ -355,20 +355,18 @@ export const usePaneStore = create<PaneStore>()(
         
         openChatSession: (worktreeId: string, paneId: PaneId, sessionId: string, title?: string) => {
           const { findTabBySessionId, setActiveTab, addTab } = get();
-          
+
           const existing = findTabBySessionId(worktreeId, sessionId);
           if (existing) {
             setActiveTab(worktreeId, existing.paneId, existing.tab.id);
-            useSessionStore.getState().setCurrentSession(sessionId);
             return existing.tab.id;
           }
-          
+
           const tabId = addTab(worktreeId, paneId, {
             type: 'chat',
             title: title ?? 'Chat',
             sessionId,
           });
-          useSessionStore.getState().setCurrentSession(sessionId);
           return tabId;
         },
         
@@ -392,14 +390,11 @@ export const usePaneStore = create<PaneStore>()(
           const { focusedPane, panesByWorktree, setActiveTab } = get();
           const panes = panesByWorktree.get(worktreeId);
           if (!panes) return;
-          
+
           const paneState = panes[focusedPane];
           if (index >= 0 && index < paneState.tabs.length) {
             const tab = paneState.tabs[index];
             setActiveTab(worktreeId, focusedPane, tab.id);
-            if (tab.type === 'chat' && tab.sessionId) {
-              useSessionStore.getState().setCurrentSession(tab.sessionId);
-            }
           }
         },
         
@@ -407,9 +402,11 @@ export const usePaneStore = create<PaneStore>()(
           const { focusedPane, panesByWorktree, closeTab } = get();
           const panes = panesByWorktree.get(worktreeId);
           if (!panes) return;
-          
+
           const paneState = panes[focusedPane];
           if (paneState.activeTabId) {
+            const activeTab = paneState.tabs.find((t) => t.id === paneState.activeTabId);
+            if (activeTab && (activeTab.type === 'chat' || activeTab.type === 'appRunner')) return;
             closeTab(worktreeId, focusedPane, paneState.activeTabId);
           }
         },

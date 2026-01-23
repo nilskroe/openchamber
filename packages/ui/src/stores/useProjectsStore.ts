@@ -7,6 +7,9 @@ import { updateDesktopSettings } from '@/lib/persistence';
 import { getSafeStorage } from './utils/safeStorage';
 import { useDirectoryStore } from './useDirectoryStore';
 import { streamDebugEnabled } from '@/stores/utils/streamDebug';
+import { checkIsGitRepository, getRemoteUrl } from '@/lib/gitApi';
+import { parseGitHubRemoteUrl } from '@/lib/github-repos/utils';
+import { normalizePath } from '@/lib/paths';
 
 interface ProjectPathValidationResult {
   ok: boolean;
@@ -18,7 +21,7 @@ interface ProjectsStore {
   projects: ProjectEntry[];
   activeProjectId: string | null;
 
-  addProject: (path: string, options?: { label?: string; id?: string }) => ProjectEntry | null;
+  addProject: (path: string, options: { label?: string; id?: string; owner: string; repo: string }) => ProjectEntry | null;
   removeProject: (id: string) => void;
   setActiveProject: (id: string) => void;
   setActiveProjectIdOnly: (id: string) => void;
@@ -60,11 +63,7 @@ const normalizeProjectPath = (value: string): string => {
   const homeDirectory = safeStorage.getItem('homeDirectory') || useDirectoryStore.getState().homeDirectory || '';
   const expanded = resolveTildePath(trimmed, homeDirectory);
 
-  const normalized = expanded.replace(/\\/g, '/');
-  if (normalized === '/') {
-    return '/';
-  }
-  return normalized.length > 1 ? normalized.replace(/\/+$/, '') : normalized;
+  return normalizePath(expanded);
 };
 
 const deriveProjectLabel = (path: string): string => {
@@ -100,6 +99,11 @@ const sanitizeProjects = (value: unknown): ProjectEntry[] => {
     const rawPath = typeof candidate.path === 'string' ? candidate.path.trim() : '';
     if (!id || !rawPath) continue;
 
+    // Require owner and repo fields (migration: drop entries without them)
+    const owner = typeof candidate.owner === 'string' ? candidate.owner.trim() : '';
+    const repo = typeof candidate.repo === 'string' ? candidate.repo.trim() : '';
+    if (!owner || !repo) continue;
+
     const normalizedPath = normalizeProjectPath(rawPath);
     if (!normalizedPath) continue;
 
@@ -110,6 +114,8 @@ const sanitizeProjects = (value: unknown): ProjectEntry[] => {
     const project: ProjectEntry = {
       id,
       path: normalizedPath,
+      owner,
+      repo,
     };
 
     if (typeof candidate.label === 'string' && candidate.label.trim().length > 0) {
@@ -220,6 +226,8 @@ const getVSCodeWorkspaceProject = (): { projects: ProjectEntry[]; activeProjectI
     label: deriveProjectLabel(normalizedPath),
     addedAt: Date.now(),
     lastOpenedAt: Date.now(),
+    owner: '',
+    repo: '',
   };
 
   if (streamDebugEnabled()) {
@@ -260,7 +268,7 @@ export const useProjectsStore = create<ProjectsStore>()(
       return { ok: true, normalizedPath: normalized };
     },
 
-    addProject: (path: string, options?: { label?: string; id?: string }) => {
+    addProject: (path: string, options: { label?: string; id?: string; owner: string; repo: string }) => {
       if (vscodeWorkspace) {
         return null;
       }
@@ -278,7 +286,7 @@ export const useProjectsStore = create<ProjectsStore>()(
       }
 
       const now = Date.now();
-      const label = options?.label?.trim() || deriveProjectLabel(normalizedPath);
+      const label = options?.label?.trim() || `${options.owner}/${options.repo}`;
       const candidateId = options?.id?.trim();
       const id = candidateId && !get().projects.some((project) => project.id === candidateId)
         ? candidateId
@@ -289,6 +297,8 @@ export const useProjectsStore = create<ProjectsStore>()(
         label,
         addedAt: now,
         lastOpenedAt: now,
+        owner: options.owner,
+        repo: options.repo,
       };
 
       const nextProjects = [...get().projects, entry];
@@ -500,4 +510,27 @@ if (typeof window !== 'undefined') {
       useProjectsStore.getState().synchronizeFromSettings(detail);
     }
   });
+}
+
+/**
+ * Validate that a directory is a GitHub repository and extract owner/repo.
+ * Returns { owner, repo } on success, or throws an error with a user-friendly message.
+ */
+export async function validateGitHubProject(path: string): Promise<{ owner: string; repo: string }> {
+  const isGitRepo = await checkIsGitRepository(path).catch(() => false);
+  if (!isGitRepo) {
+    throw new Error('This directory is not a Git repository.');
+  }
+
+  const remoteUrl = await getRemoteUrl(path, 'origin');
+  if (!remoteUrl) {
+    throw new Error('No remote "origin" found. Only GitHub repositories can be added.');
+  }
+
+  const info = parseGitHubRemoteUrl(remoteUrl);
+  if (!info) {
+    throw new Error('Remote is not a GitHub repository. Only GitHub repositories are supported.');
+  }
+
+  return { owner: info.owner, repo: info.repo };
 }

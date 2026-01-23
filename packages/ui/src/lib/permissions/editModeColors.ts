@@ -1,4 +1,4 @@
-import type { EditPermissionMode } from '@/stores/types/sessionTypes';
+import type { EditPermissionMode } from '@/stores/types/chatTypes';
 
 export interface EditModeColors {
     text: string;

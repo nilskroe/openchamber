@@ -23,6 +23,7 @@ import { AgentSelector } from '@/components/multirun/AgentSelector';
 import { isIMECompositionEvent } from '@/lib/ime';
 import { getWorktreeSetupCommands } from '@/lib/openchamberConfig';
 import type { CreateMultiRunParams, MultiRunFileAttachment } from '@/types/multirun';
+import { normalizePath } from '@/lib/paths';
 
 /** Max file size in bytes (10MB) */
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
@@ -102,7 +103,7 @@ export const AgentManagerEmptyState: React.FC<AgentManagerEmptyStateProps> = ({
     if (!base) return null;
 
 
-    const normalized = base.replace(/\\/g, '/').replace(/\/+$/, '') || base;
+    const normalized = normalizePath(base);
     const marker = '/.openchamber/';
     const markerIndex = normalized.indexOf(marker);
     if (markerIndex > 0) return normalized.slice(0, markerIndex);

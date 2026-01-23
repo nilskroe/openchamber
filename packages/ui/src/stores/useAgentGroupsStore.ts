@@ -3,10 +3,10 @@ import { devtools } from 'zustand/middleware';
 import { opencodeClient } from '@/lib/opencode/client';
 import { useDirectoryStore } from './useDirectoryStore';
 import { useProjectsStore } from './useProjectsStore';
-import { useSessionStore } from './useSessionStore';
 import type { WorktreeMetadata } from '@/types/worktree';
-import { listWorktrees, mapWorktreeToMetadata } from '@/lib/git/worktreeService';
+import { listWorktrees, mapWorktreeToMetadata, archiveWorktree, getWorktreeStatus } from '@/lib/git/worktreeService';
 import type { Session } from '@opencode-ai/sdk/v2';
+import { normalizePath as normalize } from '@/lib/paths';
 
 const OPENCHAMBER_DIR = '.openchamber';
 
@@ -107,13 +107,6 @@ interface AgentGroupsActions {
 }
 
 type AgentGroupsStore = AgentGroupsState & AgentGroupsActions;
-
-const normalize = (value: string): string => {
-  if (!value) return '';
-  const replaced = value.replace(/\\/g, '/');
-  if (replaced === '/') return '/';
-  return replaced.replace(/\/+$/, '');
-};
 
 const buildOpenChamberRoot = (projectDirectory: string): string => {
   const normalizedProject = normalize(projectDirectory);
@@ -282,7 +275,6 @@ const collectDeleteCandidates = async (params: {
 }): Promise<Array<{ worktreePath: string; sessionIds: string[]; metadata?: WorktreeMetadata }>> => {
   const { apiClient, group, projectDirectory, worktreePaths } = params;
   const metadataByPath = await buildWorktreeMetadataByPath(group, projectDirectory);
-  const sessionStore = useSessionStore.getState();
 
   const uniqueWorktreePaths = Array.from(new Set(worktreePaths.map((path) => normalize(path)).filter(Boolean)));
   const concurrency = 5;
@@ -296,21 +288,16 @@ const collectDeleteCandidates = async (params: {
       index += 1;
 
       const sessionsInGroup = group.sessions.filter((session) => normalize(session.path) === current).map((session) => session.id);
-      const cached = sessionStore.getSessionsByDirectory(current);
-      const cachedIds = Array.isArray(cached) ? cached.map((session) => session.id) : [];
 
-      // Prefer the session store cache (already directory-partitioned). If empty, fall back to direct API listing.
       let listedIds: string[] = [];
-      if (cachedIds.length === 0) {
-        try {
-          const listed = await listSessionsForDirectory(apiClient, current);
-          listedIds = listed.map((session) => session.id);
-        } catch {
-          listedIds = [];
-        }
+      try {
+        const listed = await listSessionsForDirectory(apiClient, current);
+        listedIds = listed.map((session) => session.id);
+      } catch {
+        listedIds = [];
       }
 
-      const ids = Array.from(new Set([...cachedIds, ...listedIds, ...sessionsInGroup].filter(Boolean)));
+      const ids = Array.from(new Set([...listedIds, ...sessionsInGroup].filter(Boolean)));
       results.push({
         worktreePath: current,
         sessionIds: ids,
@@ -321,6 +308,51 @@ const collectDeleteCandidates = async (params: {
 
   await Promise.all(Array.from({ length: Math.min(concurrency, uniqueWorktreePaths.length) }, worker));
   return results;
+};
+
+const deleteSessionsWithArchive = async (
+  candidates: Array<{ worktreePath: string; sessionIds: string[]; metadata?: WorktreeMetadata }>
+): Promise<{ deletedIds: string[]; failedIds: string[] }> => {
+  const deletedIds: string[] = [];
+  const failedIds: string[] = [];
+  const archivedPaths = new Set<string>();
+
+  for (const { worktreePath, sessionIds, metadata } of candidates) {
+    // Archive the worktree if we have metadata and haven't already archived this path
+    if (metadata && !archivedPaths.has(metadata.path)) {
+      try {
+        const status = metadata.status ?? (await getWorktreeStatus(metadata.path).catch(() => undefined));
+        await archiveWorktree({
+          projectDirectory: metadata.projectDirectory,
+          path: metadata.path,
+          branch: metadata.branch,
+          force: Boolean(status?.isDirty),
+        });
+        archivedPaths.add(metadata.path);
+      } catch {
+        // Continue deleting sessions even if archival fails
+      }
+    }
+
+    // Delete each session via the API
+    for (const id of sessionIds) {
+      try {
+        const deleteRequest = () => opencodeClient.deleteSession(id);
+        const success = worktreePath
+          ? await opencodeClient.withDirectory(worktreePath, deleteRequest)
+          : await deleteRequest();
+        if (success) {
+          deletedIds.push(id);
+        } else {
+          failedIds.push(id);
+        }
+      } catch {
+        failedIds.push(id);
+      }
+    }
+  }
+
+  return { deletedIds, failedIds };
 };
 
 /**
@@ -617,19 +649,7 @@ export const useAgentGroupsStore = create<AgentGroupsStore>()(
             worktreePaths: group.sessions.map((s) => s.path),
           });
 
-          const sessionStore = useSessionStore.getState();
-          const ids = new Set<string>();
-          candidates.forEach(({ worktreePath, sessionIds, metadata }) => {
-            sessionIds.forEach((id) => {
-              ids.add(id);
-              if (metadata) {
-                sessionStore.setWorktreeMetadata(id, metadata);
-                sessionStore.setSessionDirectory(id, worktreePath);
-              }
-            });
-          });
-
-          const { failedIds } = await sessionStore.deleteSessions(Array.from(ids), { archiveWorktree: true, silent: true });
+          const { failedIds } = await deleteSessionsWithArchive(candidates);
           if (failedIds.length > 0) {
             set({ error: 'Failed to delete some sessions' });
           }
@@ -675,19 +695,7 @@ export const useAgentGroupsStore = create<AgentGroupsStore>()(
             worktreePaths: [normalizedWorktreePath],
           });
 
-          const sessionStore = useSessionStore.getState();
-          const ids = new Set<string>();
-          candidates.forEach(({ worktreePath: resolvedPath, sessionIds, metadata }) => {
-            sessionIds.forEach((id) => {
-              ids.add(id);
-              if (metadata) {
-                sessionStore.setWorktreeMetadata(id, metadata);
-                sessionStore.setSessionDirectory(id, resolvedPath);
-              }
-            });
-          });
-
-          const { failedIds } = await sessionStore.deleteSessions(Array.from(ids), { archiveWorktree: true, silent: true });
+          const { failedIds } = await deleteSessionsWithArchive(candidates);
           if (failedIds.length > 0) {
             set({ error: 'Failed to delete some sessions' });
           }
@@ -752,19 +760,7 @@ export const useAgentGroupsStore = create<AgentGroupsStore>()(
             worktreePaths: toDelete,
           });
 
-          const sessionStore = useSessionStore.getState();
-          const ids = new Set<string>();
-          candidates.forEach(({ worktreePath, sessionIds, metadata }) => {
-            sessionIds.forEach((id) => {
-              ids.add(id);
-              if (metadata) {
-                sessionStore.setWorktreeMetadata(id, metadata);
-                sessionStore.setSessionDirectory(id, worktreePath);
-              }
-            });
-          });
-
-          const { failedIds } = await sessionStore.deleteSessions(Array.from(ids), { archiveWorktree: true, silent: true });
+          const { failedIds } = await deleteSessionsWithArchive(candidates);
           if (failedIds.length > 0) {
             set({ error: 'Failed to delete some sessions' });
           }

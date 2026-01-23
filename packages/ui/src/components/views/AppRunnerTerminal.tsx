@@ -60,14 +60,17 @@ export const AppRunnerTerminal: React.FC = () => {
   const {
     enabled,
     command,
-    status,
-    terminalSessionId,
     setStatus,
     setTerminalSessionId,
     addDetectedUrl,
     clearDetectedUrls,
     setLastExitCode,
   } = useAppRunnerStore();
+
+  // Read per-directory state reactively
+  const dirState = useAppRunnerStore((s) => effectiveDirectory ? s.directoryStates[effectiveDirectory] : undefined);
+  const status = dirState?.status ?? 'stopped';
+  const terminalSessionId = dirState?.terminalSessionId ?? null;
 
   const [bufferChunks, setBufferChunks] = React.useState<TerminalChunk[]>([]);
   const [connectionError, setConnectionError] = React.useState<string | null>(null);
@@ -85,16 +88,35 @@ export const AppRunnerTerminal: React.FC = () => {
     terminalIdRef.current = terminalSessionId;
   }, [terminalSessionId]);
 
+  // When directory changes, disconnect the old stream and reset local state
   React.useEffect(() => {
+    const prevDir = directoryRef.current;
     directoryRef.current = effectiveDirectory;
+
+    if (prevDir && prevDir !== effectiveDirectory) {
+      // Disconnect stream from old directory's terminal
+      streamCleanupRef.current?.();
+      streamCleanupRef.current = null;
+      activeTerminalIdRef.current = null;
+      commandSentRef.current = false;
+
+      // Clear local terminal buffer and errors
+      setBufferChunks([]);
+      nextChunkIdRef.current = 1;
+      setConnectionError(null);
+      setIsFatalError(false);
+    }
   }, [effectiveDirectory]);
 
   const appendToBuffer = React.useCallback((chunk: string) => {
     if (!chunk) return;
 
-    const urls = parseUrlsFromText(chunk);
-    for (const { url, port } of urls) {
-      addDetectedUrl(url, port);
+    const dir = directoryRef.current;
+    if (dir) {
+      const urls = parseUrlsFromText(chunk);
+      for (const { url, port } of urls) {
+        addDetectedUrl(dir, url, port);
+      }
     }
 
     const chunkId = nextChunkIdRef.current++;
@@ -147,6 +169,9 @@ export const AppRunnerTerminal: React.FC = () => {
         terminalId,
         {
           onEvent: (event: TerminalStreamEvent) => {
+            const dir = directoryRef.current;
+            if (!dir) return;
+
             switch (event.type) {
               case 'connected': {
                 if (event.runtime || event.ptyBackend) {
@@ -156,20 +181,21 @@ export const AppRunnerTerminal: React.FC = () => {
                 }
                 setConnectionError(null);
                 setIsFatalError(false);
-                
+
                 if (!commandSentRef.current && command) {
                   commandSentRef.current = true;
-                  setStatus('starting');
+                  setStatus(dir, 'starting');
                   setTimeout(() => {
                     void terminal.sendInput(terminalId, command + '\n').then(() => {
-                      setStatus('running');
+                      const currentDir = directoryRef.current;
+                      if (currentDir) setStatus(currentDir, 'running');
                     }).catch((error) => {
                       console.error('[AppRunner] Failed to send command:', error);
                       setConnectionError(error instanceof Error ? error.message : 'Failed to send command');
                     });
                   }, 100);
                 }
-                
+
                 terminalControllerRef.current?.focus();
                 break;
               }
@@ -195,9 +221,9 @@ export const AppRunnerTerminal: React.FC = () => {
                     exitCode !== null ? ` with code ${exitCode}` : ''
                   }${signal !== null ? ` (signal ${signal})` : ''}]\r\n`
                 );
-                setLastExitCode(exitCode);
-                setStatus(exitCode === 0 ? 'stopped' : 'crashed');
-                setTerminalSessionId(null);
+                setLastExitCode(dir, exitCode);
+                setStatus(dir, exitCode === 0 ? 'stopped' : 'crashed');
+                setTerminalSessionId(dir, null);
                 setConnectionError(null);
                 disconnectStream();
                 commandSentRef.current = false;
@@ -206,6 +232,7 @@ export const AppRunnerTerminal: React.FC = () => {
             }
           },
           onError: (error, fatal) => {
+            const dir = directoryRef.current;
             const errorMsg = fatal
               ? `Connection failed: ${error.message}`
               : error.message || 'Terminal stream connection error';
@@ -213,10 +240,10 @@ export const AppRunnerTerminal: React.FC = () => {
             setConnectionError(errorMsg);
             setIsFatalError(!!fatal);
 
-            if (fatal) {
+            if (fatal && dir) {
               disconnectStream();
-              setTerminalSessionId(null);
-              setStatus('crashed');
+              setTerminalSessionId(dir, null);
+              setStatus(dir, 'crashed');
               commandSentRef.current = false;
             }
           },
@@ -233,6 +260,7 @@ export const AppRunnerTerminal: React.FC = () => {
     [appendToBuffer, command, disconnectStream, setLastExitCode, setStatus, setTerminalSessionId, terminal]
   );
 
+  // Connect to the terminal session for the current directory
   React.useEffect(() => {
     if (terminalSessionId && !activeTerminalIdRef.current) {
       startStream(terminalSessionId);
@@ -248,16 +276,16 @@ export const AppRunnerTerminal: React.FC = () => {
 
     setConnectionError(null);
     setIsFatalError(false);
-    clearDetectedUrls();
+    clearDetectedUrls(effectiveDirectory);
     clearBuffer();
     commandSentRef.current = false;
 
     try {
-      setStatus('starting');
+      setStatus(effectiveDirectory, 'starting');
       const session = await terminal.createSession({
         cwd: effectiveDirectory,
       });
-      setTerminalSessionId(session.sessionId);
+      setTerminalSessionId(effectiveDirectory, session.sessionId);
       terminalIdRef.current = session.sessionId;
       startStream(session.sessionId);
     } catch (error) {
@@ -265,17 +293,17 @@ export const AppRunnerTerminal: React.FC = () => {
         error instanceof Error ? error.message : 'Failed to start terminal session'
       );
       setIsFatalError(true);
-      setStatus('crashed');
+      setStatus(effectiveDirectory, 'crashed');
     }
   }, [effectiveDirectory, status, clearBuffer, clearDetectedUrls, setStatus, setTerminalSessionId, startStream, terminal]);
 
   const handleStop = React.useCallback(async () => {
-    if (!terminalSessionId) return;
+    if (!terminalSessionId || !effectiveDirectory) return;
 
     try {
       await terminal.sendInput(terminalSessionId, '\x03');
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       const currentId = terminalIdRef.current;
       if (currentId) {
         await terminal.close(currentId);
@@ -285,10 +313,10 @@ export const AppRunnerTerminal: React.FC = () => {
     }
 
     disconnectStream();
-    setTerminalSessionId(null);
-    setStatus('stopped');
+    setTerminalSessionId(effectiveDirectory, null);
+    setStatus(effectiveDirectory, 'stopped');
     commandSentRef.current = false;
-  }, [disconnectStream, setStatus, setTerminalSessionId, terminal, terminalSessionId]);
+  }, [disconnectStream, effectiveDirectory, setStatus, setTerminalSessionId, terminal, terminalSessionId]);
 
   React.useEffect(() => {
     handleStartRef.current = handleStart;
@@ -354,8 +382,9 @@ export const AppRunnerTerminal: React.FC = () => {
 
   const terminalSessionKey = React.useMemo(() => {
     const terminalPart = terminalSessionId ?? 'pending';
-    return `app-runner::${terminalPart}`;
-  }, [terminalSessionId]);
+    const dirPart = effectiveDirectory ?? 'none';
+    return `app-runner::${dirPart}::${terminalPart}`;
+  }, [terminalSessionId, effectiveDirectory]);
 
   const isReconnecting = connectionError?.includes('Reconnecting');
 
