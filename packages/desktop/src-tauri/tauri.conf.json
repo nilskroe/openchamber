@@ -66,6 +66,11 @@
     "createUpdaterArtifacts": true
   },
   "plugins": {
+    "deep-link": {
+      "desktop": {
+        "schemes": ["openchamber"]
+      }
+    },
     "updater": {
       "endpoints": [
         "https://github.com/btriapitsyn/openchamber/releases/latest/download/latest.json"

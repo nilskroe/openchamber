@@ -1,9 +1,12 @@
 import React from 'react';
+import { RiMacbookLine } from '@remixicon/react';
 import { ScrollableOverlay } from '@/components/ui/ScrollableOverlay';
 import { useDeviceInfo } from '@/lib/device';
 import { isVSCodeRuntime, isWebRuntime } from '@/lib/desktop';
 import { AboutSettings } from './AboutSettings';
 import { cn } from '@/lib/utils';
+
+const DESKTOP_APP_SCHEME = 'openchamber://';
 
 export type OpenChamberSection = 'visual' | 'chat' | 'sessions' | 'layout' | 'git' | 'notifications' | 'appRunner' | 'servers';
 
@@ -138,6 +141,26 @@ export const OpenChamberSidebar: React.FC<OpenChamberSidebarProps> = ({
       {showAbout && (
         <div className="border-t px-3 py-4">
           <AboutSettings />
+        </div>
+      )}
+
+      {/* Desktop App launcher (web only) */}
+      {isWeb && (
+        <div className="border-t border-border/40 px-3 py-2">
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = DESKTOP_APP_SCHEME;
+            }}
+            className={cn(
+              'flex w-full items-center gap-2 rounded-md px-1.5 py-1.5 text-left transition-colors',
+              'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+            )}
+            title="Open in Desktop App"
+          >
+            <RiMacbookLine className="h-4 w-4 shrink-0" />
+            <span className="typography-micro">Open in Desktop App</span>
+          </button>
         </div>
       )}
 

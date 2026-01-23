@@ -667,6 +667,7 @@ fn main() {
         .plugin(notification_plugin())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .plugin(tauri_plugin_deep_link::init())
         .plugin(log_builder.build())
         .menu(|app| {
             #[cfg(target_os = "macos")]
